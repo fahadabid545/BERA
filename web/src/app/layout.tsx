@@ -1,10 +1,23 @@
+import "@fontsource-variable/bricolage-grotesque";
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/600.css";
+import "@fontsource/ibm-plex-mono/400.css";
 import type { ReactNode } from "react";
+
+import { themeInitScript } from "@/lib/theme";
+
+import "@/styles/tokens.css";
+import "@/styles/base.css";
+import "@/styles/components.css";
 
 export const metadata = { title: "BERA" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="light" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body>{children}</body>
     </html>
   );

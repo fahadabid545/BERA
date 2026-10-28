@@ -1,0 +1,85 @@
+/* Design tokens. Every colour, size and font used by the UI comes from here.
+   Light is the default; dark applies when <html data-theme="dark">.
+   Green (--color-accent) is only ever a fill or indicator, never text colour. */
+
+:root,
+:root[data-theme="light"] {
+  --color-bg: #f6f7f2;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eceee5;
+  --color-text: #0d100c;
+  --color-text-muted: #444b40;
+  --color-border: #d5d9cc;
+  --color-control-border: #747c6b;
+  --color-accent: #5bd62a;
+  --color-on-accent: #0d100c;
+  --color-accent-soft: #e3f6d9;
+  --color-checked-border: #0d100c;
+  --color-focus: #0d100c;
+  --color-danger: #b3261e;
+  --color-on-danger: #ffffff;
+  --color-danger-bg: #fde7e4;
+  --color-danger-text: #8c1d18;
+  --color-warning-bg: #fff0c2;
+  --color-warning-text: #5c3d00;
+  --color-success-bg: #e3f6d9;
+  --color-success-text: #1e4d0b;
+  --color-tooltip-bg: #0d100c;
+  --color-tooltip-text: #f6f7f2;
+  --color-overlay: rgb(13 16 12 / 0.5);
+  --glow: 0 0 0 1px rgb(91 214 42 / 0.9), 0 0 10px rgb(91 214 42 / 0.4);
+  --shadow: 0 1px 2px rgb(13 16 12 / 0.08), 0 4px 12px rgb(13 16 12 / 0.06);
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #0a0c09;
+  --color-surface: #141812;
+  --color-surface-muted: #1e241b;
+  --color-text: #edf1e6;
+  --color-text-muted: #b2baa8;
+  --color-border: #2b3327;
+  --color-control-border: #8b9482;
+  --color-accent: #5bd62a;
+  --color-on-accent: #0d100c;
+  --color-accent-soft: #1f3a14;
+  --color-checked-border: #5bd62a;
+  --color-focus: #8ce85f;
+  --color-danger: #c7342c;
+  --color-on-danger: #ffffff;
+  --color-danger-bg: #3b1613;
+  --color-danger-text: #ffb4ac;
+  --color-warning-bg: #3a2c06;
+  --color-warning-text: #ffd36b;
+  --color-success-bg: #1f3a14;
+  --color-success-text: #a8f087;
+  --color-tooltip-bg: #edf1e6;
+  --color-tooltip-text: #0d100c;
+  --color-overlay: rgb(0 0 0 / 0.65);
+  --glow: 0 0 0 1px rgb(91 214 42 / 0.9), 0 0 14px rgb(91 214 42 / 0.55);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 4px 12px rgb(0 0 0 / 0.4);
+}
+
+:root {
+  --font-heading: "Bricolage Grotesque Variable", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.25rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --radius: 0.5rem;
+  --radius-pill: 999px;
+  --control-height: 2.75rem; /* comfortable touch target */
+  --page-gutter: var(--space-4);
+}

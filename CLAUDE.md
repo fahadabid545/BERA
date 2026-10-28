@@ -22,6 +22,14 @@ and why, and ask before proceeding. Never bend a rule silently.
   `get_setting("group.name")`, at the moment of use.
 - Comment *why*, not *what*. Remove dead and commented-out code.
 
+## UI design
+- Use the building blocks in `web/src/components/ui` and the tokens in
+  `web/src/styles/tokens.css`; never hard-code colours, fonts or sizes in pages.
+- Green is a fill or indicator only, never text. Warnings pair red/amber with an
+  icon and words. Focus rings are never removed. Everything works at phone width.
+- Add any new colour pair to `design-rules.test.ts` so contrast stays checked.
+- The sample page `/design` (development only) must show every building block.
+
 ## Testing
 - Every feature ships with automated tests in the same change.
 - Tests must cover the happy path **and every edge case listed in the ticket**.
