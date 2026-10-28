@@ -21,6 +21,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "core.middleware.RequestContextMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
 ]
@@ -44,4 +45,25 @@ Q_CLUSTER = {
     "timeout": 60,
     "retry": 120,
     "queue_limit": 50,
+}
+
+# One log format for everything. Handlers on the named loggers replace Django's
+# defaults so no unfiltered output remains.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {"request_context": {"()": "core.logging_setup.RequestContextFilter"}},
+    "formatters": {"standard": {"()": "core.logging_setup.RedactingFormatter"}},
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "filters": ["request_context"],
+            "formatter": "standard",
+        }
+    },
+    "root": {"handlers": ["console"], "level": "INFO"},
+    "loggers": {
+        "django": {"handlers": [], "level": "INFO", "propagate": True},
+        "django.server": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
 }

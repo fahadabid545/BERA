@@ -32,8 +32,15 @@ and why, and ask before proceeding. Never bend a rule silently.
 ## Error reporting
 - Use one consistent error-reporting mechanism across the whole project: a
   single shared error type/helper, defined once and reused everywhere.
-- Every error carries a stable machine-readable `code`, a human-readable
-  `message`, and optional non-sensitive `details`.
+- Every error carries a stable machine-readable `code`, a plain-language
+  `message`, and optional non-sensitive `details`. Form mistakes add `fields`
+  (field name to message); unexpected failures show "Something went wrong."
+  plus a `reference` that is also in the log (`core/exception_handler.py`).
+- Logs use the one shared format (`core/logging_setup.py`): time, request
+  reference, user id, company id, message. Sign-in code must call
+  `request_context.bind_actor(user_id, company_id)`. Background jobs use
+  `@logged_job` (`core/jobs.py`). Never log request bodies, headers or CV text;
+  the redacting formatter is only a second layer.
 - Never swallow errors silently. Either handle them meaningfully or propagate
   them through the shared mechanism.
 - Error messages shown to users must not leak internals (stack traces, queries,
