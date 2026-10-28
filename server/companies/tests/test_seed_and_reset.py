@@ -1,10 +1,10 @@
 import pytest
-from core.errors import AppError
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import override_settings
 
 from companies.models import Company
+from core.errors import AppError
 
 
 @pytest.mark.django_db

@@ -1,4 +1,5 @@
 line-length = 100
+src = ["server", "scripts"]
 extend-exclude = ["web", "**/migrations"]
 
 [lint]

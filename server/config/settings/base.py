@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     "django_q",
     "core",
     "companies",
+    "platform_settings",
 ]
 
 MIDDLEWARE = [

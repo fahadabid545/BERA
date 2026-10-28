@@ -1,6 +1,6 @@
 import pytest
-from config.environment import app_environment, require_settings
 
+from config.environment import app_environment, require_settings
 from core.errors import ConfigurationError
 
 

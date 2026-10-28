@@ -1,8 +1,8 @@
-from core.development_only import require_development
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
 from companies.models import Company
+from core.development_only import require_development
 
 # Obviously fake, development-only accounts. Passwords are set only when an
 # account is first created, so running this again never overwrites changes.

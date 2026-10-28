@@ -1,7 +1,8 @@
 import socket
 
-import dev
 import pytest
+
+import dev
 
 EXAMPLE = "APP_ENV=development\nDJANGO_SECRET_KEY=fake-dev-only-secret-key\n# comment\nA=b=c\n"
 

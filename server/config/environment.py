@@ -3,8 +3,9 @@
 import os
 from pathlib import Path
 
-from core.errors import ConfigurationError
 from dotenv import load_dotenv
+
+from core.errors import ConfigurationError
 
 ENVIRONMENTS = ("development", "staging", "production")
 LOCAL_ENV_FILE = Path(__file__).resolve().parent.parent.parent / ".env"

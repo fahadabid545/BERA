@@ -17,6 +17,9 @@ and why, and ask before proceeding. Never bend a rule silently.
 - Do not duplicate logic. Before writing something new, search for an existing
   implementation and reuse or extend it.
 - Keep functions and modules small, each with a single responsibility.
+- No hard-coded platform values (limits, durations, thresholds, scoring numbers).
+  Add them to `server/platform_settings/definitions.py` and read them with
+  `get_setting("group.name")`, at the moment of use.
 - Comment *why*, not *what*. Remove dead and commented-out code.
 
 ## Testing
