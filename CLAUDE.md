@@ -51,3 +51,21 @@ A ticket is done only when:
 3. Errors go through the shared error mechanism.
 4. No secrets or personal data appear in code or logs.
 5. The change is committed with a clear, descriptive message.
+
+## Technology decisions (apply to all tickets)
+- Server: Python, Django + Django REST Framework. PostgreSQL database.
+  Background jobs: Django-Q2 using PostgreSQL as the queue (no Redis for now).
+- UI: Next.js + TypeScript, one app with three areas: public website (`/`),
+  company panel (`/company`), admin panel (`/admin`).
+- Sign-in: JWT with short-lived access tokens and refresh tokens (see the
+  Security foundation tickets).
+- AI: OpenAI API. Models and prices are configured from the admin panel,
+  never hard-coded.
+- File storage: S3-compatible (Cloudflare R2) in production; a local private
+  folder in development.
+- Payments: Stripe, test mode first.
+- Local development: Windows, local PostgreSQL, one command (`python scripts/dev.py`).
+- Hosting later: one Linux server holding staging and production side by side.
+- Tooling: pytest + pytest-django and ruff (Python); Vitest + Testing Library
+  and Prettier (web). For unlisted tooling choose the standard, popular option,
+  keep it simple, and mention the choice briefly instead of asking.
