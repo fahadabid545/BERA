@@ -1,0 +1,6 @@
+# Secrets and local environment — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
