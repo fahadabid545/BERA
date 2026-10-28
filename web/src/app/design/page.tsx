@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import {
   Button,
+  ButtonLink,
   Card,
   Checkbox,
   Dialog,
@@ -41,6 +42,9 @@ export default function DesignSample() {
           <Button variant="secondary">Secondary</Button>
           <Button variant="danger">Delete</Button>
           <Button disabled>Disabled</Button>
+          <ButtonLink href="/pricing" variant="secondary">
+            Link styled as button
+          </ButtonLink>
         </div>
       </section>
 

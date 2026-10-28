@@ -1,4 +1,5 @@
 export { Button } from "./Button";
+export { ButtonLink } from "./ButtonLink";
 export { Card } from "./Card";
 export { Checkbox } from "./Checkbox";
 export { Dialog } from "./Dialog";
