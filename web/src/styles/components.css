@@ -433,7 +433,7 @@
   flex: 1;
   padding: var(--space-5) var(--page-gutter);
 }
-.home-actions {
+.page-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
