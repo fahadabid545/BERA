@@ -25,10 +25,10 @@ CATALOG = {
         paragraphs=(
             GREETING,
             "Please confirm that this is your email address. The link works once and "
-            "expires in {expires_in_hours} hours.",
+            "expires in {expires_in}.",
         ),
         button_label="Verify email",
-        variables=("name", "link", "expires_in_hours"),
+        variables=("name", "link", "expires_in"),
     ),
     "reset_password": EmailTemplate(
         subject="Reset your Bera password",
@@ -36,21 +36,21 @@ CATALOG = {
         paragraphs=(
             GREETING,
             "We received a request to reset your password. The link works once and "
-            "expires in {expires_in_hours} hours.",
+            "expires in {expires_in}.",
             "If you did not ask for this, ignore this email. Your password stays the same.",
         ),
         button_label="Reset password",
-        variables=("name", "link", "expires_in_hours"),
+        variables=("name", "link", "expires_in"),
     ),
     "team_invite": EmailTemplate(
         subject="{inviter_name} invited you to {company_name} on Bera",
         heading="You are invited",
         paragraphs=(
             "{inviter_name} invited you to join {company_name} on Bera.",
-            "The invitation works once and expires in {expires_in_days} days.",
+            "The invitation works once and expires in {expires_in}.",
         ),
         button_label="Accept invitation",
-        variables=("inviter_name", "company_name", "link", "expires_in_days"),
+        variables=("inviter_name", "company_name", "link", "expires_in"),
     ),
     "password_changed": EmailTemplate(
         subject="Your Bera password was changed",

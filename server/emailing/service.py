@@ -48,6 +48,7 @@ def send_email(template_name, to_address, *, now=False, **values):
         return None
     if now:
         deliver_email(str(email.id))
+        email.refresh_from_db()
     else:
         # After the surrounding action is saved, so a rolled-back action sends nothing.
         transaction.on_commit(lambda: _queue_delivery(email.id))

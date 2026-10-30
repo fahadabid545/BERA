@@ -75,8 +75,9 @@ class TestSending:
         assert len(provider.delivered) == 1
 
     def test_sending_immediately_delivers_before_returning(self, provider):
-        send_email("verify_email", ADDRESS, now=True, **sample_values("verify_email"))
+        email = send_email("verify_email", ADDRESS, now=True, **sample_values("verify_email"))
         assert len(provider.delivered) == 1
+        assert email.status == "sent"  # the returned email shows the outcome
 
 
 class TestFailures:

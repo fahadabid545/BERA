@@ -12,6 +12,7 @@ from emailing.links import build_link, validate_link
 from emailing.rendering import render_email
 from emailing.samples import sample_values
 from emailing.service import send_email
+from emailing.tests.flaky_backend import FlakyBackend
 
 TEMPLATES = list(CATALOG)
 ADDRESS = "developer@example.test"
@@ -100,6 +101,14 @@ def test_the_development_command_puts_one_of_each_in_the_inbox(inbox):
     assert names == sorted(TEMPLATES)
 
 
+def test_the_development_command_does_not_claim_success_when_nothing_was_saved(settings, inbox):
+    settings.EMAIL_BACKEND = "emailing.tests.flaky_backend.FlakyBackend"
+    FlakyBackend.reset(failures=99)
+    with pytest.raises(AppError) as caught:
+        call_command("send_test_emails")
+    assert caught.value.code == "test_emails_not_saved"
+
+
 def test_the_development_command_refuses_outside_development(inbox):
     with override_settings(APP_ENV="production"):
         with pytest.raises(AppError) as caught:
@@ -115,8 +124,8 @@ class TestRendering:
 
     def test_a_missing_value_is_named(self):
         values = sample_values("verify_email")
-        del values["expires_in_hours"]
-        with pytest.raises(ValueError, match="expires_in_hours"):
+        del values["expires_in"]
+        with pytest.raises(ValueError, match="expires_in"):
             render_email("verify_email", values)
 
     def test_a_name_cannot_inject_html_but_stays_readable_in_the_text_version(self):
@@ -179,3 +188,18 @@ class TestLinks:
         values = {**sample_values("reset_password"), "link": "https://evil.example.test/x"}
         with pytest.raises(ValueError):
             send_email("reset_password", ADDRESS, **values)
+
+
+@pytest.mark.parametrize(
+    ("amount", "unit", "wanted"),
+    [(1, "hour", "1 hour"), (24, "hour", "24 hours"), (7, "day", "7 days")],
+)
+def test_durations_read_naturally(amount, unit, wanted):
+    from emailing.rendering import duration_text
+
+    assert duration_text(amount, unit) == wanted
+
+
+def test_the_reset_email_says_one_hour_not_one_hours():
+    _, text, _ = render_email("reset_password", sample_values("reset_password"))
+    assert "expires in 1 hour." in text

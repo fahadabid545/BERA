@@ -4,6 +4,11 @@ from .catalog import CATALOG
 from .links import validate_link
 
 
+def duration_text(amount, unit):
+    """ "1 hour", "24 hours": the wording the emails use for how long a link works."""
+    return f"{amount} {unit}" if amount == 1 else f"{amount} {unit}s"
+
+
 def render_email(template_name, values):
     """(subject, plain text, html) for one email. Mistakes in the calling code (an unknown
     template, a missing value, a foreign link) raise ValueError: they are bugs to fix, not

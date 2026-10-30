@@ -1,19 +1,20 @@
 """Example values for every template, used by the development test command and the tests."""
 
 from .links import build_link
+from .rendering import duration_text
 
 
 def sample_values(template_name):
     link = build_link("/example", token="sample-token-for-development")
     shared = {"name": "Fake Person", "link": link, "when": "1 January 2030, 09:00 UTC"}
     return {
-        "verify_email": {**shared, "expires_in_hours": 24},
-        "reset_password": {**shared, "expires_in_hours": 1},
+        "verify_email": {**shared, "expires_in": duration_text(24, "hour")},
+        "reset_password": {**shared, "expires_in": duration_text(1, "hour")},
         "team_invite": {
             "inviter_name": "Fake Owner",
             "company_name": "Fake Test Company",
             "link": link,
-            "expires_in_days": 7,
+            "expires_in": duration_text(7, "day"),
         },
         "password_changed": shared,
         "email_changed": shared,
