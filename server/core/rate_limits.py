@@ -79,16 +79,30 @@ def seconds_blocked(subject):
     return max(0, math.ceil(remaining))
 
 
+def block(subject, seconds):
+    """Refuses everything from this subject (see seconds_blocked) for a while."""
+    BlockedSource.objects.update_or_create(
+        key=_digest("block", subject),
+        defaults={"blocked_until": now() + timedelta(seconds=seconds)},
+    )
+
+
+def count_in_window(name, subject, window_seconds, cost=1):
+    """Adds to a named count for this subject in the current fixed window; returns the total."""
+    return _add_to_counter(_digest(name, subject), window_seconds, cost)[0]
+
+
+def forget_count(name, subject):
+    RateCounter.objects.filter(key=_digest(name, subject)).delete()
+
+
 def _record_violation(subject):
     window = get_setting("rate_limits.violation_window_minutes") * SECONDS_PER_MINUTE
-    total, _ = _add_to_counter(_digest(VIOLATIONS, subject), window, 1)
+    total = count_in_window(VIOLATIONS, subject, window)
     if total < get_setting("rate_limits.violations_before_block"):
         return 0
     block_seconds = get_setting("rate_limits.block_minutes") * SECONDS_PER_MINUTE
-    BlockedSource.objects.update_or_create(
-        key=_digest("block", subject),
-        defaults={"blocked_until": now() + timedelta(seconds=block_seconds)},
-    )
+    block(subject, block_seconds)
     return block_seconds
 
 
@@ -110,7 +124,9 @@ def purge_old_counters():
     """Removes finished windows and ended blocks; for a periodic job."""
     longest_window = max(rule.window_seconds for rule in ALL_RULES)
     longest_window = max(
-        longest_window, get_setting("rate_limits.violation_window_minutes") * SECONDS_PER_MINUTE
+        longest_window,
+        get_setting("rate_limits.violation_window_minutes") * SECONDS_PER_MINUTE,
+        get_setting("signin.attempt_window_minutes") * SECONDS_PER_MINUTE,
     )
     cutoff = int(now().timestamp()) - longest_window
     RateCounter.objects.filter(window_start__lt=cutoff).delete()

@@ -36,6 +36,12 @@ PUBLIC_ROUTES = [
         reason="Monitoring must be able to check that the server is up without an account.",
     ),
     PublicRoute(
+        route="api/auth/company/login/",
+        category="login",
+        reason="A company user signs in with email and password before having a session. "
+        "Wrong guesses all look alike, are limited per address and pause the account.",
+    ),
+    PublicRoute(
         route="api/auth/company/refresh/",
         category="login",
         reason="A company user whose short access token ended must renew it with the refresh "

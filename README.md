@@ -102,6 +102,20 @@ for requests that came through our own proxies (`TRUSTED_PROXY_COUNT`); anything
 becomes Other (`ZZ`). Locally set `DEVELOPMENT_PRETEND_COUNTRY=PK` in `.env` to pretend a
 country; staging and production ignore it.
 
+### Login
+
+`POST /api/auth/company/login/` (the page is `/login`, with `?next=` for the page originally
+wanted, only ever a `/company` page) checks the email and password and starts a new session
+with protected cookies; every device has its own session. Wrong email, wrong password, a
+blocked or removed person and a person without a password all get "Email or password is
+incorrect.", take the same time (a password is always hashed and compared) and count the same
+toward the pause: `signin.max_failed_attempts` (5) within `signin.attempt_window_minutes` (15)
+pause the account for `signin.lockout_minutes` (15), even for the right password. Only with the
+right password does a person learn "Your company account is suspended. Please contact
+support." or "Please verify your email" (with a resend button). The existing login limit of
+10 per minute per address applies as well. Passwords are only in the request body, never in
+addresses or logs.
+
 ### Email verification
 
 The link in the sign-up email opens `/verify-email?token=…`. Opening it changes nothing; the

@@ -3,7 +3,8 @@
 import { useState, type FormEvent } from "react";
 
 import { Button, Dialog, Input } from "@/components/ui";
-import { postJson, type ApiError } from "@/lib/api";
+import type { ApiError } from "@/lib/api";
+import { requestNewVerificationLink } from "@/lib/verification";
 
 /** Asks for a new verification link. The answer is the same whatever the email is. */
 export function ResendVerificationForm() {
@@ -16,9 +17,7 @@ export function ResendVerificationForm() {
     const form = new FormData(event.currentTarget);
     setSending(true);
     setError(null);
-    const result = await postJson<{ message: string }>("/api/auth/company/verify-email/resend/", {
-      email: form.get("email"),
-    });
+    const result = await requestNewVerificationLink(String(form.get("email") ?? ""));
     setSending(false);
     if (result.ok) setDoneMessage(result.data.message);
     else setError(result.error);
