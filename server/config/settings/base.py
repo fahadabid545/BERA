@@ -2,12 +2,14 @@ from pathlib import Path
 
 import dj_database_url
 
-from config.environment import require_settings
+from config.environment import require_settings, require_signing_secrets
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 _required = require_settings(["DJANGO_SECRET_KEY", "DATABASE_URL"])
 SECRET_KEY = _required["DJANGO_SECRET_KEY"]
+# Company and admin tokens use different secrets, so neither can open the other's routes.
+TOKEN_SIGNING_SECRETS = require_signing_secrets()
 DATABASES = {"default": dj_database_url.parse(_required["DATABASE_URL"], conn_max_age=60)}
 
 INSTALLED_APPS = [
@@ -18,6 +20,7 @@ INSTALLED_APPS = [
     "core",
     "companies",
     "platform_settings",
+    "signin",
 ]
 
 MIDDLEWARE = [

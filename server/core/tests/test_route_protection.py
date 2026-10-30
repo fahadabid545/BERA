@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 
 from core.permissions import IsSignedIn, PublicAccess
 from core.public_routes import PUBLIC_CATEGORIES, PUBLIC_ROUTES
+from signin.authentication import KindAuthentication
 
 
 def all_routes(patterns=None, prefix=""):
@@ -25,6 +26,10 @@ def permissions_of(view):
     return list(getattr(getattr(view, "cls", None), "permission_classes", []))
 
 
+def authenticators_of(view):
+    return list(getattr(getattr(view, "cls", None), "authentication_classes", []))
+
+
 def unprotected(routes):
     """Routes that are neither correctly public (on the list) nor protected."""
     found = []
@@ -33,8 +38,11 @@ def unprotected(routes):
         if route in PUBLIC_ROUTE_NAMES:
             ok = PublicAccess in permissions
         else:
-            ok = any(issubclass(p, IsSignedIn) for p in permissions) and not any(
-                issubclass(p, (PublicAccess, AllowAny)) for p in permissions
+            # A private route must also say which kind of user it is for (company or admin).
+            ok = (
+                any(issubclass(p, IsSignedIn) for p in permissions)
+                and not any(issubclass(p, (PublicAccess, AllowAny)) for p in permissions)
+                and any(issubclass(a, KindAuthentication) for a in authenticators_of(view))
             )
         if not ok:
             found.append(route)
@@ -63,8 +71,17 @@ def test_the_check_catches_open_routes_missing_from_the_list():
 
     def plain_django_view(request): ...
 
-    routes = all_routes([path("api/forgotten/", forgotten), path("plain/", plain_django_view)])
-    assert unprotected(routes) == ["api/forgotten/", "plain/"]
+    @api_view(["GET"])
+    def signed_in_but_for_nobody(request): ...
+
+    routes = all_routes(
+        [
+            path("api/forgotten/", forgotten),
+            path("plain/", plain_django_view),
+            path("api/nobody/", signed_in_but_for_nobody),
+        ]
+    )
+    assert unprotected(routes) == ["api/forgotten/", "plain/", "api/nobody/"]
 
 
 def test_the_default_for_a_new_view_is_to_require_sign_in():

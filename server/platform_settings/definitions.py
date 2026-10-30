@@ -62,6 +62,8 @@ SETTINGS = [
     # Tokens and links
     SettingDefinition("tokens.access_minutes", 15, whole_number(1, 1440)),
     SettingDefinition("tokens.refresh_days", 7, whole_number(1, 90)),
+    SettingDefinition("tokens.clock_leeway_seconds", 30, whole_number(0, 300)),
+    SettingDefinition("tokens.refresh_attempts_per_minute", 10, whole_number(1, 1000)),
     SettingDefinition("tokens.email_verification_hours", 24, whole_number(1, 720)),
     SettingDefinition("tokens.password_reset_hours", 1, whole_number(1, 72)),
     SettingDefinition("tokens.team_invite_days", 7, whole_number(1, 90)),

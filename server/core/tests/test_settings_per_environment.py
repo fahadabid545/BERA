@@ -10,6 +10,8 @@ import pytest
 SERVER_DIR = Path(__file__).resolve().parents[2]
 FAKE_VALUES = {
     "DJANGO_SECRET_KEY": "fake-test-secret-key",
+    "JWT_COMPANY_SECRET": "fake-test-company-signing-secret-000001",
+    "JWT_ADMIN_SECRET": "fake-test-admin-signing-secret-0000002",
     "DATABASE_URL": "postgres://user:fake-password@127.0.0.1:5432/fake",
     "ALLOWED_HOSTS": "staging.example.com, www.example.com",
 }
@@ -41,7 +43,16 @@ def test_staging_and_production_turn_debug_off_and_read_hosts(app_env):
     assert '"hosts": ["staging.example.com", "www.example.com"]' in result.stdout
 
 
-@pytest.mark.parametrize("missing", ["DJANGO_SECRET_KEY", "DATABASE_URL", "ALLOWED_HOSTS"])
+@pytest.mark.parametrize(
+    "missing",
+    [
+        "DJANGO_SECRET_KEY",
+        "DATABASE_URL",
+        "ALLOWED_HOSTS",
+        "JWT_COMPANY_SECRET",
+        "JWT_ADMIN_SECRET",
+    ],
+)
 def test_production_refuses_to_start_when_a_required_secret_is_missing(missing):
     result = load_settings("production", **{missing: ""})
     assert result.returncode != 0

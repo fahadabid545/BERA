@@ -35,4 +35,15 @@ PUBLIC_ROUTES = [
         category="health_check",
         reason="Monitoring must be able to check that the server is up without an account.",
     ),
+    PublicRoute(
+        route="api/auth/company/refresh/",
+        category="login",
+        reason="A company user whose short access token ended must renew it with the refresh "
+        "token (a protected cookie), which is itself the credential.",
+    ),
+    PublicRoute(
+        route="api/auth/admin/refresh/",
+        category="login",
+        reason="The same renewal for admin users, with the admin refresh token.",
+    ),
 ]

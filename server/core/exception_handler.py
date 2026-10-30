@@ -8,6 +8,7 @@ from rest_framework.exceptions import (
     NotAuthenticated,
     NotFound,
     ParseError,
+    Throttled,
     ValidationError,
 )
 from rest_framework.exceptions import (
@@ -67,6 +68,10 @@ def api_exception_handler(exc, context):
     if isinstance(exc, ParseError):
         return error_response(
             AppError("bad_request", "The request could not be read.", status_code=400)
+        )
+    if isinstance(exc, Throttled):
+        return error_response(
+            AppError("too_many_requests", "Too many attempts. Try again later.", status_code=429)
         )
     if isinstance(exc, (NotAuthenticated, AuthenticationFailed)):
         return error_response(not_signed_in())

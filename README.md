@@ -62,6 +62,7 @@ Settings come only from environment variables. `APP_ENV` must be `development`, 
 or `production`. Locally they are read from `.env`, which is git-ignored; `.env.example`
 lists every setting with fake values.
 
-The app refuses to start, naming what is missing, if `DJANGO_SECRET_KEY` or `DATABASE_URL`
-is absent — and in staging and production also `ALLOWED_HOSTS`. The commands
+The app refuses to start, naming what is missing, if `DJANGO_SECRET_KEY`, `DATABASE_URL`,
+`JWT_COMPANY_SECRET` or `JWT_ADMIN_SECRET` is absent (the two token secrets must each be at least
+32 characters and different from each other) — and in staging and production also `ALLOWED_HOSTS`. The commands
 `seed_dev_data` and `reset_dev_db` refuse to run outside development.

@@ -9,6 +9,8 @@ EXPECTED_DEFAULTS = {
     "passwords.block_common_passwords": True,
     "tokens.access_minutes": 15,
     "tokens.refresh_days": 7,
+    "tokens.clock_leeway_seconds": 30,
+    "tokens.refresh_attempts_per_minute": 10,
     "tokens.email_verification_hours": 24,
     "tokens.password_reset_hours": 1,
     "tokens.team_invite_days": 7,

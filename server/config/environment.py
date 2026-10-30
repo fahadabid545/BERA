@@ -37,3 +37,29 @@ def require_settings(names, environ=os.environ):
             {"missing": missing},
         )
     return values
+
+
+MIN_SIGNING_SECRET_LENGTH = 32
+
+
+def require_signing_secrets(environ=os.environ):
+    """The two token-signing secrets: long enough, and different, so that a company token
+    can never pass as an admin one."""
+    secrets_by_kind = require_settings(["JWT_COMPANY_SECRET", "JWT_ADMIN_SECRET"], environ)
+    too_short = [
+        name for name, value in secrets_by_kind.items() if len(value) < MIN_SIGNING_SECRET_LENGTH
+    ]
+    if too_short:
+        raise ConfigurationError(
+            f"{', '.join(too_short)} must be at least {MIN_SIGNING_SECRET_LENGTH} characters.",
+            {"too_short": too_short},
+        )
+    if secrets_by_kind["JWT_COMPANY_SECRET"] == secrets_by_kind["JWT_ADMIN_SECRET"]:
+        raise ConfigurationError(
+            "JWT_COMPANY_SECRET and JWT_ADMIN_SECRET must be different.",
+            {"must_differ": ["JWT_COMPANY_SECRET", "JWT_ADMIN_SECRET"]},
+        )
+    return {
+        "company": secrets_by_kind["JWT_COMPANY_SECRET"],
+        "admin": secrets_by_kind["JWT_ADMIN_SECRET"],
+    }

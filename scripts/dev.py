@@ -56,16 +56,17 @@ def read_env_file(path):
 
 
 def ensure_env_file(env_file=ENV_FILE, example_file=ENV_EXAMPLE):
-    """Create .env from the example with a fresh random secret key. Never overwrites."""
+    """Create .env from the example with fresh random secrets. Never overwrites."""
     if env_file.exists():
         return False
     text = example_file.read_text(encoding="utf-8")
-    text = re.sub(
-        r"^DJANGO_SECRET_KEY=.*$",
-        f"DJANGO_SECRET_KEY={secrets.token_urlsafe(48)}",
-        text,
-        flags=re.MULTILINE,
-    )
+    for name in ("DJANGO_SECRET_KEY", "JWT_COMPANY_SECRET", "JWT_ADMIN_SECRET"):
+        text = re.sub(
+            rf"^{name}=.*$",
+            f"{name}={secrets.token_urlsafe(48)}",
+            text,
+            flags=re.MULTILINE,
+        )
     env_file.write_text(text, encoding="utf-8")
     return True
 

@@ -4,7 +4,10 @@ import pytest
 
 import dev
 
-EXAMPLE = "APP_ENV=development\nDJANGO_SECRET_KEY=fake-dev-only-secret-key\n# comment\nA=b=c\n"
+EXAMPLE = (
+    "APP_ENV=development\nDJANGO_SECRET_KEY=fake-dev-only-secret-key\n"
+    "JWT_COMPANY_SECRET=fake-company\nJWT_ADMIN_SECRET=fake-admin\n# comment\nA=b=c\n"
+)
 
 
 def test_ensure_env_file_creates_file_with_random_secret_key(tmp_path):
@@ -18,6 +21,8 @@ def test_ensure_env_file_creates_file_with_random_secret_key(tmp_path):
     assert values["APP_ENV"] == "development"
     assert values["DJANGO_SECRET_KEY"] != "fake-dev-only-secret-key"
     assert len(values["DJANGO_SECRET_KEY"]) >= 32
+    signing = {values["JWT_COMPANY_SECRET"], values["JWT_ADMIN_SECRET"]}
+    assert len(signing) == 2 and all(len(secret) >= 32 for secret in signing)
 
 
 def test_ensure_env_file_never_overwrites_existing_file(tmp_path):
@@ -37,6 +42,8 @@ def test_read_env_file_ignores_comments_and_keeps_equals_in_values(tmp_path):
     assert dev.read_env_file(env_file) == {
         "APP_ENV": "development",
         "DJANGO_SECRET_KEY": "fake-dev-only-secret-key",
+        "JWT_COMPANY_SECRET": "fake-company",
+        "JWT_ADMIN_SECRET": "fake-admin",
         "A": "b=c",
     }
 
