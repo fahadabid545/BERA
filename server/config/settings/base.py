@@ -25,10 +25,19 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "core.middleware.RequestContextMiddleware",
-    "core.middleware.RequestSizeLimitMiddleware",
+    # Before the middlewares that can refuse a request, so refusals carry its headers too.
     "django.middleware.security.SecurityMiddleware",
+    "core.browser_protection.SecurityHeadersMiddleware",
+    "core.browser_protection.OriginPolicyMiddleware",
+    "core.middleware.RequestSizeLimitMiddleware",
     "django.middleware.common.CommonMiddleware",
 ]
+
+# Headers added by Django's SecurityMiddleware on every response. (nosniff and the
+# same-origin opener policy are on by default; HSTS is switched on in staging and production.)
+SECURE_REFERRER_POLICY = "no-referrer"
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"

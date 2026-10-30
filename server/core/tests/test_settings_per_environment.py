@@ -1,5 +1,6 @@
 """Starts a fresh Python process, because settings are read once at start-up."""
 
+import json
 import os
 import subprocess
 import sys
@@ -14,6 +15,7 @@ FAKE_VALUES = {
     "JWT_ADMIN_SECRET": "fake-test-admin-signing-secret-0000002",
     "DATABASE_URL": "postgres://user:fake-password@127.0.0.1:5432/fake",
     "ALLOWED_HOSTS": "staging.example.com, www.example.com",
+    "ALLOWED_ORIGINS": "https://staging.example.com, https://www.example.com/",
 }
 
 
@@ -22,7 +24,10 @@ def load_settings(app_env, **overrides):
     environ.update({"APP_ENV": app_env, "PYTHONPATH": str(SERVER_DIR), **FAKE_VALUES, **overrides})
     script = (
         "import json, config.settings as s;"
-        "print(json.dumps({'debug': s.DEBUG, 'hosts': s.ALLOWED_HOSTS}))"
+        "print(json.dumps({'debug': s.DEBUG, 'hosts': s.ALLOWED_HOSTS,"
+        " 'origins': s.ALLOWED_ORIGINS, 'hsts': getattr(s, 'SECURE_HSTS_SECONDS', 0),"
+        " 'redirect': getattr(s, 'SECURE_SSL_REDIRECT', False),"
+        " 'referrer': s.SECURE_REFERRER_POLICY}))"
     )
     return subprocess.run(
         [sys.executable, "-c", script], env=environ, capture_output=True, text=True, cwd="/"
@@ -49,6 +54,7 @@ def test_staging_and_production_turn_debug_off_and_read_hosts(app_env):
         "DJANGO_SECRET_KEY",
         "DATABASE_URL",
         "ALLOWED_HOSTS",
+        "ALLOWED_ORIGINS",
         "JWT_COMPANY_SECRET",
         "JWT_ADMIN_SECRET",
     ],
@@ -58,3 +64,30 @@ def test_production_refuses_to_start_when_a_required_secret_is_missing(missing):
     assert result.returncode != 0
     assert missing in result.stderr
     assert "fake-test-secret-key" not in result.stderr
+
+
+def settings_of(app_env, **overrides):
+    result = load_settings(app_env, **overrides)
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)
+
+
+def test_development_allows_only_the_local_web_app_and_skips_https_rules():
+    values = settings_of("development")
+    assert values["origins"] == ["http://localhost:3000", "http://127.0.0.1:3000"]
+    assert values["hsts"] == 0 and values["redirect"] is False
+    assert values["referrer"] == "no-referrer"
+
+
+@pytest.mark.parametrize("app_env", ["staging", "production"])
+def test_staging_and_production_allow_only_their_https_addresses_and_force_https(app_env):
+    values = settings_of(app_env)
+    assert values["origins"] == ["https://staging.example.com", "https://www.example.com"]
+    assert values["hsts"] == 31_536_000 and values["redirect"] is True
+
+
+@pytest.mark.parametrize("bad", ["http://staging.example.com", "staging.example.com", "*", " , "])
+def test_production_refuses_origins_that_are_not_https_addresses(bad):
+    result = load_settings("production", ALLOWED_ORIGINS=bad)
+    assert result.returncode != 0
+    assert "ALLOWED_ORIGINS" in result.stderr

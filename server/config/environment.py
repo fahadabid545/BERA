@@ -63,3 +63,14 @@ def require_signing_secrets(environ=os.environ):
         "company": secrets_by_kind["JWT_COMPANY_SECRET"],
         "admin": secrets_by_kind["JWT_ADMIN_SECRET"],
     }
+
+
+def parse_origins(text):
+    """A comma separated list of https web addresses, such as https://app.example.com."""
+    origins = [origin.strip().rstrip("/") for origin in text.split(",") if origin.strip()]
+    insecure = [origin for origin in origins if not origin.startswith("https://")]
+    if not origins or insecure:
+        raise ConfigurationError(
+            "ALLOWED_ORIGINS must list https web addresses.", {"not_https": insecure}
+        )
+    return origins

@@ -64,5 +64,5 @@ lists every setting with fake values.
 
 The app refuses to start, naming what is missing, if `DJANGO_SECRET_KEY`, `DATABASE_URL`,
 `JWT_COMPANY_SECRET` or `JWT_ADMIN_SECRET` is absent (the two token secrets must each be at least
-32 characters and different from each other) — and in staging and production also `ALLOWED_HOSTS`. The commands
+32 characters and different from each other) — and in staging and production also `ALLOWED_HOSTS` and `ALLOWED_ORIGINS` (the https addresses of the website, the only sites allowed to use the API from a browser). The commands
 `seed_dev_data` and `reset_dev_db` refuse to run outside development.
