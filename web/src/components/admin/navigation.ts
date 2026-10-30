@@ -55,7 +55,7 @@ export const ADMIN_NAVIGATION: readonly NavigationItem<AdminRole>[] = [
     children: [
       { label: "Platform values", href: "/admin/advanced/platform-values" },
       { label: "Limits", href: "/admin/advanced/limits" },
-      { label: "Rate limiting", href: "/admin/advanced/rate-limiting" },
+      { label: "Rate limiting", href: "/admin/advanced/rate-limits" },
       { label: "Security", href: "/admin/advanced/security" },
       { label: "AI controls", href: "/admin/advanced/ai-controls" },
       { label: "Maintenance", href: "/admin/advanced/maintenance" },

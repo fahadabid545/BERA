@@ -209,7 +209,7 @@ describe("Advanced section", () => {
     expect(advanced.children!.map((child) => child.href)).toEqual([
       "/admin/advanced/platform-values",
       "/admin/advanced/limits",
-      "/admin/advanced/rate-limiting",
+      "/admin/advanced/rate-limits",
       "/admin/advanced/security",
       "/admin/advanced/ai-controls",
       "/admin/advanced/maintenance",
