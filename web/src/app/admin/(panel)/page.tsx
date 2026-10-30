@@ -1,3 +1,3 @@
-export default function AdminHome() {
-  return <h1>BERA admin panel</h1>;
+export default function AdminDashboardPage() {
+  return null;
 }
