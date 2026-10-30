@@ -10,6 +10,7 @@ export const ACCOUNT_LINKS = {
   logIn: { label: "Log in", href: "/login" },
   signUp: { label: "Sign up", href: "/signup" },
   forgotPassword: { label: "Forgot password", href: "/forgot-password" },
+  resendVerification: { label: "Resend verification email", href: "/verify-email" },
 } as const;
 
 export const FOOTER_LINKS = [

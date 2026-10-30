@@ -54,6 +54,18 @@ PUBLIC_ROUTES = [
         "It returns only a country code.",
     ),
     PublicRoute(
+        route="api/auth/company/verify-email/",
+        category="email_verification",
+        reason="The link in the verification email is opened before the person can sign in. "
+        "The single-use secret in it is the credential.",
+    ),
+    PublicRoute(
+        route="api/auth/company/verify-email/resend/",
+        category="email_verification",
+        reason="A person who cannot sign in until verified asks for a new link. It answers the "
+        "same whatever the email and is limited to 3 per hour per email.",
+    ),
+    PublicRoute(
         route="api/auth/admin/refresh/",
         category="login",
         reason="The same renewal for admin users, with the admin refresh token.",

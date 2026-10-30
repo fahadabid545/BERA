@@ -83,6 +83,7 @@ SETTINGS = [
     SettingDefinition("rate_limits.sign_up_per_hour", 5, whole_number(1, 10000)),
     # Notices sent to one email address because someone tried to sign up with it.
     SettingDefinition("rate_limits.sign_up_notices_per_hour", 3, whole_number(1, 10000)),
+    SettingDefinition("rate_limits.verification_resend_per_hour", 3, whole_number(1, 10000)),
     SettingDefinition("rate_limits.password_reset_per_hour", 5, whole_number(1, 10000)),
     SettingDefinition("rate_limits.invites_per_hour", 20, whole_number(1, 10000)),
     SettingDefinition("rate_limits.upload_files_per_10_minutes", 100, whole_number(1, 100000)),

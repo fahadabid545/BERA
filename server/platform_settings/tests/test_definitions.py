@@ -22,6 +22,7 @@ EXPECTED_DEFAULTS = {
     "rate_limits.refresh_per_minute": 30,
     "rate_limits.sign_up_per_hour": 5,
     "rate_limits.sign_up_notices_per_hour": 3,
+    "rate_limits.verification_resend_per_hour": 3,
     "rate_limits.password_reset_per_hour": 5,
     "rate_limits.invites_per_hour": 20,
     "rate_limits.upload_files_per_10_minutes": 100,

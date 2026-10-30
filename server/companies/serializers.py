@@ -7,6 +7,7 @@ from .countries import COUNTRY_CODES, OTHER_COUNTRY
 
 MAX_EMAIL_LENGTH = 254
 MAX_NAME_LENGTH = 200
+MAX_TOKEN_LENGTH = 200
 
 
 class SignUpSerializer(StrictSerializer):
@@ -23,3 +24,11 @@ class SignUpSerializer(StrictSerializer):
         if accepted is not True:
             raise serializers.ValidationError("Accept the Terms and Privacy Policy to continue.")
         return accepted
+
+
+class VerifyEmailSerializer(StrictSerializer):
+    token = SafeTextField(max_length=MAX_TOKEN_LENGTH)
+
+
+class ResendVerificationSerializer(StrictSerializer):
+    email = serializers.EmailField(max_length=MAX_EMAIL_LENGTH)

@@ -11,6 +11,9 @@ export default function LoginPage() {
       </div>
       <div className="page-links">
         <TextLink href={ACCOUNT_LINKS.forgotPassword.href}>Forgot password?</TextLink>
+        <TextLink href={ACCOUNT_LINKS.resendVerification.href}>
+          {ACCOUNT_LINKS.resendVerification.label}
+        </TextLink>
         <TextLink href={ACCOUNT_LINKS.signUp.href}>Create an account</TextLink>
       </div>
     </form>

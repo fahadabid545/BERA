@@ -22,6 +22,13 @@ describe("login page", () => {
     );
   });
 
+  it("offers to resend the verification email", () => {
+    render(<LoginPage />);
+    expect(
+      screen.getByRole("link", { name: "Resend verification email" }).getAttribute("href"),
+    ).toBe("/verify-email");
+  });
+
   it("does nothing when Log in is pressed", async () => {
     render(<LoginPage />);
     await userEvent.click(screen.getByRole("button", { name: "Log in" }));

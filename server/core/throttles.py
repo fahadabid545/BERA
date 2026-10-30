@@ -64,16 +64,22 @@ class ContactThrottle(RuleThrottle):
     subject = staticmethod(address_subject)
 
 
-class PasswordResetThrottle(RuleThrottle):
+class PerEmailThrottle(RuleThrottle):
     """Per email, so one person's inbox cannot be flooded from many addresses."""
-
-    rule = rate_limits.PASSWORD_RESET
 
     def subject(self, request):
         email = request.data.get("email") if hasattr(request.data, "get") else None
         if not isinstance(email, str) or not email.strip():
             return address_subject(request)
         return "email:" + hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()
+
+
+class PasswordResetThrottle(PerEmailThrottle):
+    rule = rate_limits.PASSWORD_RESET
+
+
+class VerificationResendThrottle(PerEmailThrottle):
+    rule = rate_limits.RESEND_VERIFICATION
 
 
 class InviteThrottle(RuleThrottle):

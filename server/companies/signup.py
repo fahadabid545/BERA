@@ -13,15 +13,12 @@ from django.utils import timezone
 
 from core import rate_limits
 from core.field_protection import normalize_email
-from emailing.link_tokens import issue_link_token
 from emailing.links import build_link
-from emailing.models import LinkToken
-from emailing.rendering import duration_text
 from emailing.service import send_email
-from platform_settings.service import get_setting
 
 from .models import CompanyUser
 from .services import create_company_with_owner
+from .verification import send_verification_email
 
 logger = logging.getLogger(__name__)
 
@@ -50,15 +47,7 @@ def _create_account(company_name, name, email, password, country):
                 password=password,
                 terms_accepted_at=timezone.now(),
             )
-            hours = get_setting("tokens.email_verification_hours")
-            token = issue_link_token(LinkToken.Purpose.VERIFY_EMAIL, owner.pk, hours)
-            send_email(
-                "verify_email",
-                email,
-                name=name,
-                link=build_link("/verify-email", token=token),
-                expires_in=duration_text(hours, "hour"),
-            )
+            send_verification_email(owner)
     except IntegrityError:
         return False  # someone signed up with this email at the same moment
     return True

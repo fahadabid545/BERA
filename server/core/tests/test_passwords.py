@@ -2,6 +2,9 @@ import pytest
 
 from core.passwords import password_problems
 
+# Platform settings are read from the database (admins may override them).
+pytestmark = pytest.mark.django_db
+
 
 @pytest.mark.parametrize("password", ["violet-harbour-lantern-92", "vi0let-harb1", "a" * 11 + "!"])
 def test_a_long_enough_uncommon_password_has_no_problems(password):

@@ -102,6 +102,21 @@ for requests that came through our own proxies (`TRUSTED_PROXY_COUNT`); anything
 becomes Other (`ZZ`). Locally set `DEVELOPMENT_PRETEND_COUNTRY=PK` in `.env` to pretend a
 country; staging and production ignore it.
 
+### Email verification
+
+The link in the sign-up email opens `/verify-email?token=…`. Opening it changes nothing; the
+"Verify email" button sends `POST /api/auth/company/verify-email/`, so mail programs that open
+links to check them cannot use it up. A link works once, for 24 hours
+(`tokens.email_verification_hours`), and only for verifying: the secret is random and stored
+only as a hash in the shared `LinkToken` table, which the reset and invite tickets reuse through
+`consume_link_token`. An expired, used or unknown link shows its own message and a resend form.
+Whoever is signed in is left alone; the link alone decides which email is verified.
+
+"Resend verification email" (`/verify-email` without a token, linked from the login page) asks
+for the email address and always answers the same way. It sends a new link only to an active,
+unverified account, cancels the older links, and is limited to 3 per hour per email
+(`rate_limits.verification_resend_per_hour`).
+
 ### System emails
 
 All system emails go through `send_email(template, address, **values)` in `server/emailing`.
