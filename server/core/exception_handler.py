@@ -2,11 +2,21 @@ import logging
 
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
-from rest_framework.exceptions import APIException, ParseError, ValidationError
+from rest_framework.exceptions import (
+    APIException,
+    AuthenticationFailed,
+    NotAuthenticated,
+    NotFound,
+    ParseError,
+    ValidationError,
+)
+from rest_framework.exceptions import (
+    PermissionDenied as DrfPermissionDenied,
+)
 from rest_framework.response import Response
 
 from . import request_context
-from .errors import AppError
+from .errors import AppError, not_allowed, not_found, not_signed_in
 
 logger = logging.getLogger(__name__)
 
@@ -58,12 +68,12 @@ def api_exception_handler(exc, context):
         return error_response(
             AppError("bad_request", "The request could not be read.", status_code=400)
         )
-    if isinstance(exc, Http404):
-        return error_response(AppError("not_found", "Not found.", status_code=404))
-    if isinstance(exc, PermissionDenied):
-        return error_response(
-            AppError("permission_denied", "You do not have permission to do this.", status_code=403)
-        )
+    if isinstance(exc, (NotAuthenticated, AuthenticationFailed)):
+        return error_response(not_signed_in())
+    if isinstance(exc, (Http404, NotFound)):
+        return error_response(not_found())
+    if isinstance(exc, (PermissionDenied, DrfPermissionDenied)):
+        return error_response(not_allowed())
     if isinstance(exc, APIException):
         return error_response(
             AppError(exc.default_code, str(exc.detail), status_code=exc.status_code)

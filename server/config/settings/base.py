@@ -35,6 +35,11 @@ TIME_ZONE = "UTC"
 REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "core.exception_handler.api_exception_handler",
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    # Private by default: a route is open to visitors only when it is on the public list
+    # (core/public_routes.py) and says so with PublicAccess. The token ticket adds the
+    # authentication classes that make a valid sign-in possible.
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_PERMISSION_CLASSES": ["core.permissions.IsSignedIn"],
 }
 
 # Background jobs run in a separate worker process, queued in PostgreSQL.

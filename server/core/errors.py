@@ -43,3 +43,23 @@ class ConfigurationError(AppError):
 
     def __init__(self, message, details=None):
         super().__init__("configuration_error", message, details)
+
+
+# The only three answers a refusal may give. Each is built in one place so the text
+# is identical for every cause (a missing token and an expired one, a record that
+# does not exist and one that belongs to another company).
+NOT_SIGNED_IN_MESSAGE = "You are not signed in."
+NOT_ALLOWED_MESSAGE = "You do not have permission to do this."
+NOT_FOUND_MESSAGE = "Not found."
+
+
+def not_signed_in():
+    return AppError("not_signed_in", NOT_SIGNED_IN_MESSAGE, status_code=401)
+
+
+def not_allowed():
+    return AppError("not_allowed", NOT_ALLOWED_MESSAGE, status_code=403)
+
+
+def not_found():
+    return AppError("not_found", NOT_FOUND_MESSAGE, status_code=404)

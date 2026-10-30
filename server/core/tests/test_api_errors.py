@@ -1,15 +1,17 @@
 import pytest
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound, ParseError, ValidationError
 from rest_framework.test import APIRequestFactory
 
 from core.errors import AppError
+from core.permissions import PublicAccess
 
 
 def call(exception):
     @api_view(["GET"])
+    @permission_classes([PublicAccess])
     def failing_view(request):
         raise exception
 
@@ -58,7 +60,7 @@ def test_unreadable_request_gets_a_plain_message():
 
 def test_django_not_found_and_permission_errors_use_the_shared_shape():
     assert call(Http404("no such row in table x")).data["error"]["code"] == "not_found"
-    assert call(PermissionDenied("internal reason")).data["error"]["code"] == "permission_denied"
+    assert call(PermissionDenied("internal reason")).data["error"]["code"] == "not_allowed"
 
 
 def test_framework_error_keeps_its_status_and_code():

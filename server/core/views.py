@@ -2,16 +2,19 @@ import logging
 
 from django.db import OperationalError, connection
 from django.http import JsonResponse
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 from .errors import AppError
+from .errors import not_found as not_found_error
 from .exception_handler import unexpected_error
+from .permissions import PublicAccess
 
 logger = logging.getLogger(__name__)
 
 
 @api_view(["GET"])
+@permission_classes([PublicAccess])
 def health(request):
     try:
         connection.ensure_connection()
@@ -23,8 +26,8 @@ def health(request):
 
 
 def not_found(request, exception=None):
-    error = AppError("not_found", "Not found.", status_code=404)
-    return JsonResponse({"error": error.to_dict()}, status=404)
+    error = not_found_error()
+    return JsonResponse({"error": error.to_dict()}, status=error.status_code)
 
 
 def server_error(request):
