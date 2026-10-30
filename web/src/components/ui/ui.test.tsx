@@ -9,6 +9,7 @@ import {
   Card,
   Checkbox,
   Textarea,
+  TextLink,
   Dialog,
   Menu,
   Input,
@@ -84,6 +85,15 @@ describe("form fields", () => {
     await userEvent.tab();
     await userEvent.keyboard(" ");
     expect((screen.getByLabelText("Notify me") as HTMLInputElement).checked).toBe(true);
+  });
+});
+
+describe("TextLink", () => {
+  it("is a link to its address with the underlined link style", () => {
+    render(<TextLink href="/login">Log in</TextLink>);
+    const link = screen.getByRole("link", { name: "Log in" });
+    expect(link.getAttribute("href")).toBe("/login");
+    expect(link.className).toContain("ui-text-link");
   });
 });
 

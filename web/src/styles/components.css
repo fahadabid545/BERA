@@ -442,6 +442,22 @@
   flex-direction: column;
   max-width: 26rem;
 }
+.ui-text-link {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.page-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-4);
+  margin-top: var(--space-3);
+}
+.page-links .ui-text-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+}
 .page-actions {
   display: flex;
   flex-wrap: wrap;

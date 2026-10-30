@@ -9,6 +9,7 @@ import {
   Menu,
   Select,
   Textarea,
+  TextLink,
   Table,
   Tabs,
   Tag,
@@ -47,6 +48,7 @@ export default function DesignSample() {
           <ButtonLink href="/pricing" variant="secondary">
             Link styled as button
           </ButtonLink>
+          <TextLink href="/pricing">Text link</TextLink>
         </div>
       </section>
 
