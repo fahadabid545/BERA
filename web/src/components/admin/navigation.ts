@@ -41,7 +41,7 @@ export const ADMIN_NAVIGATION: readonly NavigationItem<AdminRole>[] = [
     children: [
       { label: "General", href: "/admin/settings/general" },
       { label: "Audit log", href: "/admin/settings/audit-log" },
-      { label: "Admin users", href: "/admin/settings/admin-users" },
+      { label: "Admin users", href: "/admin/settings/admins" },
     ],
   },
   {
