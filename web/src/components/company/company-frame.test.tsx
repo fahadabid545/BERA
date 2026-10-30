@@ -154,7 +154,7 @@ describe("phone slide-out menu", () => {
     const user = userEvent.setup();
     const { container } = renderFrame();
     const button = screen.getByRole("button", { name: "Menu" });
-    const frame = container.querySelector(".company-frame")!;
+    const frame = container.querySelector(".panel-frame")!;
 
     expect(frame.getAttribute("data-menu-open")).toBe("false");
     await user.click(button);
@@ -167,7 +167,7 @@ describe("phone slide-out menu", () => {
   it("closes with Escape and when the dimmed area is clicked", async () => {
     const user = userEvent.setup();
     const { container } = renderFrame();
-    const frame = container.querySelector(".company-frame")!;
+    const frame = container.querySelector(".panel-frame")!;
     const button = screen.getByRole("button", { name: "Menu" });
 
     await user.click(button);
@@ -175,7 +175,7 @@ describe("phone slide-out menu", () => {
     expect(frame.getAttribute("data-menu-open")).toBe("false");
 
     await user.click(button);
-    await user.click(container.querySelector(".company-scrim")!);
+    await user.click(container.querySelector(".panel-scrim")!);
     expect(frame.getAttribute("data-menu-open")).toBe("false");
   });
 
@@ -190,7 +190,7 @@ describe("phone slide-out menu", () => {
         <p>Page content</p>
       </CompanyFrame>,
     );
-    expect(container.querySelector(".company-frame")!.getAttribute("data-menu-open")).toBe("false");
+    expect(container.querySelector(".panel-frame")!.getAttribute("data-menu-open")).toBe("false");
   });
 });
 

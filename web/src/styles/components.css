@@ -337,6 +337,11 @@
   border-color: var(--color-danger);
   color: var(--color-on-danger);
 }
+.ui-tag--admin {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-bg);
+}
 .ui-tag--live {
   background: var(--color-accent);
   border-color: var(--color-accent);
@@ -580,7 +585,7 @@
 }
 /* Cut-outs are drawn in the pill colour, the only place the filled icon is shown. */
 .ui-toggle-icon__filled .detail {
-  stroke: var(--color-accent-soft);
+  stroke: var(--icon-cutout, var(--color-accent-soft));
 }
 [aria-current="page"] .ui-toggle-icon__outline,
 [data-active="true"] .ui-toggle-icon__outline {
@@ -640,13 +645,13 @@
   background: var(--color-surface-muted);
 }
 
-/* ---------- Company panel frame ---------- */
-.company-frame {
+/* ---------- Panel frame: shared by the company and admin panels ---------- */
+.panel-frame {
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   min-height: 100vh;
 }
-.company-sidebar {
+.panel-sidebar {
   position: sticky;
   top: 0;
   display: flex;
@@ -658,12 +663,12 @@
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
 }
-.company-brand {
+.panel-brand {
   display: flex;
   padding: 0 var(--space-3);
 }
-.company-nav,
-.company-submenu {
+.panel-nav,
+.panel-submenu {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
@@ -671,20 +676,20 @@
   padding: 0;
   list-style: none;
 }
-.company-nav .ui-icon-item {
+.panel-nav .ui-icon-item {
   width: 100%;
 }
-.company-group {
+.panel-group {
   border: 0;
   background: none;
   font: 600 var(--text-md) var(--font-body);
   text-align: left;
   cursor: pointer;
 }
-.company-label {
+.panel-label {
   flex: 1;
 }
-.company-chevron {
+.panel-chevron {
   width: 1rem;
   height: 1rem;
   fill: none;
@@ -694,20 +699,20 @@
   stroke-linejoin: round;
   transition: transform var(--transition);
 }
-.company-group[aria-expanded="true"] .company-chevron {
+.panel-group[aria-expanded="true"] .panel-chevron {
   transform: rotate(180deg);
 }
-.company-submenu {
+.panel-submenu {
   margin: var(--space-1) 0 0 var(--space-5);
   padding-left: var(--space-3);
   border-left: 1px solid var(--color-border);
 }
-.company-body {
+.panel-body {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
-.company-topbar {
+.panel-topbar {
   position: sticky;
   top: 0;
   z-index: 10;
@@ -719,7 +724,7 @@
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
 }
-.company-topbar__name {
+.panel-topbar__name {
   flex: 1;
   min-width: 0;
   margin: 0;
@@ -728,7 +733,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.company-avatar {
+.panel-avatar {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -742,39 +747,39 @@
   font: 600 var(--text-sm) var(--font-body);
   cursor: pointer;
 }
-.company-main {
+.panel-main {
   flex: 1;
   padding: var(--space-5) var(--page-gutter);
 }
-.company-menu-button,
-.company-scrim {
+.panel-menu-button,
+.panel-scrim {
   display: none;
 }
 
 /* Tablets: the sidebar shrinks to icons. Labels stay for screen readers, and a sub-menu
    opens as a small panel beside the rail. */
 @media (min-width: 40rem) and (max-width: 63.99rem) {
-  .company-frame {
+  .panel-frame {
     --sidebar-width: var(--sidebar-rail-width);
   }
-  .company-sidebar {
+  .panel-sidebar {
     align-items: center;
     overflow: visible;
   }
-  .company-brand {
+  .panel-brand {
     padding: 0;
     font-size: var(--text-lg);
   }
-  .company-nav .ui-icon-item {
+  .panel-nav .ui-icon-item {
     justify-content: center;
     width: var(--control-height);
     padding: 0;
   }
-  .company-nav > li {
+  .panel-nav > li {
     position: relative;
   }
-  .company-label,
-  .company-chevron {
+  .panel-label,
+  .panel-chevron {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -782,7 +787,7 @@
     overflow: hidden;
     clip: rect(0 0 0 0);
   }
-  .company-submenu {
+  .panel-submenu {
     position: absolute;
     top: 0;
     left: calc(100% + var(--space-2));
@@ -795,7 +800,7 @@
     background: var(--color-surface);
     box-shadow: var(--shadow-raised);
   }
-  .company-nav .company-submenu .ui-icon-item {
+  .panel-nav .panel-submenu .ui-icon-item {
     justify-content: flex-start;
     width: 100%;
     padding: 0 var(--space-4);
@@ -804,10 +809,10 @@
 
 /* Phones: the sidebar is a slide-out menu opened from the top bar. */
 @media (max-width: 39.99rem) {
-  .company-frame {
+  .panel-frame {
     grid-template-columns: minmax(0, 1fr);
   }
-  .company-sidebar {
+  .panel-sidebar {
     position: fixed;
     inset: 0 auto 0 0;
     z-index: 40;
@@ -819,11 +824,11 @@
       transform var(--transition),
       visibility var(--transition);
   }
-  .company-frame[data-menu-open="true"] .company-sidebar {
+  .panel-frame[data-menu-open="true"] .panel-sidebar {
     transform: none;
     visibility: visible;
   }
-  .company-scrim {
+  .panel-scrim {
     display: block;
     position: fixed;
     inset: 0;
@@ -833,17 +838,18 @@
     pointer-events: none;
     transition: opacity var(--transition);
   }
-  .company-frame[data-menu-open="true"] .company-scrim {
+  .panel-frame[data-menu-open="true"] .panel-scrim {
     opacity: 1;
     pointer-events: auto;
   }
-  .company-menu-button {
+  .panel-menu-button {
     display: inline-flex;
     flex: none;
     padding: 0;
     width: var(--control-height);
   }
-  /* The new-project button shrinks to its symbol; its name stays for screen readers. */
+  /* The new-project button and the theme switch shrink to their symbols; names stay for screen readers. */
+  .panel-topbar .ui-switch__label,
   .company-new-label {
     position: absolute;
     width: 1px;
@@ -852,7 +858,44 @@
     overflow: hidden;
     clip: rect(0 0 0 0);
   }
-  .company-topbar .ui-button {
+  .panel-topbar .ui-button {
     padding: 0 var(--space-3);
+  }
+  .panel-topbar .ui-switch {
+    padding: 0 var(--space-2);
+  }
+}
+
+/* ---------- Admin look: an ink sidebar, a green stripe and an ADMIN badge ---------- */
+.panel--admin {
+  --icon-cutout: var(--color-admin-active);
+}
+.panel--admin .panel-sidebar {
+  --color-focus: var(--color-admin-focus);
+  border-right-color: var(--color-admin-hover);
+  background: var(--color-admin-bg);
+  color: var(--color-admin-text);
+}
+.panel--admin .panel-sidebar .site-brand,
+.panel--admin .panel-sidebar .ui-icon-item {
+  color: var(--color-admin-text);
+}
+.panel--admin .panel-sidebar .ui-icon-item:hover {
+  background: var(--color-admin-hover);
+}
+.panel--admin .panel-sidebar .ui-icon-item[aria-current="page"],
+.panel--admin .panel-sidebar .ui-icon-item[data-active="true"] {
+  background: var(--color-admin-active);
+}
+.panel--admin .panel-submenu {
+  border-color: var(--color-admin-hover);
+  background: transparent;
+}
+.panel--admin .panel-topbar {
+  box-shadow: inset 0 4px 0 var(--color-accent);
+}
+@media (min-width: 40rem) and (max-width: 63.99rem) {
+  .panel--admin .panel-submenu {
+    background: var(--color-admin-bg);
   }
 }

@@ -49,6 +49,10 @@ const TEXT_PAIRS = [
   ["color-success-text", "color-success-bg"],
   ["color-tooltip-text", "color-tooltip-bg"],
   ["color-text-muted", "color-surface-muted"],
+  ["color-bg", "color-text"],
+  ["color-admin-text", "color-admin-bg"],
+  ["color-admin-text", "color-admin-hover"],
+  ["color-admin-text", "color-admin-active"],
 ] as const;
 
 // Borders, focus rings and other parts needed to use a control: 3:1.
@@ -62,6 +66,7 @@ const CONTROL_PAIRS = [
   ["color-checked-border", "color-surface"],
   ["color-checked-border", "color-bg"],
   ["color-danger", "color-surface"],
+  ["color-admin-focus", "color-admin-bg"],
 ] as const;
 
 describe.each(Object.entries(MODES))("%s mode colours", (_mode, tokens) => {
@@ -216,13 +221,13 @@ describe("company panel frame", () => {
     expect(componentsCss).toMatch(/@media \(min-width: 40rem\) and \(max-width: 63\.99rem\)/);
     expect(componentsCss).toMatch(/--sidebar-width: var\(--sidebar-rail-width\)/);
     expect(componentsCss).toMatch(/@media \(max-width: 39\.99rem\)/);
-    expect(componentsCss).toMatch(/\.company-sidebar\s*\{[^}]*transform: translateX\(-100%\)/);
+    expect(componentsCss).toMatch(/\.panel-sidebar\s*\{[^}]*transform: translateX\(-100%\)/);
   });
 
   it("keeps hidden labels available to screen readers", () => {
     const tablet = componentsCss.split("@media (min-width: 40rem)")[1] ?? "";
-    expect(tablet).toMatch(/\.company-label,[^{]*\{[^}]*clip: rect\(0 0 0 0\)/);
-    expect(tablet).not.toMatch(/\.company-label[^{]*\{[^}]*display: none/);
+    expect(tablet).toMatch(/\.panel-label,[^{]*\{[^}]*clip: rect\(0 0 0 0\)/);
+    expect(tablet).not.toMatch(/\.panel-label[^{]*\{[^}]*display: none/);
   });
 });
 
@@ -230,5 +235,24 @@ describe("theme choice survives page re-renders", () => {
   it("does not hard-code a theme on <html>, so React never resets the saved one", () => {
     const layout = readFileSync(join(__dirname, "../app/layout.tsx"), "utf8");
     expect(layout).not.toMatch(/<html[^>]*data-theme/);
+  });
+});
+
+describe("admin look", () => {
+  it("has an ink sidebar that is dark in both modes, a green stripe and an Admin badge", () => {
+    for (const tokens of Object.values(MODES)) {
+      expect(luminance(tokens["color-admin-bg"])).toBeLessThan(0.01);
+    }
+    expect(componentsCss).toMatch(
+      /\.panel--admin \.panel-sidebar\s*\{[^}]*background: var\(--color-admin-bg\)/,
+    );
+    expect(componentsCss).toMatch(/\.panel--admin \.panel-topbar\s*\{[^}]*var\(--color-accent\)/);
+    expect(componentsCss).toMatch(/\.ui-tag--admin\s*\{[^}]*background: var\(--color-text\)/);
+  });
+
+  it("keeps the focus ring visible on the ink sidebar", () => {
+    expect(componentsCss).toMatch(
+      /\.panel--admin \.panel-sidebar\s*\{[^}]*--color-focus: var\(--color-admin-focus\)/,
+    );
   });
 });

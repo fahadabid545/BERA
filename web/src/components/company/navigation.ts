@@ -1,22 +1,11 @@
-import type { ToggleIconName } from "@/components/ui";
+import { visibleItems, type NavigationItem } from "@/components/panel/navigation";
 
 export type CompanyRole = "owner" | "member";
-
-export type NavigationItem = {
-  label: string;
-  href: string;
-  icon: ToggleIconName;
-  /** Roles that may open this item; everyone else never sees it. */
-  roles: readonly CompanyRole[];
-  /** The Dashboard is only current on its own address, not on every page below it. */
-  exact?: boolean;
-  children?: readonly { label: string; href: string }[];
-};
 
 const EVERYONE: readonly CompanyRole[] = ["owner", "member"];
 const OWNER_ONLY: readonly CompanyRole[] = ["owner"];
 
-export const NAVIGATION: readonly NavigationItem[] = [
+export const NAVIGATION: readonly NavigationItem<CompanyRole>[] = [
   { label: "Dashboard", href: "/company", icon: "dashboard", roles: EVERYONE, exact: true },
   { label: "Projects", href: "/company/projects", icon: "projects", roles: EVERYONE },
   { label: "Team", href: "/company/team", icon: "team", roles: OWNER_ONLY },
@@ -40,10 +29,4 @@ export const PROFILE_HREF = "/company/settings/profile";
 // The sign-in tickets decide what Log out really does.
 export const LOG_OUT_HREF = "/login";
 
-export function visibleNavigation(role: CompanyRole): NavigationItem[] {
-  return NAVIGATION.filter((item) => item.roles.includes(role));
-}
-
-export function isCurrentPath(pathname: string, href: string, exact = false): boolean {
-  return pathname === href || (!exact && pathname.startsWith(`${href}/`));
-}
+export const visibleNavigation = (role: CompanyRole) => visibleItems(NAVIGATION, role);

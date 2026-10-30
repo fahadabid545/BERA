@@ -90,6 +90,7 @@ export default function DesignSample() {
           <Tag variant="warning">Missing must-have</Tag>
           <Tag variant="danger">Not recommended</Tag>
           <Tag variant="live">Live</Tag>
+          <Tag variant="admin">Admin</Tag>
           <Tooltip content="Tooltip">
             <Button variant="secondary">Hover or focus me</Button>
           </Tooltip>

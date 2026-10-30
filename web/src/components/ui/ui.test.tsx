@@ -87,7 +87,7 @@ describe("form fields", () => {
 });
 
 describe("Tag", () => {
-  it.each(["neutral", "success", "warning", "danger", "live"] as const)(
+  it.each(["neutral", "success", "warning", "danger", "live", "admin"] as const)(
     "%s status is shown in words with its own surface class and no icon",
     (variant) => {
       render(<Tag variant={variant}>Status words</Tag>);

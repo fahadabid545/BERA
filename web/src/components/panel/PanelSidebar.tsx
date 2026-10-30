@@ -5,29 +5,39 @@ import { useState } from "react";
 
 import { ToggleIcon } from "@/components/ui";
 
-import { isCurrentPath, visibleNavigation, type CompanyRole } from "./navigation";
+import { isCurrentPath, type SidebarItem } from "./navigation";
 
 function Chevron() {
   return (
-    <svg className="company-chevron" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+    <svg className="panel-chevron" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
       <path d="m4 6 4 4 4-4" />
     </svg>
   );
 }
 
-export function CompanySidebar({ role, pathname }: { role: CompanyRole; pathname: string }) {
+export function PanelSidebar({
+  items,
+  pathname,
+  label,
+  homeHref,
+}: {
+  items: SidebarItem[];
+  pathname: string;
+  label: string;
+  homeHref: string;
+}) {
   // Sub-menus start closed, even on one of their own pages, and only a click opens them.
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   return (
-    <aside className="company-sidebar" id="company-menu">
-      <Link href="/company" className="site-brand company-brand">
+    <aside className="panel-sidebar" id="panel-menu">
+      <Link href={homeHref} className="site-brand panel-brand">
         Bera
       </Link>
-      <nav aria-label="Company">
-        <ul className="company-nav">
-          {visibleNavigation(role).map((item) => {
-            const label = <span className="company-label">{item.label}</span>;
+      <nav aria-label={label}>
+        <ul className="panel-nav">
+          {items.map((item) => {
+            const itemLabel = <span className="panel-label">{item.label}</span>;
             if (!item.children) {
               return (
                 <li key={item.href}>
@@ -40,19 +50,19 @@ export function CompanySidebar({ role, pathname }: { role: CompanyRole; pathname
                     }
                   >
                     <ToggleIcon name={item.icon} />
-                    {label}
+                    {itemLabel}
                   </Link>
                 </li>
               );
             }
 
-            const submenuId = `company-submenu-${item.label.toLowerCase()}`;
+            const submenuId = `panel-submenu-${item.label.toLowerCase().replace(/ /g, "-")}`;
             const isOpen = openGroup === item.label;
             return (
               <li key={item.href}>
                 <button
                   type="button"
-                  className="ui-icon-item company-group"
+                  className="ui-icon-item panel-group"
                   title={item.label}
                   aria-expanded={isOpen}
                   aria-controls={submenuId}
@@ -60,11 +70,11 @@ export function CompanySidebar({ role, pathname }: { role: CompanyRole; pathname
                   onClick={() => setOpenGroup(isOpen ? null : item.label)}
                 >
                   <ToggleIcon name={item.icon} />
-                  {label}
+                  {itemLabel}
                   <Chevron />
                 </button>
                 {isOpen && (
-                  <ul id={submenuId} className="company-submenu">
+                  <ul id={submenuId} className="panel-submenu">
                     {item.children.map((child) => (
                       <li key={child.href}>
                         <Link

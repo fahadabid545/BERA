@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type TagVariant = "neutral" | "success" | "warning" | "danger" | "live";
+export type TagVariant = "neutral" | "success" | "warning" | "danger" | "live" | "admin";
 
 /** Status is always shown in words; each variant also has its own surface (see components.css). */
 export function Tag({

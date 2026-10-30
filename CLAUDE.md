@@ -47,7 +47,10 @@ and why, and ask before proceeding. Never bend a rule silently.
   fade/scale transition from tokens (`--transition`). Motion stops for reduced motion.
 - The company panel lives under `/company` (all its pages, e.g. `/company/projects`);
   the admin panel under `/admin`. Items a role may not open are hidden, not disabled.
-  Navigation is defined once in `components/company/navigation.ts`.
+  Both panels use the shared `components/panel` frame (sidebar, top bar, collapse);
+  navigation lives in `components/company/navigation.ts` and
+  `components/admin/navigation.ts`. The admin panel must stay visibly different:
+  ink sidebar, green top stripe, solid ADMIN badge.
 - Page content, header and footer share one column (`.site-container`,
   `--container-width`); never let page text sit outside it.
 
