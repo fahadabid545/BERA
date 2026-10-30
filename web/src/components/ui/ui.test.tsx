@@ -107,6 +107,14 @@ describe("Textarea", () => {
   });
 });
 
+describe("Checkbox with links", () => {
+  it("can hold links in its label without the links toggling it", async () => {
+    render(<Checkbox label={<TextLink href="/terms">Terms</TextLink>} />);
+    expect(screen.getByRole("link", { name: "Terms" }).getAttribute("href")).toBe("/terms");
+    expect(screen.getByRole("checkbox", { name: "Terms" })).toBeTruthy();
+  });
+});
+
 describe("Tag", () => {
   it.each(["neutral", "success", "warning", "danger", "live", "admin"] as const)(
     "%s status is shown in words with its own surface class and no icon",
