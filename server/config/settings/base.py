@@ -30,6 +30,9 @@ INSTALLED_APPS = [
     "signin",
 ]
 
+# Development only (see development.py): the country the sign-up form pretends the visitor is in.
+DEVELOPMENT_PRETEND_COUNTRY = ""
+
 # Only strong, slow, one-way hashes. Company users and admin users each keep theirs in their
 # own table (companies, adminusers); Django's own user table is not used.
 # Only used to write emails (emailing/templates); the product has no server-rendered pages.

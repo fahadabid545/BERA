@@ -87,6 +87,21 @@ follow [docs/security/if-a-key-leaks.md](docs/security/if-a-key-leaks.md).
 
 `seed_dev_data` and `reset_dev_db` refuse to run outside development.
 
+### Sign up
+
+`POST /api/auth/company/signup/` (the page is `/signup`) creates a company and its owner and
+sends the verification email. It is limited to 5 per hour per address, needs a password of at
+least 12 characters that is not commonly used, and the Terms ticked. It answers "If this email
+can be used, we have sent instructions." whether or not the email already has an account; an
+existing account is sent a notice instead (at most 3 per hour per inbox). The owner stays
+unverified until the verification ticket's link is used, and login (its own ticket) must refuse
+unverified owners.
+
+The form suggests the visitor's country from Cloudflare's `CF-IPCountry` header, believed only
+for requests that came through our own proxies (`TRUSTED_PROXY_COUNT`); anything unknown
+becomes Other (`ZZ`). Locally set `DEVELOPMENT_PRETEND_COUNTRY=PK` in `.env` to pretend a
+country; staging and production ignore it.
+
 ### System emails
 
 All system emails go through `send_email(template, address, **values)` in `server/emailing`.

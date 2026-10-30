@@ -11,6 +11,8 @@ import { Button } from "./Button";
  */
 export function Dialog({
   trigger,
+  open,
+  onOpenChange,
   title,
   description,
   confirmLabel,
@@ -19,7 +21,10 @@ export function Dialog({
   actions,
   children,
 }: {
-  trigger: ReactNode;
+  /** Leave out when the page opens the popup itself, with `open` and `onOpenChange`. */
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   title: string;
   description?: string;
   confirmLabel?: string;
@@ -31,8 +36,8 @@ export function Dialog({
 }) {
   const isConfirmation = Boolean(confirmLabel && onConfirm);
   return (
-    <RadixDialog.Root>
-      <RadixDialog.Trigger asChild>{trigger}</RadixDialog.Trigger>
+    <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
+      {trigger && <RadixDialog.Trigger asChild>{trigger}</RadixDialog.Trigger>}
       <RadixDialog.Portal>
         <RadixDialog.Overlay className="ui-overlay" />
         <RadixDialog.Content className="ui-dialog" aria-describedby={description ? undefined : ""}>

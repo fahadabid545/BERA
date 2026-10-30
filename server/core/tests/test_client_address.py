@@ -50,3 +50,26 @@ def test_one_ipv6_network_counts_as_one_source(settings):
     other = address_of(settings, 0, remote="2001:db8:1:3::1")
     assert first == second == "2001:db8:1:2::/64"
     assert other != first
+
+
+class TestCameThroughOurProxy:
+    @pytest.mark.parametrize(
+        ("proxies", "forwarded", "expected"),
+        [
+            (0, "198.51.100.7", False),
+            (1, None, False),
+            (1, "198.51.100.7", True),
+            (2, "198.51.100.7", False),
+            (2, "203.0.113.1, 198.51.100.7", True),
+        ],
+    )
+    def test_it_needs_as_many_forwarding_entries_as_there_are_proxies(
+        self, settings, proxies, forwarded, expected
+    ):
+        from django.test import RequestFactory
+
+        from core.client_address import came_through_our_proxy
+
+        settings.TRUSTED_PROXY_COUNT = proxies
+        extra = {"HTTP_X_FORWARDED_FOR": forwarded} if forwarded else {}
+        assert came_through_our_proxy(RequestFactory().get("/", **extra)) is expected

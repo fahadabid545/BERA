@@ -26,12 +26,20 @@ def client_address(request):
     return str(address)
 
 
-def _candidate(request):
-    direct = request.META.get("REMOTE_ADDR", "")
+def came_through_our_proxy(request):
+    """True when our own proxies handled this request, so headers they add (such as the
+    country from Cloudflare) can be believed. Fewer forwarding entries than proxies means
+    the request skipped them."""
     proxies = settings.TRUSTED_PROXY_COUNT
-    if proxies == 0:
-        return direct
-    forwarded = [part.strip() for part in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")]
-    forwarded = [part for part in forwarded if part]
-    # Fewer entries than proxies means the header did not come through our proxies.
-    return forwarded[-proxies] if len(forwarded) >= proxies else direct
+    return proxies > 0 and len(_forwarded_entries(request)) >= proxies
+
+
+def _forwarded_entries(request):
+    parts = [part.strip() for part in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")]
+    return [part for part in parts if part]
+
+
+def _candidate(request):
+    if not came_through_our_proxy(request):
+        return request.META.get("REMOTE_ADDR", "")
+    return _forwarded_entries(request)[-settings.TRUSTED_PROXY_COUNT]

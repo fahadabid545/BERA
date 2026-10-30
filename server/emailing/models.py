@@ -43,6 +43,33 @@ class OutgoingEmail(models.Model):
         ]
 
 
+class LinkToken(models.Model):
+    """The secret in an email link. Random, used once, expires, and kept only as a hash, so a
+    copy of the database cannot be used to open anyone's link. One purpose per token: a
+    reset link can never verify an email."""
+
+    class Purpose(models.TextChoices):
+        VERIFY_EMAIL = "verify_email"
+        RESET_PASSWORD = "reset_password"
+        TEAM_INVITE = "team_invite"
+
+    purpose = models.CharField(max_length=30, choices=Purpose.choices)
+    # The person (or invitation) it is for; the purpose says which table that is.
+    subject_id = models.BigIntegerField()
+    token_hash = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(purpose__in=["verify_email", "reset_password", "team_invite"]),
+                name="linktoken_purpose_is_known",
+            ),
+        ]
+
+
 class BouncedAddress(models.Model):
     """An address the provider said cannot receive email, or whose owner complained.
     Nothing is sent to it again."""

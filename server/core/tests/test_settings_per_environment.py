@@ -40,7 +40,8 @@ def load_settings(app_env, **overrides):
         " 'redirect': getattr(s, 'SECURE_SSL_REDIRECT', False),"
         " 'referrer': s.SECURE_REFERRER_POLICY, 'proxies': s.TRUSTED_PROXY_COUNT,"
         " 'db_user': s.DATABASES['default']['USER'], 'email_backend': s.EMAIL_BACKEND,"
-        " 'sender': s.DEFAULT_FROM_EMAIL, 'web': s.WEB_BASE_URL}))"
+        " 'sender': s.DEFAULT_FROM_EMAIL, 'web': s.WEB_BASE_URL,"
+        " 'pretend': s.DEVELOPMENT_PRETEND_COUNTRY}))"
     )
     return subprocess.run(
         [sys.executable, "-c", script], env=environ, capture_output=True, text=True, cwd="/"
@@ -212,3 +213,21 @@ def test_production_refuses_a_website_address_that_is_not_plain_https(address):
 def test_production_refuses_a_sender_that_is_not_an_email_address(address):
     result = load_settings("production", EMAIL_FROM_ADDRESS=address)
     assert result.returncode != 0 and "EMAIL_FROM_ADDRESS" in result.stderr
+
+
+def test_development_can_pretend_a_country_for_the_sign_up_form():
+    assert settings_of("development", DEVELOPMENT_PRETEND_COUNTRY="pk")["pretend"] == "PK"
+    assert settings_of("development", DEVELOPMENT_PRETEND_COUNTRY="")["pretend"] == ""
+
+
+@pytest.mark.parametrize("app_env", ["staging", "production"])
+def test_staging_and_production_ignore_the_pretend_country(app_env):
+    assert settings_of(app_env, DEVELOPMENT_PRETEND_COUNTRY="PK")["pretend"] == ""
+    # Not even a wrong value is looked at there.
+    assert settings_of(app_env, DEVELOPMENT_PRETEND_COUNTRY="nonsense")["pretend"] == ""
+
+
+@pytest.mark.parametrize("bad", ["Pakistan", "XX", "P", "12"])
+def test_development_refuses_a_pretend_country_that_is_not_a_country_code(bad):
+    result = load_settings("development", DEVELOPMENT_PRETEND_COUNTRY=bad)
+    assert result.returncode != 0 and "DEVELOPMENT_PRETEND_COUNTRY" in result.stderr

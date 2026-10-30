@@ -42,6 +42,18 @@ PUBLIC_ROUTES = [
         "token (a protected cookie), which is itself the credential.",
     ),
     PublicRoute(
+        route="api/auth/company/signup/",
+        category="sign_up",
+        reason="A visitor creates a company account before having one. It answers the same "
+        "whether or not the email is taken and is limited per address.",
+    ),
+    PublicRoute(
+        route="api/auth/company/signup/country/",
+        category="sign_up",
+        reason="The sign-up form shows the visitor's detected country before an account exists. "
+        "It returns only a country code.",
+    ),
+    PublicRoute(
         route="api/auth/admin/refresh/",
         category="login",
         reason="The same renewal for admin users, with the admin refresh token.",

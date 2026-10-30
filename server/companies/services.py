@@ -7,7 +7,14 @@ from .models import Company, CompanyUser
 
 @transaction.atomic
 def create_company_with_owner(
-    *, company_name, country, owner_name, owner_email, password, email_verified=False
+    *,
+    company_name,
+    country,
+    owner_name,
+    owner_email,
+    password,
+    email_verified=False,
+    terms_accepted_at=None,
 ):
     """A company never exists without its owner. Sign-up calls this."""
     company = Company.objects.create(name=company_name, country=country)
@@ -17,6 +24,7 @@ def create_company_with_owner(
         email=owner_email,
         role=CompanyUser.Role.OWNER,
         email_verified=email_verified,
+        terms_accepted_at=terms_accepted_at,
     )
     owner.set_password(password)
     owner.save()

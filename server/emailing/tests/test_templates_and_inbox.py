@@ -42,6 +42,7 @@ def test_the_catalog_holds_exactly_the_agreed_emails():
         "verify_email",
         "reset_password",
         "team_invite",
+        "already_registered",
         "password_changed",
         "email_changed",
         "new_sign_in",

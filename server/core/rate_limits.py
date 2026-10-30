@@ -32,6 +32,7 @@ class Rule:
 LOGIN = Rule("login", "rate_limits.login_per_minute", 60)
 REFRESH = Rule("refresh", "rate_limits.refresh_per_minute", 60)
 SIGN_UP = Rule("sign_up", "rate_limits.sign_up_per_hour", 3600)
+SIGN_UP_NOTICE = Rule("sign_up_notice", "rate_limits.sign_up_notices_per_hour", 3600)
 PASSWORD_RESET = Rule("password_reset", "rate_limits.password_reset_per_hour", 3600)
 INVITES = Rule("invites", "rate_limits.invites_per_hour", 3600)
 UPLOADS = Rule("uploads", "rate_limits.upload_files_per_10_minutes", 600)
@@ -119,6 +120,7 @@ ALL_RULES = (
     LOGIN,
     REFRESH,
     SIGN_UP,
+    SIGN_UP_NOTICE,
     PASSWORD_RESET,
     INVITES,
     UPLOADS,

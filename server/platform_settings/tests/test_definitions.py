@@ -7,6 +7,7 @@ from platform_settings.definitions import SETTINGS, list_of_file_types, whole_nu
 EXPECTED_DEFAULTS = {
     "passwords.min_length": 12,
     "passwords.block_common_passwords": True,
+    "passwords.max_length": 128,
     "tokens.access_minutes": 15,
     "tokens.refresh_days": 7,
     "tokens.clock_leeway_seconds": 30,
@@ -20,6 +21,7 @@ EXPECTED_DEFAULTS = {
     "rate_limits.login_per_minute": 10,
     "rate_limits.refresh_per_minute": 30,
     "rate_limits.sign_up_per_hour": 5,
+    "rate_limits.sign_up_notices_per_hour": 3,
     "rate_limits.password_reset_per_hour": 5,
     "rate_limits.invites_per_hour": 20,
     "rate_limits.upload_files_per_10_minutes": 100,

@@ -85,6 +85,19 @@ CATALOG = {
         button_label="Review sign-ins",
         variables=("name", "when", "device", "place", "link"),
     ),
+    "already_registered": EmailTemplate(
+        subject="Someone tried to sign up to Bera with your email address",
+        heading="You already have an account",
+        paragraphs=(
+            GREETING,
+            "Someone tried to create a Bera account with your email address, which already "
+            "has one.",
+            "If this was you, log in. If you forgot your password, you can reset it from the "
+            "login page. If it was not you, you can ignore this email.",
+        ),
+        button_label="Log in",
+        variables=("name", "link"),
+    ),
     "usage_notice": EmailTemplate(
         subject="Bera: {title}",
         heading="{title}",

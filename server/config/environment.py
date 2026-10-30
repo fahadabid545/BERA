@@ -115,3 +115,13 @@ def parse_sender_address(text):
     except ValidationError:
         raise ConfigurationError("EMAIL_FROM_ADDRESS must be a valid email address.") from None
     return address
+
+
+def parse_pretend_country(text):
+    """A country code for the sign-up form to pretend, or "" for none (development only)."""
+    from companies.countries import COUNTRY_CODES
+
+    code = text.strip().upper()
+    if code and code not in COUNTRY_CODES:
+        raise ConfigurationError("DEVELOPMENT_PRETEND_COUNTRY must be a two-letter country code.")
+    return code

@@ -59,6 +59,8 @@ SETTINGS = [
     # Passwords
     SettingDefinition("passwords.min_length", 12, whole_number(8, 128)),
     SettingDefinition("passwords.block_common_passwords", True, yes_or_no),
+    # Long passwords are slow to hash; this keeps a huge one from tying the server up.
+    SettingDefinition("passwords.max_length", 128, whole_number(12, 1024)),
     # Tokens and links
     SettingDefinition("tokens.access_minutes", 15, whole_number(1, 1440)),
     SettingDefinition("tokens.refresh_days", 7, whole_number(1, 90)),
@@ -79,6 +81,8 @@ SETTINGS = [
     SettingDefinition("rate_limits.login_per_minute", 10, whole_number(1, 10000)),
     SettingDefinition("rate_limits.refresh_per_minute", 30, whole_number(1, 10000)),
     SettingDefinition("rate_limits.sign_up_per_hour", 5, whole_number(1, 10000)),
+    # Notices sent to one email address because someone tried to sign up with it.
+    SettingDefinition("rate_limits.sign_up_notices_per_hour", 3, whole_number(1, 10000)),
     SettingDefinition("rate_limits.password_reset_per_hour", 5, whole_number(1, 10000)),
     SettingDefinition("rate_limits.invites_per_hour", 20, whole_number(1, 10000)),
     SettingDefinition("rate_limits.upload_files_per_10_minutes", 100, whole_number(1, 100000)),

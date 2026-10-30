@@ -4,8 +4,7 @@ from django.db.models import Q
 from core.errors import AppError
 from core.models import PersonAccount
 
-# ISO 3166 "unknown or unspecified"; the sign-up screen shows it as "Other".
-OTHER_COUNTRY = "ZZ"
+from .countries import OTHER_COUNTRY
 
 
 def company_deletion_blocked():
@@ -60,6 +59,8 @@ class CompanyUser(PersonAccount):
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
     email_verified = models.BooleanField(default=False)
+    # When the person ticked the Terms and Privacy Policy at sign-up (or accepted an invite).
+    terms_accepted_at = models.DateTimeField(null=True)
 
     class Meta:
         constraints = [
