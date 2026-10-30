@@ -4,7 +4,9 @@ import logging
 from dataclasses import dataclass
 from datetime import timedelta
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 from django.utils import timezone
 from rest_framework.exceptions import NotAuthenticated
 
@@ -48,6 +50,11 @@ class SignedInUser:
     kind: str
     session_id: str
     is_authenticated = True
+
+
+def _account_is_active():
+    """True in a query only while the account exists and is not blocked or removed."""
+    return Exists(get_user_model().objects.filter(id=OuterRef("user_id"), is_active=True))
 
 
 def _check_who(kind, role, company_id):
@@ -104,10 +111,15 @@ def start_session(*, user_id, role, company_id, kind):
 
 
 def verify_access_token(token, kind):
-    """The signed-in user, or NotAuthenticated. One indexed lookup confirms the session is live."""
+    """The signed-in user, or NotAuthenticated.
+
+    One lookup confirms the session is live and its account is still active, so a removed or
+    blocked person is refused at once even with an unexpired token.
+    """
     claims = read_token(token, kind=kind, token_type=ACCESS)
     company_id = claims.get("cid")
     still_active = Session.objects.filter(
+        _account_is_active(),
         id=claims["sid"],
         kind=kind,
         user_id=int(claims["sub"]),
@@ -135,7 +147,7 @@ def refresh_session(token, kind):
     with transaction.atomic():
         session = (
             Session.objects.select_for_update()
-            .filter(id=claims["sid"], kind=kind, user_id=int(claims["sub"]))
+            .filter(_account_is_active(), id=claims["sid"], kind=kind, user_id=int(claims["sub"]))
             .first()
         )
         if session and session.status == Session.Status.ACTIVE and session.expires_at > now:
