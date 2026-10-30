@@ -44,8 +44,11 @@ When ready it prints:
 
 Press `Ctrl+C` to stop everything.
 
-Fake accounts (development only): `fake-admin` / `FAKE-admin-password-dev-only` and
-`fake-company-owner` / `FAKE-company-password-dev-only`.
+Fake accounts (development only): admin `admin@example.test` / `FAKE-admin-password-dev-only`
+and company owner `owner@example.test` / `FAKE-company-password-dev-only`. There are three
+separate kinds of account: companies, company users and admin users (see
+`server/companies` and `server/adminusers`); they share no table. Passwords are stored only as
+Argon2 hashes. A local database from before this change needs `python scripts/dev.py reset-db`.
 
 ### Other commands
 

@@ -1,6 +1,48 @@
 import uuid
 
+from django.contrib.auth.hashers import check_password, make_password
 from django.db import models
+from django.db.models import Q
+from django.db.models.functions import Lower, Trim
+
+from .field_protection import normalize_email
+
+
+class PersonAccount(models.Model):
+    """What every kind of account has. Each kind (company user, admin user) is its own table
+    with its own credentials: nothing is stored in a table both kinds share.
+
+    The email is kept trimmed and lower case, so "Jo@Example.com " and "jo@example.com" are
+    one address. The password is kept only as a strong one-way hash.
+    """
+
+    name = models.CharField(max_length=200)
+    email = models.EmailField(max_length=254)
+    password_hash = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
+
+    @staticmethod
+    def email_is_normalised_constraint(label):
+        return models.CheckConstraint(
+            condition=Q(email=Lower(Trim("email"))), name=f"{label}_email_is_normalised"
+        )
+
+    def save(self, *args, **kwargs):
+        self.email = normalize_email(self.email)
+        super().save(*args, **kwargs)
+
+    def set_password(self, raw_password):
+        self.password_hash = make_password(raw_password)
+
+    def set_unusable_password(self):
+        """For an invited person who has not chosen a password yet: no password matches."""
+        self.password_hash = make_password(None)
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.password_hash)
 
 
 class CompanyOwnedModel(models.Model):

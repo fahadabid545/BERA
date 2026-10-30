@@ -2,11 +2,10 @@ import uuid
 
 import pytest
 from django.apps import apps
-from django.contrib.auth import get_user_model
 from django.db import connection
 from rest_framework.test import APIClient
 
-from companies.models import Company
+from companies.models import Company, CompanyUser
 from core.models import CompanyOwnedModel
 from signin import service
 from signin.service import RevokeReason
@@ -25,9 +24,8 @@ def object_tables(db):
 
 @pytest.fixture
 def companies(db):
-    owner = get_user_model().objects.get(id=1)
-    return Company.objects.create(name="Mine Fake Ltd", owner=owner), Company.objects.create(
-        name="Theirs Fake Ltd", owner=owner
+    return Company.objects.create(name="Mine Fake Ltd"), Company.objects.create(
+        name="Theirs Fake Ltd"
     )
 
 
@@ -139,7 +137,7 @@ def test_a_blocked_person_loses_access_at_once_even_with_a_valid_token(companies
     client = sign_in(mine, user_id=5)
     assert client.get(route("Project", record.id)).status_code == 200
 
-    get_user_model().objects.filter(id=5).update(is_active=False)
+    CompanyUser.objects.filter(id=5).update(status="blocked")
 
     response = client.get(route("Project", record.id))
     assert response.status_code == 401
@@ -150,14 +148,14 @@ def test_a_removed_person_loses_access_at_once(companies):
     mine, _ = companies
     record = KINDS_OF_OBJECT["Project"].objects.create(company=mine)
     client = sign_in(mine, user_id=6)
-    get_user_model().objects.filter(id=6).delete()
+    CompanyUser.objects.filter(id=6).delete()
     assert client.get(route("Project", record.id)).status_code == 401
 
 
 def test_a_blocked_person_cannot_renew_their_tokens_either(companies):
     mine, _ = companies
     issued = service.start_session(user_id=5, role="owner", company_id=mine.id, kind="company")
-    get_user_model().objects.filter(id=5).update(is_active=False)
+    CompanyUser.objects.filter(id=5).update(status="blocked")
     from rest_framework.exceptions import NotAuthenticated
 
     with pytest.raises(NotAuthenticated):
@@ -172,11 +170,17 @@ def test_revoked_sessions_lose_access_to_objects_at_once(companies):
     assert client.get(route("Project", record.id)).status_code == 401
 
 
+# People are accounts, not company data: sign-in refers to them by number and they are found
+# through their own sign-in, never through a company-scoped request.
+ACCOUNT_MODELS = {"CompanyUser"}
+
+
 def test_every_model_with_a_company_is_built_on_the_shared_base():
     outside_the_base = [
         model.__name__
         for model in apps.get_models()
         if any(field.name == "company" for field in model._meta.get_fields())
         and not issubclass(model, CompanyOwnedModel)
+        and model.__name__ not in ACCOUNT_MODELS
     ]
     assert outside_the_base == []

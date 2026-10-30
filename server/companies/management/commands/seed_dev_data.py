@@ -1,18 +1,19 @@
-from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from companies.models import Company
+from adminusers.models import AdminUser
+from companies.models import CompanyUser
+from companies.services import create_company_with_owner
 from core.development_only import require_development
 
 # Obviously fake, development-only accounts. Passwords are set only when an
 # account is first created, so running this again never overwrites changes.
 FAKE_ADMIN = {
-    "username": "fake-admin",
+    "name": "Fake Admin",
     "email": "admin@example.test",
     "password": "FAKE-admin-password-dev-only",
 }
 FAKE_COMPANY_OWNER = {
-    "username": "fake-company-owner",
+    "name": "Fake Company Owner",
     "email": "owner@example.test",
     "password": "FAKE-company-password-dev-only",
 }
@@ -24,18 +25,22 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         require_development()
-        user_model = get_user_model()
-        _create_user(user_model, FAKE_ADMIN, is_staff=True, is_superuser=True)
-        owner = _create_user(user_model, FAKE_COMPANY_OWNER)
-        Company.objects.get_or_create(name=FAKE_COMPANY_NAME, defaults={"owner": owner})
+        _create_admin()
+        if not CompanyUser.objects.filter(email=FAKE_COMPANY_OWNER["email"]).exists():
+            create_company_with_owner(
+                company_name=FAKE_COMPANY_NAME,
+                country="ZZ",
+                owner_name=FAKE_COMPANY_OWNER["name"],
+                owner_email=FAKE_COMPANY_OWNER["email"],
+                password=FAKE_COMPANY_OWNER["password"],
+                email_verified=True,
+            )
         self.stdout.write("Fake development data is ready.")
 
 
-def _create_user(user_model, account, **flags):
-    user, created = user_model.objects.get_or_create(
-        username=account["username"], defaults={"email": account["email"], **flags}
-    )
-    if created:
-        user.set_password(account["password"])
-        user.save()
-    return user
+def _create_admin():
+    if AdminUser.objects.filter(email=FAKE_ADMIN["email"]).exists():
+        return
+    admin = AdminUser(name=FAKE_ADMIN["name"], email=FAKE_ADMIN["email"], role=AdminUser.Role.SUPER)
+    admin.set_password(FAKE_ADMIN["password"])
+    admin.save()

@@ -18,15 +18,19 @@ FIELD_KEYS = require_field_keys()
 DATABASES = {"default": dj_database_url.parse(_required[_database_url_setting], conn_max_age=60)}
 
 INSTALLED_APPS = [
-    "django.contrib.auth",
     "django.contrib.contenttypes",
     "rest_framework",
     "django_q",
     "core",
     "companies",
+    "adminusers",
     "platform_settings",
     "signin",
 ]
+
+# Only strong, slow, one-way hashes. Company users and admin users each keep theirs in their
+# own table (companies, adminusers); Django's own user table is not used.
+PASSWORD_HASHERS = ["django.contrib.auth.hashers.Argon2PasswordHasher"]
 
 MIDDLEWARE = [
     "core.middleware.RequestContextMiddleware",
@@ -61,6 +65,8 @@ REST_FRAMEWORK = {
     # (core/public_routes.py) and says so with PublicAccess. The token ticket adds the
     # authentication classes that make a valid sign-in possible.
     "DEFAULT_AUTHENTICATION_CLASSES": [],
+    # Django's own user model is not installed (accounts live in companies and adminusers).
+    "UNAUTHENTICATED_USER": None,
     "DEFAULT_PERMISSION_CLASSES": ["core.permissions.IsSignedIn"],
     # Every view has the general per-user limit; views with their own limits add to it.
     "DEFAULT_THROTTLE_CLASSES": ["core.throttles.OtherRequestsThrottle"],

@@ -1,5 +1,4 @@
 import pytest
-from django.contrib.auth.models import User
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.test import APIClient, APIRequestFactory
@@ -51,10 +50,9 @@ def record_lookup_view(company_id):
 
 @pytest.fixture
 def two_companies(db):
-    owner = User.objects.create(username="owner-fake")
     return (
-        Company.objects.create(name="First Fake Ltd", owner=owner),
-        Company.objects.create(name="Second Fake Ltd", owner=owner),
+        Company.objects.create(name="First Fake Ltd"),
+        Company.objects.create(name="Second Fake Ltd"),
     )
 
 

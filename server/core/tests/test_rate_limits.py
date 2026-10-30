@@ -1,13 +1,12 @@
-import itertools
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 
 from core import rate_limits
 from core.models import BlockedSource, RateCounter
+from core.tests.factories import make_company_user
 from signin import service
 
 pytestmark = [pytest.mark.urls("core.tests.urls_for_limits"), pytest.mark.django_db]
@@ -31,12 +30,9 @@ def clock(monkeypatch):
     return fake
 
 
-_ids = itertools.count(100)
-
-
 def person(company_id=3, role="owner"):
     """A signed-in company user, as a client that sends its token."""
-    user = get_user_model().objects.create(username=f"limit-user-{next(_ids)}")
+    user = make_company_user()
     issued = service.start_session(
         user_id=user.id, role=role, company_id=company_id, kind="company"
     )

@@ -4,15 +4,16 @@ import logging
 from dataclasses import dataclass
 from datetime import timedelta
 
-from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 from rest_framework.exceptions import NotAuthenticated
 
+from adminusers.models import AdminUser
+from companies.models import CompanyUser
 from platform_settings.service import get_setting
 
-from .kinds import COMPANY, KINDS, ROLES
+from .kinds import ADMIN, COMPANY, KINDS, ROLES
 from .models import RetiredRefreshToken, Session
 from .tokens import ACCESS, REFRESH, create_token, hash_token, read_token
 
@@ -53,8 +54,15 @@ class SignedInUser:
 
 
 def _account_is_active():
-    """True in a query only while the account exists and is not blocked or removed."""
-    return Exists(get_user_model().objects.filter(id=OuterRef("user_id"), is_active=True))
+    """True in a query only while the account exists and is not blocked or removed.
+
+    Each kind of session is checked in its own table, so a company user's id can never
+    stand in for an admin's."""
+    company_user = CompanyUser.objects.filter(
+        id=OuterRef("user_id"), status=CompanyUser.Status.ACTIVE
+    )
+    admin_user = AdminUser.objects.filter(id=OuterRef("user_id"), status=AdminUser.Status.ACTIVE)
+    return (Q(kind=COMPANY) & Q(Exists(company_user))) | (Q(kind=ADMIN) & Q(Exists(admin_user)))
 
 
 def _check_who(kind, role, company_id):

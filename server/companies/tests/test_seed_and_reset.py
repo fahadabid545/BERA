@@ -1,32 +1,34 @@
 import pytest
-from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import override_settings
 
-from companies.models import Company
+from adminusers.models import AdminUser
+from companies.models import Company, CompanyUser
 from core.errors import AppError
 
 
 @pytest.mark.django_db
-def test_seed_creates_fake_admin_and_company():
+def test_seed_creates_fake_admin_and_company_with_its_owner():
     call_command("seed_dev_data")
 
-    admin = get_user_model().objects.get(username="fake-admin")
-    assert admin.is_superuser and admin.check_password("FAKE-admin-password-dev-only")
-    assert Company.objects.get(name="Fake Test Company").owner.username == "fake-company-owner"
+    admin = AdminUser.objects.get(email="admin@example.test")
+    assert admin.role == "super" and admin.check_password("FAKE-admin-password-dev-only")
+    owner = CompanyUser.objects.get(company__name="Fake Test Company")
+    assert owner.role == "owner" and owner.email_verified
+    assert owner.check_password("FAKE-company-password-dev-only")
 
 
 @pytest.mark.django_db
 def test_seed_twice_changes_nothing_and_keeps_changed_passwords():
     call_command("seed_dev_data")
-    admin = get_user_model().objects.get(username="fake-admin")
+    admin = AdminUser.objects.get(email="admin@example.test")
     admin.set_password("changed-by-developer")
     admin.save()
 
     call_command("seed_dev_data")
 
-    assert get_user_model().objects.filter(username="fake-admin").count() == 1
-    assert Company.objects.count() == 1
+    assert AdminUser.objects.count() == 1
+    assert Company.objects.count() == 1 and CompanyUser.objects.count() == 1
     admin.refresh_from_db()
     assert admin.check_password("changed-by-developer")
 

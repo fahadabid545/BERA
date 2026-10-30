@@ -2,9 +2,9 @@
 
 import pytest
 from django.conf import settings as django_settings
-from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
+from core.tests.factories import make_admin_user
 from signin import service
 from signin.cookies import CSRF_COOKIE, refresh_cookie_name
 
@@ -22,7 +22,7 @@ EVERY_RESPONSE_HEADERS = {
 
 
 def admin_client_with_cookies():
-    user = get_user_model().objects.create(username="admin-fake")
+    user = make_admin_user()
     issued = service.start_session(user_id=user.id, role="super", company_id=None, kind="admin")
     client = APIClient()
     client.cookies[refresh_cookie_name("admin")] = issued.refresh_token
