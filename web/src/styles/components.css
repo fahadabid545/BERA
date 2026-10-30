@@ -229,10 +229,16 @@
   cursor: pointer;
   transition: background-color var(--transition);
 }
+a.ui-tab {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
 .ui-tab:hover {
   background: var(--color-surface-muted);
 }
-.ui-tab[aria-selected="true"] {
+.ui-tab[aria-selected="true"],
+.ui-tab[aria-current="page"] {
   background: var(--color-accent-soft);
 }
 .ui-tab-panel {

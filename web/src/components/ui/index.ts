@@ -9,6 +9,8 @@ export type { MenuItem } from "./Menu";
 export { Select } from "./Select";
 export { Table } from "./Table";
 export { Tabs } from "./Tabs";
+export { TabLinks } from "./TabLinks";
+export type { TabLinkItem } from "./TabLinks";
 export { Tag } from "./Tag";
 export { ThemeToggle } from "./ThemeToggle";
 export { TextLink } from "./TextLink";

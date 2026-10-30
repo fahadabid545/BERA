@@ -11,6 +11,7 @@ import {
   Textarea,
   TextLink,
   Table,
+  TabLinks,
   Tabs,
   Tag,
   ThemeToggle,
@@ -160,6 +161,13 @@ export default function DesignSample() {
             { value: "overview", label: "Overview", content: <p>Overview</p> },
             { value: "details", label: "Details", content: <p>Details</p> },
             { value: "history", label: "History", content: <p>History</p> },
+          ]}
+        />
+        <TabLinks
+          label="Sample pages"
+          items={[
+            { label: "Design", href: "/design", exact: true },
+            { label: "Pricing", href: "/pricing" },
           ]}
         />
         <DeleteConfirmation />
