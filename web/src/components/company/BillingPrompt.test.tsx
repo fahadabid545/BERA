@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { Button } from "@/components/ui";
 
-import { UpgradePrompt } from "./BillingPrompt";
+import { RenewalPrompt, UpgradePrompt } from "./BillingPrompt";
 
 describe("UpgradePrompt", () => {
   const open = async () => {
@@ -29,6 +29,19 @@ describe("UpgradePrompt", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Open" }));
     await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("RenewalPrompt", () => {
+  it("shows Renew subscription linking to Usage and Billing, and closes", async () => {
+    render(<RenewalPrompt trigger={<Button>Open</Button>} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(screen.getByRole("link", { name: "Renew subscription" }).getAttribute("href")).toBe(
+      "/company/billing",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

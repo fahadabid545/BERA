@@ -19,7 +19,7 @@ import {
   Tooltip,
 } from "@/components/ui";
 
-import { UpgradePrompt } from "@/components/company/BillingPrompt";
+import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
 
 import { DeleteConfirmation } from "./DeleteConfirmation";
 
@@ -174,6 +174,7 @@ export default function DesignSample() {
         />
         <DeleteConfirmation />
         <UpgradePrompt trigger={<Button variant="secondary">Open upgrade prompt</Button>} />
+        <RenewalPrompt trigger={<Button variant="secondary">Open renewal prompt</Button>} />
         <Menu
           trigger={<Button variant="secondary">Menu</Button>}
           items={[

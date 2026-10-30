@@ -28,3 +28,14 @@ function BillingPrompt({
 export function UpgradePrompt({ trigger }: PromptProps) {
   return <BillingPrompt trigger={trigger} title="Upgrade your plan" actionLabel="Upgrade plan" />;
 }
+
+/** Shown when a subscription must be renewed. */
+export function RenewalPrompt({ trigger }: PromptProps) {
+  return (
+    <BillingPrompt
+      trigger={trigger}
+      title="Renew your subscription"
+      actionLabel="Renew subscription"
+    />
+  );
+}
