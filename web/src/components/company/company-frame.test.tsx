@@ -309,6 +309,7 @@ describe("frame", () => {
   it("shows pages that are not built yet as not found, inside the frame", () => {
     expect(() => MissingCompanyPage()).toThrow("NEXT_NOT_FOUND");
     render(<CompanyNotFound />);
-    expect(screen.getByRole("heading", { name: "Page not found" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "This page could not be found" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Go home" }).getAttribute("href")).toBe("/company");
   });
 });

@@ -1,3 +1,5 @@
+import { NotFoundMessage } from "@/components/NotFoundMessage";
+
 export default function AdminNotFound() {
-  return <h1>Page not found</h1>;
+  return <NotFoundMessage homeHref="/admin" />;
 }

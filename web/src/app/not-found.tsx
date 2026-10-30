@@ -1,10 +1,10 @@
+import { NotFoundMessage } from "@/components/NotFoundMessage";
 import { SiteFrame } from "@/components/website/SiteFrame";
 
-// Pages the ticket list names but that are not built yet land here.
 export default function NotFound() {
   return (
     <SiteFrame>
-      <h1>Page not found</h1>
+      <NotFoundMessage homeHref="/" />
     </SiteFrame>
   );
 }

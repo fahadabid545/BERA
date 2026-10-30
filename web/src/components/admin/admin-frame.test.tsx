@@ -312,6 +312,7 @@ describe("frame", () => {
     expect(screen.getByRole("main").textContent).toBe("Page content");
     expect(() => MissingAdminPage()).toThrow("NEXT_NOT_FOUND");
     render(<AdminNotFound />);
-    expect(screen.getAllByRole("heading", { name: "Page not found" }).length).toBe(1);
+    expect(screen.getAllByRole("heading", { name: "This page could not be found" }).length).toBe(1);
+    expect(screen.getByRole("link", { name: "Go home" }).getAttribute("href")).toBe("/admin");
   });
 });

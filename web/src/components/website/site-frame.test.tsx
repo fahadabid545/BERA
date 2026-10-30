@@ -127,7 +127,8 @@ describe("frame", () => {
 
   it("shows the not-found page inside the same frame", () => {
     render(<NotFound />);
-    expect(screen.getByRole("heading", { name: "Page not found" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "This page could not be found" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Go home" }).getAttribute("href")).toBe("/");
     expect(screen.getByRole("banner")).toBeTruthy();
     expect(screen.getByRole("contentinfo")).toBeTruthy();
   });
