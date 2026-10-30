@@ -1,10 +1,10 @@
-import { visibleItems, type NavigationItem } from "@/components/panel/navigation";
+import { blockedHrefs, visibleItems, type NavigationItem } from "@/components/panel/navigation";
 
-// Which items a support admin may open is decided in the Admin roles ticket.
-// Until then every item is open to both roles.
-export type AdminRole = "admin" | "support";
+// Only Advanced is limited to super admins so far; the Admin roles ticket decides the rest.
+export type AdminRole = "super" | "support";
 
-const ALL_ADMINS: readonly AdminRole[] = ["admin", "support"];
+const ALL_ADMINS: readonly AdminRole[] = ["super", "support"];
+const SUPER_ONLY: readonly AdminRole[] = ["super"];
 
 export const ADMIN_NAVIGATION: readonly NavigationItem<AdminRole>[] = [
   { label: "Dashboard", href: "/admin", icon: "dashboard", roles: ALL_ADMINS, exact: true },
@@ -40,10 +40,25 @@ export const ADMIN_NAVIGATION: readonly NavigationItem<AdminRole>[] = [
     roles: ALL_ADMINS,
     children: [
       { label: "General", href: "/admin/settings/general" },
-      { label: "Limits", href: "/admin/settings/limits" },
-      { label: "Security", href: "/admin/settings/security" },
       { label: "Audit log", href: "/admin/settings/audit-log" },
       { label: "Admin users", href: "/admin/settings/admin-users" },
+    ],
+  },
+  {
+    // Rarely changed platform settings, kept apart from the daily items.
+    label: "Advanced",
+    href: "/admin/advanced",
+    icon: "advanced",
+    roles: SUPER_ONLY,
+    separated: true,
+    guarded: true,
+    children: [
+      { label: "Platform values", href: "/admin/advanced/platform-values" },
+      { label: "Limits", href: "/admin/advanced/limits" },
+      { label: "Rate limiting", href: "/admin/advanced/rate-limiting" },
+      { label: "Security", href: "/admin/advanced/security" },
+      { label: "AI controls", href: "/admin/advanced/ai-controls" },
+      { label: "Maintenance", href: "/admin/advanced/maintenance" },
     ],
   },
 ];
@@ -52,3 +67,4 @@ export const ADMIN_NAVIGATION: readonly NavigationItem<AdminRole>[] = [
 export const ADMIN_LOG_OUT_HREF = "/login";
 
 export const visibleAdminNavigation = (role: AdminRole) => visibleItems(ADMIN_NAVIGATION, role);
+export const blockedAdminHrefs = (role: AdminRole) => blockedHrefs(ADMIN_NAVIGATION, role);

@@ -6,7 +6,12 @@ import MissingAdminPage from "@/app/admin/[...missing]/page";
 import AdminNotFound from "@/app/admin/not-found";
 
 import { AdminFrame } from "./AdminFrame";
-import { ADMIN_NAVIGATION, visibleAdminNavigation, type AdminRole } from "./navigation";
+import {
+  ADMIN_NAVIGATION,
+  blockedAdminHrefs,
+  visibleAdminNavigation,
+  type AdminRole,
+} from "./navigation";
 
 const pathname = vi.hoisted(() => ({ current: "/admin" }));
 vi.mock("next/navigation", () => ({
@@ -20,7 +25,7 @@ beforeEach(() => {
   pathname.current = "/admin";
 });
 
-function renderFrame(role: AdminRole = "admin") {
+function renderFrame(role: AdminRole = "super") {
   return render(
     <AdminFrame userName="Fake Admin" role={role}>
       <p>Page content</p>
@@ -33,19 +38,28 @@ const sidebar = () => screen.getByRole("navigation", { name: "Admin" });
 const SUB_MENUS = {
   AI: ["Playground", "Models", "Prompts"],
   Operations: ["Jobs", "Payments", "Announcements", "Data requests"],
-  Settings: ["General", "Limits", "Security", "Audit log", "Admin users"],
+  Settings: ["General", "Audit log", "Admin users"],
+  Advanced: [
+    "Platform values",
+    "Limits",
+    "Rate limiting",
+    "Security",
+    "AI controls",
+    "Maintenance",
+  ],
 };
 
 describe("sidebar items", () => {
-  it("shows the six main items in order, all under /admin", () => {
+  it("shows a super admin the six main items and then Advanced, all under /admin", () => {
     renderFrame();
-    expect(visibleAdminNavigation("admin").map((item) => item.label)).toEqual([
+    expect(visibleAdminNavigation("super").map((item) => item.label)).toEqual([
       "Dashboard",
       "Companies",
       "Plans and Pricing",
       "AI",
       "Operations",
       "Settings",
+      "Advanced",
     ]);
     for (const [name, href] of [
       ["Dashboard", "/admin"],
@@ -71,8 +85,18 @@ describe("sidebar items", () => {
     expect(current.map((link) => link.textContent)).toEqual(["Companies"]);
   });
 
-  it("shows support admins every item until the Admin roles ticket decides otherwise", () => {
-    expect(visibleAdminNavigation("support")).toHaveLength(6);
+  it("shows support admins the six main items but not Advanced", () => {
+    expect(visibleAdminNavigation("support").map((item) => item.label)).toEqual([
+      "Dashboard",
+      "Companies",
+      "Plans and Pricing",
+      "AI",
+      "Operations",
+      "Settings",
+    ]);
+    renderFrame("support");
+    expect(within(sidebar()).queryByRole("button", { name: "Advanced" })).toBeNull();
+    expect(within(sidebar()).getAllByRole("link").length).toBeGreaterThan(0);
   });
 });
 
@@ -135,6 +159,113 @@ describe("sub-menus", () => {
     expect(
       within(sidebar()).getByRole("link", { name: "Payments" }).getAttribute("aria-current"),
     ).toBe("page");
+  });
+});
+
+describe("Advanced section", () => {
+  it("keeps only General, Audit log and Admin users in Settings", () => {
+    const settings = ADMIN_NAVIGATION.find((item) => item.label === "Settings")!;
+    expect(settings.children?.map((child) => child.label)).toEqual([
+      "General",
+      "Audit log",
+      "Admin users",
+    ]);
+  });
+
+  it("moves Limits and Security to /admin/advanced", () => {
+    const addresses = ADMIN_NAVIGATION.flatMap((item) =>
+      (item.children ?? []).map((child) => child.href),
+    );
+    expect(addresses).toContain("/admin/advanced/limits");
+    expect(addresses).toContain("/admin/advanced/security");
+    expect(addresses).not.toContain("/admin/settings/limits");
+    expect(addresses).not.toContain("/admin/settings/security");
+  });
+
+  it("sits below Settings, set apart by a divider, with its own icon", () => {
+    renderFrame();
+    const settings = within(sidebar()).getByRole("button", { name: "Settings" }).closest("li")!;
+    const advanced = within(sidebar()).getByRole("button", { name: "Advanced" });
+
+    expect(settings.compareDocumentPosition(advanced.closest("li")!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(advanced.closest("li")!.getAttribute("data-separated")).toBe("true");
+    expect(settings.hasAttribute("data-separated")).toBe(false);
+    expect(advanced.querySelector(".ui-toggle-icon__filled")).not.toBeNull();
+  });
+
+  it("lists its six pages in order, with the addresses given", async () => {
+    const user = userEvent.setup();
+    renderFrame();
+    await user.click(within(sidebar()).getByRole("button", { name: "Advanced" }));
+
+    const advanced = ADMIN_NAVIGATION.find((item) => item.label === "Advanced")!;
+    for (const child of advanced.children!) {
+      expect(within(sidebar()).getByRole("link", { name: child.label }).getAttribute("href")).toBe(
+        child.href,
+      );
+    }
+    expect(advanced.children!.map((child) => child.href)).toEqual([
+      "/admin/advanced/platform-values",
+      "/admin/advanced/limits",
+      "/admin/advanced/rate-limiting",
+      "/admin/advanced/security",
+      "/admin/advanced/ai-controls",
+      "/admin/advanced/maintenance",
+    ]);
+  });
+
+  it("highlights the current Advanced page without opening on its own", async () => {
+    const user = userEvent.setup();
+    pathname.current = "/admin/advanced/limits";
+    renderFrame();
+    const advanced = within(sidebar()).getByRole("button", { name: "Advanced" });
+
+    expect(advanced.getAttribute("aria-expanded")).toBe("false");
+    expect(advanced.getAttribute("data-active")).toBe("true");
+    expect(
+      within(sidebar()).getByRole("button", { name: "Settings" }).getAttribute("data-active"),
+    ).toBe("false");
+
+    await user.click(advanced);
+    expect(
+      within(sidebar()).getByRole("link", { name: "Limits" }).getAttribute("aria-current"),
+    ).toBe("page");
+    expect(
+      within(sidebar()).getByRole("link", { name: "Security" }).getAttribute("aria-current"),
+    ).toBeNull();
+  });
+
+  it("blocks only Advanced, and only for support admins", () => {
+    expect(blockedAdminHrefs("support")).toEqual(["/admin/advanced"]);
+    expect(blockedAdminHrefs("super")).toEqual([]);
+  });
+
+  it("shows a super admin the page at an Advanced address", () => {
+    pathname.current = "/admin/advanced/security";
+    renderFrame("super");
+    expect(screen.getByRole("main").textContent).toBe("Page content");
+  });
+
+  it.each(["/admin/advanced", "/admin/advanced/limits", "/admin/advanced/maintenance"])(
+    "shows a support admin who types %s the no-access page, inside the frame",
+    (address) => {
+      pathname.current = address;
+      renderFrame("support");
+      expect(screen.getByRole("heading", { name: "You do not have access" })).toBeTruthy();
+      expect(screen.queryByText("Page content")).toBeNull();
+      expect(screen.getByRole("navigation", { name: "Admin" })).toBeTruthy();
+    },
+  );
+
+  it("still shows support admins their own pages and does not block look-alike addresses", () => {
+    for (const address of ["/admin/companies", "/admin/advanced-old"]) {
+      pathname.current = address;
+      const { unmount } = renderFrame("support");
+      expect(screen.getByRole("main").textContent).toBe("Page content");
+      unmount();
+    }
   });
 });
 
