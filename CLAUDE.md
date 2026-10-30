@@ -29,6 +29,16 @@ and why, and ask before proceeding. Never bend a rule silently.
   icon and words. Focus rings are never removed. Everything works at phone width.
 - Add any new colour pair to `design-rules.test.ts` so contrast stays checked.
 - The sample page `/design` (development only) must show every building block.
+- Look and feel: classy, decent and calm, inspired by SonarQube (light surfaces,
+  thin borders, small radius, flat subtle shadows, dense but readable). The BERA
+  green accent stays; never swap it for another brand colour.
+- Two distinct highlight styles. Content and navigation items (current page, tabs):
+  a soft green pill, bold label and a filled icon. Table rows: a hover tint and,
+  when selected, a tinted row with a green bar on the left; never a pill.
+- Icons use `ToggleIcon`: outline when idle, filled when current, with the
+  fade/scale transition from tokens (`--transition`). Motion stops for reduced motion.
+- Page content, header and footer share one column (`.site-container`,
+  `--container-width`); never let page text sit outside it.
 
 ## Testing
 - Every feature ships with automated tests in the same change.

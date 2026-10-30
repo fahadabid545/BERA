@@ -8,7 +8,9 @@ export function SiteFrame({ children }: { children: ReactNode }) {
   return (
     <div className="site-frame">
       <SiteHeader />
-      <main className="site-main">{children}</main>
+      <main className="site-main">
+        <div className="site-container">{children}</div>
+      </main>
       <SiteFooter />
     </div>
   );

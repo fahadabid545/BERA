@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { Button, ButtonLink } from "@/components/ui";
+import { Button, ButtonLink, ToggleIcon } from "@/components/ui";
 
 import { ACCOUNT_LINKS, NAV_LINKS } from "./links";
 
@@ -35,13 +35,14 @@ export function SiteHeader() {
         </Button>
         <nav id="site-menu" aria-label="Main" className="site-nav" data-open={menuOpen}>
           <ul className="site-nav__links">
-            {NAV_LINKS.map(({ label, href }) => (
+            {NAV_LINKS.map(({ label, href, icon }) => (
               <li key={href}>
                 <Link
                   href={href}
-                  className="site-nav__link"
+                  className="ui-icon-item"
                   aria-current={pathname === href ? "page" : undefined}
                 >
+                  <ToggleIcon name={icon} />
                   {label}
                 </Link>
               </li>

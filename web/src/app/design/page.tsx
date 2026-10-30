@@ -12,6 +12,7 @@ import {
   Tabs,
   Tag,
   ThemeToggle,
+  ToggleIcon,
   Tooltip,
 } from "@/components/ui";
 
@@ -116,7 +117,7 @@ export default function DesignSample() {
               </td>
             </tr>
             <tr>
-              <td>Candidate 1043</td>
+              <td>Candidate 1043 (hover a row to see its tint)</td>
               <td className="mono">61</td>
               <td>
                 <Tag variant="warning">Possible</Tag>
@@ -124,6 +125,29 @@ export default function DesignSample() {
             </tr>
           </tbody>
         </Table>
+      </section>
+
+      <section className="sample-section" aria-labelledby="sample-icons">
+        <h2 id="sample-icons">Icon items</h2>
+        <p>Idle items show an outline icon, the current one a filled icon in a green pill.</p>
+        <div className="sample-row">
+          <span className="ui-icon-item">
+            <ToggleIcon name="features" />
+            Idle
+          </span>
+          <span className="ui-icon-item" data-active="true">
+            <ToggleIcon name="pricing" />
+            Current
+          </span>
+          <span className="ui-icon-item">
+            <ToggleIcon name="faq" />
+            Idle
+          </span>
+          <span className="ui-icon-item" data-active="true">
+            <ToggleIcon name="contact" />
+            Current
+          </span>
+        </div>
       </section>
 
       <section className="sample-section" aria-labelledby="sample-tabs">

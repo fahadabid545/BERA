@@ -10,3 +10,5 @@ export { Tabs } from "./Tabs";
 export { Tag } from "./Tag";
 export { ThemeToggle } from "./ThemeToggle";
 export { Tooltip } from "./Tooltip";
+export { ToggleIcon } from "./ToggleIcon";
+export type { ToggleIconName } from "./ToggleIcon";

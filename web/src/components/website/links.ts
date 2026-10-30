@@ -1,9 +1,9 @@
 export const NAV_LINKS = [
-  { label: "Features", href: "/features" },
-  { label: "How it works", href: "/how-it-works" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "FAQ", href: "/faq" },
-  { label: "Contact", href: "/contact" },
+  { label: "Features", href: "/features", icon: "features" },
+  { label: "How it works", href: "/how-it-works", icon: "how-it-works" },
+  { label: "Pricing", href: "/pricing", icon: "pricing" },
+  { label: "FAQ", href: "/faq", icon: "faq" },
+  { label: "Contact", href: "/contact", icon: "contact" },
 ] as const;
 
 export const ACCOUNT_LINKS = {

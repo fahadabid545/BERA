@@ -52,6 +52,13 @@ describe("header", () => {
     expect(current.map((link) => link.textContent)).toEqual(["Pricing"]);
   });
 
+  it("gives every main link an outline and a filled icon for the current-page swap", () => {
+    renderFrame();
+    const main = screen.getByRole("navigation", { name: "Main" });
+    expect(main.querySelectorAll(".ui-toggle-icon__outline")).toHaveLength(5);
+    expect(main.querySelectorAll(".ui-toggle-icon__filled")).toHaveLength(5);
+  });
+
   it("highlights nothing on the home page", () => {
     renderFrame();
     expect(document.querySelector('[aria-current="page"]')).toBeNull();
@@ -101,6 +108,11 @@ describe("footer", () => {
 });
 
 describe("frame", () => {
+  it("keeps the page content in the same column as the header and footer", () => {
+    renderFrame();
+    expect(screen.getByRole("main").querySelector(".site-container")).toBeTruthy();
+  });
+
   it("puts the page content between the header and the footer", () => {
     renderFrame();
     const main = screen.getByRole("main");

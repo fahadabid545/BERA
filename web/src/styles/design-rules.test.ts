@@ -133,3 +133,26 @@ describe("fonts and touch size", () => {
     expect(componentsCss).toMatch(/\.ui-input[^{]*\{[^}]*font:\s*var\(--text-md\)/);
   });
 });
+
+describe("highlight styles and icon transitions", () => {
+  it("shows the filled icon only inside the current item, with a fade/scale transition", () => {
+    expect(componentsCss).toMatch(/\[aria-current="page"\] \.ui-toggle-icon__filled/);
+    expect(componentsCss).toMatch(/\.ui-toggle-icon svg\s*\{[^}]*transition:/);
+    expect(componentsCss).toMatch(/\.ui-toggle-icon__filled\s*\{[^}]*opacity:\s*0/);
+  });
+
+  it("uses a pill for content highlights and a row tint plus bar for tables", () => {
+    expect(componentsCss).toMatch(/\.ui-icon-item\s*\{[^}]*border-radius:\s*var\(--radius-pill\)/);
+    expect(componentsCss).toMatch(/\.ui-table tbody tr:not\(\[data-selected="true"\]\):hover td/);
+    expect(componentsCss).toMatch(/\.ui-table tr\[data-selected="true"\] td:first-child/);
+  });
+
+  it("shares one content column between the header, page and footer", () => {
+    expect(componentsCss).toMatch(
+      /\.site-container\s*\{[^}]*max-width:\s*var\(--container-width\)/,
+    );
+    expect(componentsCss).toMatch(
+      /\.site-header__inner,\s*\.site-footer__inner\s*\{[^}]*max-width:\s*var\(--container-width\)/,
+    );
+  });
+});
