@@ -1,0 +1,66 @@
+# Known weaknesses in libraries that the team has looked at and accepted for now.
+#
+# Every entry needs a written reason and a review date. When the date passes, the automatic
+# check fails until someone looks again: remove the entry (the library was fixed) or move the
+# date after a new look. Keep dates at most about three months ahead.
+# Fields: ecosystem ("python" or "npm"), package, scope ("production" or "development"), reason, review_by.
+
+# Development tools: they only run on a developer's computer and in the automatic tests, never
+# in the product, and the weaknesses need a running dev server or test UI that is not exposed.
+# One chain: vitest brings in vite, vite-node, esbuild, @vitest/mocker and tinypool.
+[[accepted]]
+ecosystem = "npm"
+package = "vitest"
+scope = "development"
+reason = "Test runner. Findings need its UI or dev server to be running and reachable; neither runs in CI or production. Upgrade to vitest 5 is a major change, planned with the web tooling."
+review_by = 2027-01-31
+
+[[accepted]]
+ecosystem = "npm"
+package = "vite"
+scope = "development"
+reason = "Part of the vitest chain (dev server findings). Not used to build or serve the product; Next.js does that."
+review_by = 2027-01-31
+
+[[accepted]]
+ecosystem = "npm"
+package = "tinypool"
+scope = "development"
+reason = "Part of the vitest chain. Needs untrusted options passed to the test worker pool; our tests pass none."
+review_by = 2027-01-31
+
+[[accepted]]
+ecosystem = "npm"
+package = "vite-node"
+scope = "development"
+reason = "Part of the vitest chain (it only carries the vite finding)."
+review_by = 2027-01-31
+
+[[accepted]]
+ecosystem = "npm"
+package = "@vitest/mocker"
+scope = "development"
+reason = "Part of the vitest chain; needs the vitest dev server."
+review_by = 2027-01-31
+
+[[accepted]]
+ecosystem = "npm"
+package = "esbuild"
+scope = "development"
+reason = "Part of the vitest chain; the finding is about a running dev server accepting outside requests."
+review_by = 2027-01-31
+
+# Production, temporary: the fix needs Next.js 16, a major upgrade done in its own ticket (BERA-081).
+[[accepted]]
+ecosystem = "npm"
+package = "postcss"
+scope = "production"
+reason = "Reached through Next.js. The findings concern stringifying or reading CSS and source maps supplied by an attacker; the product only processes its own stylesheets. Fixed by upgrading Next.js in BERA-081."
+review_by = 2026-12-31
+
+[[accepted]]
+ecosystem = "npm"
+package = "next"
+scope = "production"
+reason = "Only carries the postcss finding above. Upgrade is BERA-081."
+review_by = 2026-12-31

@@ -1,0 +1,24 @@
+name: Library vulnerability check
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 5 * * 1" # every Monday
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pip install -r server/requirements-dev.txt
+      - run: npm ci
+        working-directory: web
+      - run: python scripts/check_vulnerabilities.py

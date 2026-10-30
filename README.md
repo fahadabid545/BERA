@@ -80,3 +80,25 @@ needs "fake", "example" or "test-only" in its line, or a `nosecret` comment. If 
 follow [docs/security/if-a-key-leaks.md](docs/security/if-a-key-leaks.md).
 
 `seed_dev_data` and `reset_dev_db` refuse to run outside development.
+
+## Library checks and updates
+
+`python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)
+libraries against the public advisory databases. It runs on every change and every Monday
+(`.github/workflows/vulnerabilities.yml`). A high or critical finding in a production library
+fails the check; findings in development tools only warn. A risk we accept is written in
+`security/accepted-vulnerabilities.toml` with a reason and a review date; once the date passes
+the check fails until someone looks again.
+
+Updating routine (weekly, after the Monday check):
+
+1. Read the check's output. Fix serious findings first.
+2. Patch and minor updates: `pip install -U <package>` (then update the range in
+   `server/requirements.txt`) or `npm update` in `web/`; run all tests (`python scripts/dev.py test`).
+3. Major updates (a library's next big version) get their own ticket, since they can break things.
+4. If a fix does not exist or cannot be done now, accept the finding in writing with a review
+   date no more than about three months ahead, and say who will look at it.
+5. Commit lock files with the update so everyone builds from the same versions.
+
+The tests that prove a known-bad library fails the check need internet access. Offline, run
+`python -m pytest -m "not network"`.
