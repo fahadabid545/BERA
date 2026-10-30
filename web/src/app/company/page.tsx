@@ -1,3 +1,12 @@
-export default function CompanyHome() {
-  return <h1>BERA company panel</h1>;
+import { Suspense } from "react";
+
+import { DashboardTabs } from "@/components/company/dashboard/DashboardTabs";
+
+export default function CompanyDashboard() {
+  return (
+    // useSearchParams needs a boundary so the page can still be built ahead of time.
+    <Suspense>
+      <DashboardTabs />
+    </Suspense>
+  );
 }
