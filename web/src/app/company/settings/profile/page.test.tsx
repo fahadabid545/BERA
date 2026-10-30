@@ -17,10 +17,15 @@ describe("profile settings page", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
   });
 
-  it("does nothing when a button is pressed", async () => {
+  it("offers to sign out of all devices", () => {
+    render(<ProfilePage />);
+    expect(screen.getByRole("button", { name: "Sign out of all devices" })).toBeTruthy();
+  });
+
+  it("does nothing when Save is pressed", async () => {
     const { container } = render(<ProfilePage />);
     const before = container.innerHTML;
-    for (const button of screen.getAllByRole("button")) await userEvent.click(button);
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(container.innerHTML).toBe(before);
   });
 });

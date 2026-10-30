@@ -63,8 +63,5 @@ export const ADMIN_NAVIGATION: readonly NavigationItem<AdminRole>[] = [
   },
 ];
 
-// The sign-in tickets decide what Log out really does.
-export const ADMIN_LOG_OUT_HREF = "/login";
-
 export const visibleAdminNavigation = (role: AdminRole) => visibleItems(ADMIN_NAVIGATION, role);
 export const blockedAdminHrefs = (role: AdminRole) => blockedHrefs(ADMIN_NAVIGATION, role);

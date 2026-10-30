@@ -60,6 +60,10 @@ def set_session_cookies(response, kind, issued):
 
 
 def clear_session_cookies(response, kind):
+    """Asks the browser to forget the sign-in; each cookie from the path it was set on."""
     assert kind in KINDS
-    response.delete_cookie(access_cookie_name(kind), path=ACCESS_PATH)
-    response.delete_cookie(refresh_cookie_name(kind), path=REFRESH_PATH.format(kind=kind))
+    response.delete_cookie(access_cookie_name(kind), path=ACCESS_PATH, samesite="Strict")
+    response.delete_cookie(
+        refresh_cookie_name(kind), path=REFRESH_PATH.format(kind=kind), samesite="Strict"
+    )
+    response.delete_cookie(CSRF_COOKIE, path="/", samesite="Strict")

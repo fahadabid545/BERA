@@ -25,6 +25,8 @@ SECONDS_PER_DAY = 24 * 60 * 60
 
 class RevokeReason:
     LOGOUT = "logout"
+    LOGOUT_ALL = "logout_all"
+    REMOVED = "removed"
     PASSWORD_CHANGED = "password_changed"
     ROLE_CHANGED = "role_changed"
     BLOCKED = "blocked"
@@ -185,6 +187,17 @@ def _revoke(sessions, reason):
 
 def revoke_session(session_id, reason):
     return _revoke(Session.objects.filter(id=session_id), reason)
+
+
+def end_session_of_refresh_token(token, kind):
+    """Logout: ends the session this refresh token belongs to. A token that is forged, from
+    another kind of sign-in or already past its time has nothing left to end, which is fine."""
+    try:
+        claims = read_token(token, kind=kind, token_type=REFRESH)
+    except NotAuthenticated:
+        return 0
+    sessions = Session.objects.filter(id=claims["sid"], kind=kind, user_id=int(claims["sub"]))
+    return _revoke(sessions, RevokeReason.LOGOUT)
 
 
 def revoke_user_sessions(user_id, reason, *, kind=None):

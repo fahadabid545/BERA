@@ -72,6 +72,17 @@ PUBLIC_ROUTES = [
         "same whatever the email and is limited to 3 per hour per email.",
     ),
     PublicRoute(
+        route="api/auth/company/logout/",
+        category="login",
+        reason="Signing out must work even when the short-lived access token has ended, so it "
+        "is identified by the refresh cookie, which is itself the credential.",
+    ),
+    PublicRoute(
+        route="api/auth/admin/logout/",
+        category="login",
+        reason="The same sign-out for admin users, with the admin refresh cookie.",
+    ),
+    PublicRoute(
         route="api/auth/admin/refresh/",
         category="login",
         reason="The same renewal for admin users, with the admin refresh token.",

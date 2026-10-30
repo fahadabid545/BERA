@@ -40,8 +40,6 @@ export const NAVIGATION: readonly NavigationItem<CompanyRole>[] = [
 
 export const NEW_PROJECT_HREF = "/company/projects/new";
 export const PROFILE_HREF = "/company/settings/profile";
-// The sign-in tickets decide what Log out really does.
-export const LOG_OUT_HREF = "/login";
 
 export const visibleNavigation = (role: CompanyRole) => visibleItems(NAVIGATION, role);
 export const blockedCompanyHrefs = (role: CompanyRole) => blockedHrefs(NAVIGATION, role);

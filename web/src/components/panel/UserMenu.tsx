@@ -1,4 +1,7 @@
+"use client";
+
 import { Menu, type MenuItem } from "@/components/ui";
+import { logOut } from "@/lib/logout";
 
 function initialsOf(name: string): string {
   return name
@@ -10,6 +13,7 @@ function initialsOf(name: string): string {
     .toUpperCase();
 }
 
+/** `items` are links; "Log out" is added last and ends this browser's session. */
 export function UserMenu({ userName, items }: { userName: string; items: MenuItem[] }) {
   return (
     <Menu
@@ -19,7 +23,7 @@ export function UserMenu({ userName, items }: { userName: string; items: MenuIte
           <span className="visually-hidden">User menu</span>
         </button>
       }
-      items={items}
+      items={[...items, { label: "Log out", onSelect: logOut }]}
     />
   );
 }

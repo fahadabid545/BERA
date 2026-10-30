@@ -684,6 +684,11 @@ a.ui-tab {
   text-decoration: none;
   cursor: pointer;
 }
+.ui-menu__item--action {
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+}
 .ui-menu__item[data-highlighted] {
   background: var(--color-surface-muted);
 }

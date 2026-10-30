@@ -116,6 +116,22 @@ support." or "Please verify your email" (with a resend button). The existing log
 10 per minute per address applies as well. Passwords are only in the request body, never in
 addresses or logs.
 
+### Logging out and ending sessions
+
+`POST /api/auth/company/logout/` (and `/admin/`) ends the session named by the refresh cookie and
+clears the cookies. It works after the short-lived token has ended and is safe to repeat.
+`POST …/logout-all/` ends every session of the signed-in person. A session also ends, at once
+and for good (being active again later does not bring it back), when its person is blocked or
+removed, or changes their password: the change-password and reset flows then start a fresh
+session for the device in use. A session ends by itself when its refresh token expires, and a
+revoked session's tokens are refused on the very next request.
+
+In the web app, a request refused with "not signed in" first tries to renew the session once;
+if that fails the person goes to the login page and comes back to the same page afterwards.
+Upload screens call `startUpload()` from `lib/session.ts` and the returned function when the
+file is done; while one runs, an ended session shows a warning instead of leaving the page.
+"Log out" is in the user menu and "Sign out of all devices" on the Profile page.
+
 ### Email verification
 
 The link in the sign-up email opens `/verify-email?token=…`. Opening it changes nothing; the

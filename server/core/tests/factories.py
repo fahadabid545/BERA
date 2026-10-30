@@ -19,7 +19,7 @@ def make_company_user(company=None, **fields):
         **{
             "company": company or make_company(),
             "name": f"Fake Person {number}",
-            "email": f"person{number}@example.test",
+            "email": f"fake-person{number}@example.test",
             "role": CompanyUser.Role.OWNER,
             **fields,
         }
@@ -31,7 +31,7 @@ def make_admin_user(**fields):
     return AdminUser.objects.create(
         **{
             "name": f"Fake Admin {number}",
-            "email": f"admin{number}@example.test",
+            "email": f"fake-admin{number}@example.test",
             "role": AdminUser.Role.SUPER,
             **fields,
         }

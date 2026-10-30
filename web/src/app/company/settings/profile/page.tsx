@@ -1,3 +1,4 @@
+import { SignOutEverywhere } from "@/components/company/SignOutEverywhere";
 import { Button, Input } from "@/components/ui";
 
 export default function ProfilePage() {
@@ -13,6 +14,7 @@ export default function ProfilePage() {
       </section>
       <div className="page-actions">
         <Button>Save</Button>
+        <SignOutEverywhere />
       </div>
     </form>
   );
