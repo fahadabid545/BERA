@@ -116,6 +116,19 @@ support." or "Please verify your email" (with a resend button). The existing log
 10 per minute per address applies as well. Passwords are only in the request body, never in
 addresses or logs.
 
+### Forgot and reset password
+
+`/forgot-password` (`POST /api/auth/company/forgot-password/`) always answers "If an account
+exists, we sent a reset link", is limited to 5 per hour per email (any spelling, known or not)
+and sends the link only to active accounts. The link (`/reset-password?token=…`) is a
+`LinkToken` for resetting a password: random, stored only as a hash, valid for one hour
+(`tokens.password_reset_hours`), usable once, and a newer link cancels older ones.
+`POST …/reset-password/` takes the token and the new password twice. The shared password rules
+apply, and the new password may not be the old one; a refused password does not use up the
+link. A successful reset ends every session of the person, sends the "password changed"
+email, and signs nobody in. An expired or used link shows its message with a "Request a new
+link" button.
+
 ### Logging out and ending sessions
 
 `POST /api/auth/company/logout/` (and `/admin/`) ends the session named by the refresh cookie and

@@ -204,3 +204,14 @@ def test_durations_read_naturally(amount, unit, wanted):
 def test_the_reset_email_says_one_hour_not_one_hours():
     _, text, _ = render_email("reset_password", sample_values("reset_password"))
     assert "expires in 1 hour." in text
+
+
+def test_a_moment_is_written_the_way_the_emails_say_it():
+    from datetime import UTC, datetime, timedelta, timezone
+
+    from emailing.rendering import format_moment
+
+    assert format_moment(datetime(2030, 3, 5, 9, 7, tzinfo=UTC)) == "5 March 2030, 09:07 UTC"
+    # Whatever zone it comes in, the email says UTC.
+    east = timezone(timedelta(hours=5))
+    assert format_moment(datetime(2030, 3, 5, 14, 7, tzinfo=east)) == "5 March 2030, 09:07 UTC"

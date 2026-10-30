@@ -29,8 +29,8 @@ def password_problems(password):
     return problems
 
 
-class PasswordField(serializers.CharField):
-    """A password exactly as typed (spaces count), checked against the rules."""
+class PasswordTextField(serializers.CharField):
+    """A password exactly as typed (spaces count), as text and never echoed back."""
 
     def __init__(self, **kwargs):
         super().__init__(write_only=True, trim_whitespace=False, allow_blank=True, **kwargs)
@@ -39,6 +39,10 @@ class PasswordField(serializers.CharField):
         if not isinstance(data, str):
             self.fail("invalid")
         return super().to_internal_value(data)
+
+
+class PasswordField(PasswordTextField):
+    """A new password, checked against the rules."""
 
     def run_validation(self, data=serializers.empty):
         value = super().run_validation(data)

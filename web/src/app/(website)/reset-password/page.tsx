@@ -1,18 +1,9 @@
-import { Button, Input } from "@/components/ui";
+import { ResetPasswordForm } from "@/components/website/ResetPasswordForm";
 
-export default function ResetPasswordPage() {
-  return (
-    <form className="page-form">
-      <Input label="New password" name="password" type="password" autoComplete="new-password" />
-      <Input
-        label="Confirm password"
-        name="confirm-password"
-        type="password"
-        autoComplete="new-password"
-      />
-      <div className="page-actions">
-        <Button>Save password</Button>
-      </div>
-    </form>
-  );
+type Props = { searchParams: Promise<{ token?: string | string[] }> };
+
+export default async function ResetPasswordPage({ searchParams }: Props) {
+  const { token } = await searchParams;
+  const value = Array.isArray(token) ? token[0] : token;
+  return <ResetPasswordForm token={value ?? null} />;
 }

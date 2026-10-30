@@ -83,6 +83,18 @@ PUBLIC_ROUTES = [
         reason="The same sign-out for admin users, with the admin refresh cookie.",
     ),
     PublicRoute(
+        route="api/auth/company/forgot-password/",
+        category="password_reset",
+        reason="A person who forgot their password cannot sign in. It answers the same "
+        "whatever the email and is limited to 5 per hour per email.",
+    ),
+    PublicRoute(
+        route="api/auth/company/reset-password/",
+        category="password_reset",
+        reason="The link in the reset email is opened without a session. The single-use, "
+        "expiring secret in it is the credential.",
+    ),
+    PublicRoute(
         route="api/auth/admin/refresh/",
         category="login",
         reason="The same renewal for admin users, with the admin refresh token.",

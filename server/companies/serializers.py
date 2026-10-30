@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from core.passwords import PasswordField
+from core.passwords import PasswordField, PasswordTextField
 from core.validation import SafeTextField, StrictSerializer
 
 from .countries import COUNTRY_CODES, OTHER_COUNTRY
@@ -32,3 +32,18 @@ class VerifyEmailSerializer(StrictSerializer):
 
 class ResendVerificationSerializer(StrictSerializer):
     email = serializers.EmailField(max_length=MAX_EMAIL_LENGTH)
+
+
+class ForgotPasswordSerializer(StrictSerializer):
+    email = serializers.EmailField(max_length=MAX_EMAIL_LENGTH)
+
+
+class ResetPasswordSerializer(StrictSerializer):
+    token = SafeTextField(max_length=MAX_TOKEN_LENGTH)
+    password = PasswordField()
+    confirm_password = PasswordTextField()
+
+    def validate(self, values):
+        if values["password"] != values["confirm_password"]:
+            raise serializers.ValidationError({"confirm_password": "The passwords do not match."})
+        return values

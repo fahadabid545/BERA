@@ -1,7 +1,14 @@
+from datetime import UTC
+
 from django.template.loader import render_to_string
 
 from .catalog import CATALOG
 from .links import validate_link
+
+
+def format_moment(moment):
+    """ "30 October 2026, 15:20 UTC": when something happened, as the emails say it."""
+    return moment.astimezone(UTC).strftime("%d %B %Y, %H:%M UTC").lstrip("0")
 
 
 def duration_text(amount, unit):

@@ -8,10 +8,22 @@ from rest_framework.response import Response
 
 from core.field_protection import normalize_email
 from core.permissions import PublicAccess
-from core.throttles import SignUpThrottle, VerificationResendThrottle, limited
+from core.throttles import (
+    PasswordResetThrottle,
+    SignUpThrottle,
+    VerificationResendThrottle,
+    limited,
+)
 
 from .country_detection import detect_country
-from .serializers import ResendVerificationSerializer, SignUpSerializer, VerifyEmailSerializer
+from .password_reset import FORGOT_MESSAGE, reset_password, send_reset_link
+from .serializers import (
+    ForgotPasswordSerializer,
+    ResendVerificationSerializer,
+    ResetPasswordSerializer,
+    SignUpSerializer,
+    VerifyEmailSerializer,
+)
 from .signup import NEUTRAL_MESSAGE, sign_up
 from .verification import RESEND_MESSAGE, resend_verification, verify_email
 
@@ -55,3 +67,25 @@ def resend_company_verification(request):
     serializer.is_valid(raise_exception=True)
     resend_verification(normalize_email(serializer.validated_data["email"]))
     return Response({"status": "ok", "message": RESEND_MESSAGE})
+
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([PublicAccess])  # a person who forgot their password cannot sign in
+@throttle_classes(limited(PasswordResetThrottle))
+def forgot_company_password(request):
+    serializer = ForgotPasswordSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    send_reset_link(normalize_email(serializer.validated_data["email"]))
+    return Response({"status": "ok", "message": FORGOT_MESSAGE})
+
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([PublicAccess])  # the single-use secret in the link is the credential
+def reset_company_password(request):
+    serializer = ResetPasswordSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    values = serializer.validated_data
+    reset_password(values["token"], values["password"])
+    return Response({"status": "ok"})
