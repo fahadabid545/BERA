@@ -42,27 +42,33 @@ def require_settings(names, environ=os.environ):
 MIN_SIGNING_SECRET_LENGTH = 32
 
 
-def require_signing_secrets(environ=os.environ):
-    """The two token-signing secrets: long enough, and different, so that a company token
-    can never pass as an admin one."""
-    secrets_by_kind = require_settings(["JWT_COMPANY_SECRET", "JWT_ADMIN_SECRET"], environ)
-    too_short = [
-        name for name, value in secrets_by_kind.items() if len(value) < MIN_SIGNING_SECRET_LENGTH
-    ]
+def require_distinct_long_secrets(names, environ=os.environ):
+    """Secrets that must each be long enough and different from each other, so that one
+    leaking or being guessed never unlocks the other."""
+    values = require_settings(names, environ)
+    too_short = [name for name, value in values.items() if len(value) < MIN_SIGNING_SECRET_LENGTH]
     if too_short:
         raise ConfigurationError(
             f"{', '.join(too_short)} must be at least {MIN_SIGNING_SECRET_LENGTH} characters.",
             {"too_short": too_short},
         )
-    if secrets_by_kind["JWT_COMPANY_SECRET"] == secrets_by_kind["JWT_ADMIN_SECRET"]:
+    if len(set(values.values())) < len(values):
         raise ConfigurationError(
-            "JWT_COMPANY_SECRET and JWT_ADMIN_SECRET must be different.",
-            {"must_differ": ["JWT_COMPANY_SECRET", "JWT_ADMIN_SECRET"]},
+            f"{' and '.join(names)} must be different.", {"must_differ": list(names)}
         )
-    return {
-        "company": secrets_by_kind["JWT_COMPANY_SECRET"],
-        "admin": secrets_by_kind["JWT_ADMIN_SECRET"],
-    }
+    return values
+
+
+def require_signing_secrets(environ=os.environ):
+    """The two token-signing secrets: a company token can never pass as an admin one."""
+    values = require_distinct_long_secrets(["JWT_COMPANY_SECRET", "JWT_ADMIN_SECRET"], environ)
+    return {"company": values["JWT_COMPANY_SECRET"], "admin": values["JWT_ADMIN_SECRET"]}
+
+
+def require_field_keys(environ=os.environ):
+    """The two keys protecting personal data in the database (see core/field_protection.py)."""
+    values = require_distinct_long_secrets(["FIELD_ENCRYPTION_KEY", "FIELD_HASH_KEY"], environ)
+    return {"encryption": values["FIELD_ENCRYPTION_KEY"], "hash": values["FIELD_HASH_KEY"]}
 
 
 def parse_origins(text):

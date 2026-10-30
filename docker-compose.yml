@@ -5,8 +5,9 @@ services:
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # The administrator only; scripts/dev.py creates the app, migrator and backup accounts.
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - bera_db_data:/var/lib/postgresql/data

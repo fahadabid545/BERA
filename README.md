@@ -65,11 +65,14 @@ lists every setting with fake values.
 The central list of required settings is `RequiredSetting` entries in `server/config/secrets.py`.
 In staging and production the app refuses to start if any entry is missing or a secret is still
 a placeholder (such as the fake values in `.env.example`); it names the settings, never their
-values. Development only needs `DJANGO_SECRET_KEY`, `DATABASE_URL`, `JWT_COMPANY_SECRET` and
-`JWT_ADMIN_SECRET` (the two token secrets must each be at least 32 characters and different from
-each other). Staging and production also need `TRUSTED_PROXY_COUNT`, `ALLOWED_HOSTS` and
+values. Development only needs `DJANGO_SECRET_KEY`, `DATABASE_URL`, `MIGRATION_DATABASE_URL`,
+`JWT_COMPANY_SECRET`, `JWT_ADMIN_SECRET`, `FIELD_ENCRYPTION_KEY` and `FIELD_HASH_KEY` (the token
+secrets, and the two field keys, must each be at least 32 characters and different from each
+other). The app never holds `MIGRATION_DATABASE_URL` and the migration step never holds
+`DATABASE_URL`. Staging and production also need `TRUSTED_PROXY_COUNT`, `ALLOWED_HOSTS` and
 `ALLOWED_ORIGINS` (the https addresses of the website, the only sites allowed to use the API from
-a browser). Staging and production must use different values for every secret.
+a browser), and every database address must end with `?sslmode=verify-full` (or `verify-ca`,
+`require`) so the connection is encrypted. Staging and production must use different values for every secret.
 
 A ticket that adds a feature with its own key (AI, payments, email, storage) adds the key to
 that list, to `.env.example` (fake value) and to this section, in the same change.
@@ -80,6 +83,15 @@ needs "fake", "example" or "test-only" in its line, or a `nosecret` comment. If 
 follow [docs/security/if-a-key-leaks.md](docs/security/if-a-key-leaks.md).
 
 `seed_dev_data` and `reset_dev_db` refuse to run outside development.
+
+### Database accounts and protected data
+
+Three database accounts exist, locally too: the app (rows only, cannot change the structure), the
+migrator (`migrate`) and backups (read only). `scripts/dev.py` creates them; staging and
+production use `python manage.py provision_database_roles`. See
+[docs/security/database.md](docs/security/database.md), which also shows how to store a field
+encrypted and still find it by a hash. If you have a local database from before this change, run
+`python scripts/dev.py reset-db` once (with Docker also `docker compose down -v` first).
 
 ## Library checks and updates
 

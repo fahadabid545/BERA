@@ -51,8 +51,44 @@ def test_read_env_file_ignores_comments_and_keeps_equals_in_values(tmp_path):
 def test_example_env_file_contains_only_fake_values():
     values = dev.read_env_file(dev.ENV_EXAMPLE)
     assert "fake" in values["DJANGO_SECRET_KEY"]
-    assert "fake" in values["POSTGRES_PASSWORD"]
-    assert values["POSTGRES_ADMIN_PASSWORD"] == ""
+    for name in (
+        "POSTGRES_ADMIN_PASSWORD",
+        "FIELD_ENCRYPTION_KEY",
+        "FIELD_HASH_KEY",
+        "DATABASE_URL",
+        "MIGRATION_DATABASE_URL",
+        "BACKUP_DATABASE_URL",
+    ):
+        assert "fake" in values[name]
+
+
+def test_the_example_gives_each_database_account_its_own_name_and_password():
+    values = dev.read_env_file(dev.ENV_EXAMPLE)
+    addresses = [
+        values[name] for name in ("DATABASE_URL", "MIGRATION_DATABASE_URL", "BACKUP_DATABASE_URL")
+    ]
+    logins = {address.split("://")[1].split("@")[0] for address in addresses}
+    assert len(logins) == 3
+
+
+def test_a_new_env_file_gets_random_field_keys(tmp_path):
+    env_file = tmp_path / ".env"
+    dev.ensure_env_file(env_file, dev.ENV_EXAMPLE)
+    values = dev.read_env_file(env_file)
+    assert "fake" not in values["FIELD_ENCRYPTION_KEY"] + values["FIELD_HASH_KEY"]
+    assert values["FIELD_ENCRYPTION_KEY"] != values["FIELD_HASH_KEY"]
+
+
+def test_the_administrator_address_is_escaped_and_points_at_this_computer():
+    address = dev.admin_database_url(
+        {
+            "POSTGRES_ADMIN_USER": "postgres",
+            "POSTGRES_ADMIN_PASSWORD": "p@ss/word",  # nosecret: fake
+            "POSTGRES_PORT": "5432",
+            "POSTGRES_DB": "bera",
+        }
+    )
+    assert address == "postgres://postgres:p%40ss%2Fword@127.0.0.1:5432/bera"  # nosecret: fake
 
 
 def test_port_in_use_detects_a_listening_port():
@@ -87,7 +123,6 @@ def test_native_setup_rejects_unsafe_database_names(monkeypatch):
     monkeypatch.setattr(dev.shutil, "which", lambda name: "psql")
     settings = {
         "POSTGRES_ADMIN_PASSWORD": "x",
-        "POSTGRES_USER": "bera",
         "POSTGRES_DB": 'bera"; DROP',
     }
     with pytest.raises(dev.SetupError, match="may only use"):

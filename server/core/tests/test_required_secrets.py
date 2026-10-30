@@ -7,17 +7,26 @@ from core.tests.test_settings_per_environment import FAKE_VALUES, load_settings
 REAL = {
     "DJANGO_SECRET_KEY": "test-only-django-secret-key-0000-1111-2222",
     "DATABASE_URL": "postgres://app:test-only-db-pw-3141592653@127.0.0.1:5432/bera",
+    "MIGRATION_DATABASE_URL": "postgres://migrator:test-only-migrator-pw-2718281828@127.0.0.1:5432/bera",  # nosecret: fake
+    "FIELD_ENCRYPTION_KEY": "test-only-field-encryption-key-7c1d9e",
+    "FIELD_HASH_KEY": "test-only-field-hash-key-4b8a2f6d03",
     "JWT_COMPANY_SECRET": "test-only-company-signing-key-3a9f1c7e5b",
     "JWT_ADMIN_SECRET": "test-only-admin-signing-key-8d2e6b4f0a",
     "TRUSTED_PROXY_COUNT": "1",
 }
 ENVIRONMENTS = ["staging", "production"]
+# The migrator's address is held only by the process that changes the structure.
+APP_SETTINGS = [name for name in REAL if name != "MIGRATION_DATABASE_URL"]
+MIGRATION_SETTINGS = [name for name in REAL if name != "DATABASE_URL"]
 
 
-def refusal(environ, app_env):
+def refusal(environ, app_env, role="app"):
     with pytest.raises(ConfigurationError) as caught:
-        check_required_settings(environ, app_env)
+        check_required_settings(environ, app_env, role)
     return caught.value
+
+
+APP_SETTINGS_IN_ORDER = [setting.name for setting in REQUIRED_SETTINGS if "app" in setting.roles]
 
 
 def test_the_list_holds_exactly_what_exists_today():
@@ -30,7 +39,7 @@ def test_real_values_pass(app_env):
 
 
 @pytest.mark.parametrize("app_env", ENVIRONMENTS)
-@pytest.mark.parametrize("name", REAL)
+@pytest.mark.parametrize("name", APP_SETTINGS)
 def test_a_missing_setting_stops_staging_and_production(name, app_env):
     error = refusal({**REAL, name: " "}, app_env)
     assert error.details == {"missing": [name], "placeholders": []}
@@ -38,11 +47,43 @@ def test_a_missing_setting_stops_staging_and_production(name, app_env):
 
 def test_every_missing_setting_is_listed_at_once():
     error = refusal({}, "production")
-    assert error.details["missing"] == [setting.name for setting in REQUIRED_SETTINGS]
+    assert error.details["missing"] == APP_SETTINGS_IN_ORDER
+
+
+def test_the_app_never_needs_the_migrator_password_and_the_migrator_never_the_apps():
+    only_app = {name: value for name, value in REAL.items() if name != "MIGRATION_DATABASE_URL"}
+    only_migrator = {name: value for name, value in REAL.items() if name != "DATABASE_URL"}
+    check_required_settings(only_app, "production", "app")
+    check_required_settings(only_migrator, "production", "migrations")
+    assert refusal(only_app, "production", "migrations").details["missing"] == [
+        "MIGRATION_DATABASE_URL"
+    ]
+    assert refusal(only_migrator, "production", "app").details["missing"] == ["DATABASE_URL"]
+
+
+@pytest.mark.parametrize("name", MIGRATION_SETTINGS)
+def test_a_missing_setting_stops_the_migration_process_too(name):
+    error = refusal({**REAL, name: ""}, "production", "migrations")
+    assert error.details == {"missing": [name], "placeholders": []}
+
+
+def test_a_placeholder_password_in_the_migrator_address_is_refused():
+    address = "postgres://migrator:changeme@127.0.0.1:5432/bera"  # nosecret: a placeholder
+    error = refusal({**REAL, "MIGRATION_DATABASE_URL": address}, "production", "migrations")
+    assert error.details["placeholders"] == ["MIGRATION_DATABASE_URL"]
 
 
 @pytest.mark.parametrize("app_env", ENVIRONMENTS)
-@pytest.mark.parametrize("name", ["DJANGO_SECRET_KEY", "JWT_COMPANY_SECRET", "JWT_ADMIN_SECRET"])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "DJANGO_SECRET_KEY",
+        "JWT_COMPANY_SECRET",
+        "JWT_ADMIN_SECRET",
+        "FIELD_ENCRYPTION_KEY",
+        "FIELD_HASH_KEY",
+    ],
+)
 @pytest.mark.parametrize(
     "placeholder",
     [
@@ -87,14 +128,21 @@ def test_development_may_use_fake_values_and_skip_the_proxy_count():
         "DATABASE_URL": "postgres://bera:fake-dev-db-password@127.0.0.1:5432/bera",
         "JWT_COMPANY_SECRET": "fake-dev-only-company-signing-secret-0001",
         "JWT_ADMIN_SECRET": "fake-dev-only-admin-signing-secret-00002",
+        "FIELD_ENCRYPTION_KEY": "fake-dev-only-field-encryption-key-0003",
+        "FIELD_HASH_KEY": "fake-dev-only-field-hash-key-000000004",
     }
     check_required_settings(fake, "development")
+    check_required_settings(
+        {**fake, "MIGRATION_DATABASE_URL": fake["DATABASE_URL"]}, "development", "migrations"
+    )
 
 
 def test_development_still_needs_the_secrets_to_exist():
     assert refusal({}, "development").details["missing"] == [
         "DJANGO_SECRET_KEY",
         "DATABASE_URL",
+        "FIELD_ENCRYPTION_KEY",
+        "FIELD_HASH_KEY",
         "JWT_COMPANY_SECRET",
         "JWT_ADMIN_SECRET",
     ]
@@ -109,7 +157,9 @@ def test_a_random_looking_value_is_not_a_placeholder():
     assert not looks_like_placeholder("Zk3vQ8mT1xRb7LwN4pYc9HsJ2dGfA6eU")
 
 
-@pytest.mark.parametrize("name", ["DJANGO_SECRET_KEY", "JWT_ADMIN_SECRET", "DATABASE_URL"])
+@pytest.mark.parametrize(
+    "name", ["DJANGO_SECRET_KEY", "JWT_ADMIN_SECRET", "FIELD_HASH_KEY", "DATABASE_URL"]
+)
 def test_the_refusal_never_contains_a_secret_value(name):
     leaked = "fake-leak-check-value-must-never-show-up"
     environ = {**REAL, name: leaked if name != "DATABASE_URL" else f"postgres://u:{leaked}@h/db"}  # nosecret: built from a fake value

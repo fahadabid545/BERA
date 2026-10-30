@@ -7,6 +7,11 @@ def main():
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     from django.core.management import execute_from_command_line
 
+    from config.database import SCHEMA_COMMANDS
+
+    if sys.argv[1:2] and sys.argv[1] in SCHEMA_COMMANDS:
+        os.environ["DATABASE_ROLE"] = "migrations"
+
     execute_from_command_line(sys.argv)
 
 

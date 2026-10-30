@@ -2,15 +2,20 @@ from pathlib import Path
 
 import dj_database_url
 
-from config.environment import require_settings, require_signing_secrets
+from config.database import URL_SETTING_BY_ROLE, database_role
+from config.environment import require_field_keys, require_settings, require_signing_secrets
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-_required = require_settings(["DJANGO_SECRET_KEY", "DATABASE_URL"])
+DATABASE_ROLE = database_role()
+_database_url_setting = URL_SETTING_BY_ROLE[DATABASE_ROLE]
+_required = require_settings(["DJANGO_SECRET_KEY", _database_url_setting])
 SECRET_KEY = _required["DJANGO_SECRET_KEY"]
 # Company and admin tokens use different secrets, so neither can open the other's routes.
 TOKEN_SIGNING_SECRETS = require_signing_secrets()
-DATABASES = {"default": dj_database_url.parse(_required["DATABASE_URL"], conn_max_age=60)}
+# Keys that encrypt personal data and make it searchable by hash.
+FIELD_KEYS = require_field_keys()
+DATABASES = {"default": dj_database_url.parse(_required[_database_url_setting], conn_max_age=60)}
 
 INSTALLED_APPS = [
     "django.contrib.auth",

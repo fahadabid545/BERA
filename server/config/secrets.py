@@ -23,11 +23,16 @@ class RequiredSetting:
     name: str
     # A secret must not be a placeholder; other settings (like a count) are only required.
     secret: bool = True
+    # Which processes hold it. The app never holds the migrator's password, nor the reverse.
+    roles: tuple = ("app", "migrations")
 
 
 REQUIRED_SETTINGS = [
     RequiredSetting("DJANGO_SECRET_KEY"),
-    RequiredSetting("DATABASE_URL"),
+    RequiredSetting("DATABASE_URL", roles=("app",)),
+    RequiredSetting("MIGRATION_DATABASE_URL", roles=("migrations",)),
+    RequiredSetting("FIELD_ENCRYPTION_KEY"),
+    RequiredSetting("FIELD_HASH_KEY"),
     RequiredSetting("JWT_COMPANY_SECRET"),
     RequiredSetting("JWT_ADMIN_SECRET"),
     RequiredSetting("TRUSTED_PROXY_COUNT", secret=False),
@@ -37,8 +42,11 @@ REQUIRED_SETTINGS = [
 REQUIRED_IN_DEVELOPMENT = {
     "DJANGO_SECRET_KEY",
     "DATABASE_URL",
+    "MIGRATION_DATABASE_URL",
     "JWT_COMPANY_SECRET",
     "JWT_ADMIN_SECRET",
+    "FIELD_ENCRYPTION_KEY",
+    "FIELD_HASH_KEY",
 }
 
 PLACEHOLDER_WORDS = (
@@ -72,7 +80,7 @@ def looks_like_placeholder(value):
 
 def _secret_part(name, value):
     """The part of a setting that is secret: the password inside a database address."""
-    if name != "DATABASE_URL":
+    if not name.endswith("DATABASE_URL"):
         return value
     try:
         return urlsplit(value).password or ""
@@ -80,11 +88,13 @@ def _secret_part(name, value):
         return ""
 
 
-def check_required_settings(environ, app_env):
-    """Raises ConfigurationError naming every missing or placeholder setting."""
+def check_required_settings(environ, app_env, role="app"):
+    """Raises ConfigurationError naming every missing or placeholder setting for this role."""
     real = app_env in REAL_ENVIRONMENTS
     missing, placeholders = [], []
     for setting in REQUIRED_SETTINGS:
+        if role not in setting.roles:
+            continue
         if not real and setting.name not in REQUIRED_IN_DEVELOPMENT:
             continue
         value = environ.get(setting.name, "").strip()

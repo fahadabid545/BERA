@@ -17,6 +17,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parent.parent
 SERVER = ROOT / "server"
@@ -31,6 +32,14 @@ MIN_PYTHON = (3, 11)
 # On Windows npm is "npm.cmd", which only a full path from which() can launch.
 NPM = shutil.which("npm") or "npm"
 SAFE_NAME = re.compile(r"^[a-z_][a-z0-9_]*$")
+# Given a fresh random value in a new .env file; the other values stay the fake ones.
+RANDOM_SECRETS = (
+    "DJANGO_SECRET_KEY",
+    "JWT_COMPANY_SECRET",
+    "JWT_ADMIN_SECRET",
+    "FIELD_ENCRYPTION_KEY",
+    "FIELD_HASH_KEY",
+)
 
 POSTGRES_INSTALL_STEPS = """PostgreSQL is not available. Pick one:
   A) Install Docker Desktop (free for personal use), start it, then run this again.
@@ -60,7 +69,7 @@ def ensure_env_file(env_file=ENV_FILE, example_file=ENV_EXAMPLE):
     if env_file.exists():
         return False
     text = example_file.read_text(encoding="utf-8")
-    for name in ("DJANGO_SECRET_KEY", "JWT_COMPANY_SECRET", "JWT_ADMIN_SECRET"):
+    for name in RANDOM_SECRETS:
         text = re.sub(
             rf"^{name}=.*$",
             f"{name}={secrets.token_urlsafe(48)}",
@@ -173,21 +182,35 @@ def psql(settings, sql, database="postgres"):
 
 
 def ensure_native_database(settings):
-    """Create the application role and database in a normal PostgreSQL install."""
+    """Create the empty database in a normal PostgreSQL install. The three accounts that use
+    it are created afterwards by `provision_accounts`, the same way as in a real deployment."""
     if not shutil.which("psql"):
         raise SetupError(POSTGRES_INSTALL_STEPS)
     if not settings.get("POSTGRES_ADMIN_PASSWORD"):
         raise SetupError("Set POSTGRES_ADMIN_PASSWORD in .env (the 'postgres' password you chose).")
-    user, name = settings["POSTGRES_USER"], settings["POSTGRES_DB"]
-    if not (SAFE_NAME.match(user) and SAFE_NAME.match(name)):
-        raise SetupError("POSTGRES_USER and POSTGRES_DB may only use a-z, 0-9 and _.")
+    name = settings["POSTGRES_DB"]
+    if not SAFE_NAME.match(name):
+        raise SetupError("POSTGRES_DB may only use a-z, 0-9 and _.")
     if not port_in_use(int(settings["POSTGRES_PORT"])):
         raise SetupError("PostgreSQL is not running. Start the 'postgresql' Windows service.")
-    password = sql_literal(settings["POSTGRES_PASSWORD"])
-    if not psql(settings, f"SELECT 1 FROM pg_roles WHERE rolname = {sql_literal(user)}"):
-        psql(settings, f'CREATE ROLE "{user}" LOGIN CREATEDB PASSWORD {password}')
     if not psql(settings, f"SELECT 1 FROM pg_database WHERE datname = {sql_literal(name)}"):
-        psql(settings, f'CREATE DATABASE "{name}" OWNER "{user}"')
+        psql(settings, f'CREATE DATABASE "{name}"')
+
+
+def admin_database_url(settings):
+    """The administrator's address, given only to the command that creates the accounts."""
+    user = quote(settings["POSTGRES_ADMIN_USER"], safe="")
+    password = quote(settings["POSTGRES_ADMIN_PASSWORD"], safe="")
+    port, database = settings["POSTGRES_PORT"], settings["POSTGRES_DB"]
+    return f"postgres://{user}:{password}@127.0.0.1:{port}/{database}"  # nosecret: from .env
+
+
+def provision_accounts(settings):
+    manage(
+        settings,
+        "provision_database_roles",
+        extra_environment={"ADMIN_DATABASE_URL": admin_database_url(settings)},
+    )
 
 
 def start_database(settings):
@@ -204,11 +227,11 @@ def child_environment(settings):
     return {**settings, **os.environ}
 
 
-def manage(settings, *arguments):
+def manage(settings, *arguments, extra_environment=None):
     run(
         [str(VENV_PYTHON), "manage.py", *arguments],
         cwd=SERVER,
-        env=child_environment(settings),
+        env={**child_environment(settings), **(extra_environment or {})},
         what=f"'{arguments[0]}' step",
     )
 
@@ -216,6 +239,7 @@ def manage(settings, *arguments):
 def prepare(settings):
     """Everything needed before the app can start. Safe to repeat; never wipes data."""
     started_docker = start_database(settings)
+    provision_accounts(settings)
     manage(settings, "migrate", "--noinput")
     if settings.get("APP_ENV") == "development":
         manage(settings, "seed_dev_data")
@@ -307,6 +331,7 @@ def reset_database():
         return
     start_database(settings)
     manage(settings, "reset_dev_db")
+    provision_accounts(settings)
     manage(settings, "migrate", "--noinput")
     manage(settings, "seed_dev_data")
     print("Local database reset.")
@@ -315,6 +340,7 @@ def reset_database():
 def run_tests():
     settings = setup_everything()
     start_database(settings)
+    provision_accounts(settings)
     failures = []
     server_tests = subprocess.run(
         [str(VENV_PYTHON), "-m", "pytest"], cwd=ROOT, env=child_environment(settings)

@@ -18,7 +18,9 @@ Replacing is not enough: the old value must stop working.
 | --- | --- |
 | `JWT_COMPANY_SECRET`, `JWT_ADMIN_SECRET` | Replace and restart. Every token signed with the old key stops working, so everyone is signed in again. |
 | `DJANGO_SECRET_KEY` | Replace and restart. |
-| Database password (`DATABASE_URL`) | Change the password of that database account, update `DATABASE_URL`, restart. Only the leaked environment's account changes. |
+| Database passwords (`DATABASE_URL`, `MIGRATION_DATABASE_URL`, `BACKUP_DATABASE_URL`) | Set a new password in the address of the leaked account, run `python manage.py provision_database_roles` (it sets the password and the rights again), restart. Only the leaked environment's account changes. A leaked migrator password is the most serious: it can change the structure. |
+| `FIELD_ENCRYPTION_KEY` | Whoever holds the key and a copy of the database can read personal data. Treat as a data breach. Changing the key makes every stored value unreadable until the values are re-encrypted, which is not built yet: ask before replacing it. |
+| `FIELD_HASH_KEY` | Whoever holds the key can test guesses of known emails and phone numbers against the stored hashes. Replacing it means rebuilding every hash column (the hashes are filled from the encrypted values). |
 | AI provider key | Delete the key in the provider's dashboard, create a new one. |
 | Payment keys and webhook secret | Roll the keys in the payment dashboard (the old key stops working), update the webhook secret. |
 | Email provider key | Delete it in the provider's dashboard, create a new one. |

@@ -89,6 +89,11 @@ and why, and ask before proceeding. Never bend a rule silently.
 - A new secret is added to `REQUIRED_SETTINGS` in `server/config/secrets.py`, `.env.example`
   (fake value) and the README in the same change; `scripts/scan_secrets.py` runs on every change.
 
+## Before every push
+- Run `python scripts/scan_secrets.py` and the normal tests (`python -m pytest`, plus the web
+  tests when the web app changed) locally, and push only when both are clean. `git add` new
+  files first: the secret scan only sees files git knows about.
+
 ## Definition of done
 A ticket is done only when:
 1. The change is limited to the ticket's scope.
