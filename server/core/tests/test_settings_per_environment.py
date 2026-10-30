@@ -10,10 +10,10 @@ import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[2]
 FAKE_VALUES = {
-    "DJANGO_SECRET_KEY": "fake-test-secret-key",
-    "JWT_COMPANY_SECRET": "fake-test-company-signing-secret-000001",
-    "JWT_ADMIN_SECRET": "fake-test-admin-signing-secret-0000002",
-    "DATABASE_URL": "postgres://user:fake-password@127.0.0.1:5432/fake",
+    "DJANGO_SECRET_KEY": "test-only-django-secret-key-0000-1111-2222",
+    "JWT_COMPANY_SECRET": "test-only-company-signing-key-3a9f1c7e5b",
+    "JWT_ADMIN_SECRET": "test-only-admin-signing-key-8d2e6b4f0a",
+    "DATABASE_URL": "postgres://app:test-only-db-pw-3141592653@127.0.0.1:5432/bera",
     "ALLOWED_HOSTS": "staging.example.com, www.example.com",
     "TRUSTED_PROXY_COUNT": "1",
     "ALLOWED_ORIGINS": "https://staging.example.com, https://www.example.com/",
@@ -65,7 +65,7 @@ def test_production_refuses_to_start_when_a_required_secret_is_missing(missing):
     result = load_settings("production", **{missing: ""})
     assert result.returncode != 0
     assert missing in result.stderr
-    assert "fake-test-secret-key" not in result.stderr
+    assert "test-only-django-secret-key-0000-1111-2222" not in result.stderr
 
 
 def settings_of(app_env, **overrides):

@@ -1,0 +1,59 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python scripts/scan_secrets.py
+
+  server:
+    name: Server and scripts tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bera
+          POSTGRES_PASSWORD: test-only-ci-db-pw
+          POSTGRES_DB: bera
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U bera" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://bera:test-only-ci-db-pw@127.0.0.1:5432/bera
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: cp .env.example .env
+      - run: pip install -r server/requirements.txt -r server/requirements-dev.txt
+      - run: ruff check server scripts && ruff format --check server scripts
+      - run: python -m pytest
+
+  web:
+    name: Web tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx prettier --check src
+      - run: npx tsc --noEmit
+      - run: npm test

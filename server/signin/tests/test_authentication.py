@@ -52,7 +52,7 @@ def test_the_signed_in_person_is_named_in_the_log(project_log):
         bearer("garbage"),
         bearer(""),
         {"HTTP_AUTHORIZATION": "Basic dXNlcjpwYXNz"},
-        bearer(forge(secret="an-attackers-guess-that-is-long-enough-123")),
+        bearer(forge(secret="test-only-attackers-guess-long-enough-123")),
         bearer(forge(issued_ago=7200)),
         bearer(forge(aud="bera-admin")),
         bearer(forge()),  # correct shape and key, but no such session

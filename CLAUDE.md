@@ -86,6 +86,8 @@ and why, and ask before proceeding. Never bend a rule silently.
 - Never log secrets or personal data (names, emails, phone numbers, addresses,
   IDs, payment details). Mask or omit them in logs and error details.
 - Test data must be obviously fake (e.g. `user@example.com`).
+- A new secret is added to `REQUIRED_SETTINGS` in `server/config/secrets.py`, `.env.example`
+  (fake value) and the README in the same change; `scripts/scan_secrets.py` runs on every change.
 
 ## Definition of done
 A ticket is done only when:

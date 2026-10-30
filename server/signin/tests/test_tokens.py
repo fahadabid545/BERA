@@ -11,7 +11,7 @@ from signin.tests.helpers import forge
 from signin.tokens import ACCESS, REFRESH, read_token
 
 pytestmark = pytest.mark.django_db
-OTHER_SECRET = "an-attackers-guess-that-is-long-enough-123"
+OTHER_SECRET = "test-only-attackers-guess-long-enough-123"
 
 
 def accepted(token, kind="company", token_type=ACCESS):

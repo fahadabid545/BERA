@@ -62,7 +62,21 @@ Settings come only from environment variables. `APP_ENV` must be `development`, 
 or `production`. Locally they are read from `.env`, which is git-ignored; `.env.example`
 lists every setting with fake values.
 
-The app refuses to start, naming what is missing, if `DJANGO_SECRET_KEY`, `DATABASE_URL`,
-`JWT_COMPANY_SECRET` or `JWT_ADMIN_SECRET` is absent (the two token secrets must each be at least
-32 characters and different from each other) — and in staging and production also `ALLOWED_HOSTS` and `ALLOWED_ORIGINS` (the https addresses of the website, the only sites allowed to use the API from a browser). The commands
+The central list of required settings is `RequiredSetting` entries in `server/config/secrets.py`.
+In staging and production the app refuses to start if any entry is missing or a secret is still
+a placeholder (such as the fake values in `.env.example`); it names the settings, never their
+values. Development only needs `DJANGO_SECRET_KEY`, `DATABASE_URL`, `JWT_COMPANY_SECRET` and
+`JWT_ADMIN_SECRET` (the two token secrets must each be at least 32 characters and different from
+each other). Staging and production also need `TRUSTED_PROXY_COUNT`, `ALLOWED_HOSTS` and
+`ALLOWED_ORIGINS` (the https addresses of the website, the only sites allowed to use the API from
+a browser). Staging and production must use different values for every secret.
+
+A ticket that adds a feature with its own key (AI, payments, email, storage) adds the key to
+that list, to `.env.example` (fake value) and to this section, in the same change.
+
+Every change is scanned for secrets by `python scripts/scan_secrets.py` (also part of the test
+command and of the automatic checks in `.github/workflows/checks.yml`). A fake value on purpose
+needs "fake", "example" or "test-only" in its line, or a `nosecret` comment. If a key leaks,
+follow [docs/security/if-a-key-leaks.md](docs/security/if-a-key-leaks.md).
+
 `seed_dev_data` and `reset_dev_db` refuse to run outside development.
