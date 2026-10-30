@@ -15,6 +15,7 @@ FAKE_VALUES = {
     "JWT_ADMIN_SECRET": "fake-test-admin-signing-secret-0000002",
     "DATABASE_URL": "postgres://user:fake-password@127.0.0.1:5432/fake",
     "ALLOWED_HOSTS": "staging.example.com, www.example.com",
+    "TRUSTED_PROXY_COUNT": "1",
     "ALLOWED_ORIGINS": "https://staging.example.com, https://www.example.com/",
 }
 
@@ -27,7 +28,7 @@ def load_settings(app_env, **overrides):
         "print(json.dumps({'debug': s.DEBUG, 'hosts': s.ALLOWED_HOSTS,"
         " 'origins': s.ALLOWED_ORIGINS, 'hsts': getattr(s, 'SECURE_HSTS_SECONDS', 0),"
         " 'redirect': getattr(s, 'SECURE_SSL_REDIRECT', False),"
-        " 'referrer': s.SECURE_REFERRER_POLICY}))"
+        " 'referrer': s.SECURE_REFERRER_POLICY, 'proxies': s.TRUSTED_PROXY_COUNT}))"
     )
     return subprocess.run(
         [sys.executable, "-c", script], env=environ, capture_output=True, text=True, cwd="/"
@@ -55,6 +56,7 @@ def test_staging_and_production_turn_debug_off_and_read_hosts(app_env):
         "DATABASE_URL",
         "ALLOWED_HOSTS",
         "ALLOWED_ORIGINS",
+        "TRUSTED_PROXY_COUNT",
         "JWT_COMPANY_SECRET",
         "JWT_ADMIN_SECRET",
     ],
@@ -91,3 +93,19 @@ def test_production_refuses_origins_that_are_not_https_addresses(bad):
     result = load_settings("production", ALLOWED_ORIGINS=bad)
     assert result.returncode != 0
     assert "ALLOWED_ORIGINS" in result.stderr
+
+
+def test_development_has_no_proxy_in_front_of_the_server():
+    assert settings_of("development")["proxies"] == 0
+
+
+@pytest.mark.parametrize("app_env", ["staging", "production"])
+def test_staging_and_production_read_the_number_of_proxies(app_env):
+    assert settings_of(app_env)["proxies"] == 1
+
+
+@pytest.mark.parametrize("bad", ["many", "-1", "99", "1.5", "0x1"])
+def test_production_refuses_a_proxy_count_that_is_not_a_small_whole_number(bad):
+    result = load_settings("production", TRUSTED_PROXY_COUNT=bad)
+    assert result.returncode != 0
+    assert "TRUSTED_PROXY_COUNT" in result.stderr

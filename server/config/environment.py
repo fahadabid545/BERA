@@ -74,3 +74,15 @@ def parse_origins(text):
             "ALLOWED_ORIGINS must list https web addresses.", {"not_https": insecure}
         )
     return origins
+
+
+MAX_TRUSTED_PROXIES = 5
+
+
+def parse_proxy_count(text):
+    """How many of our own proxies sit in front of the server; wrong guesses weaken limits."""
+    if not text.isdigit() or int(text) > MAX_TRUSTED_PROXIES:
+        raise ConfigurationError(
+            f"TRUSTED_PROXY_COUNT must be a whole number from 0 to {MAX_TRUSTED_PROXIES}.",
+        )
+    return int(text)

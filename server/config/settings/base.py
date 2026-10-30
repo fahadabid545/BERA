@@ -39,6 +39,10 @@ SECURE_REFERRER_POLICY = "no-referrer"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 
+# How many of our own proxies sit in front of the server (they add to X-Forwarded-For).
+# 0 means visitors connect directly. See core/client_address.py.
+TRUSTED_PROXY_COUNT = 0
+
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -53,6 +57,8 @@ REST_FRAMEWORK = {
     # authentication classes that make a valid sign-in possible.
     "DEFAULT_AUTHENTICATION_CLASSES": [],
     "DEFAULT_PERMISSION_CLASSES": ["core.permissions.IsSignedIn"],
+    # Every view has the general per-user limit; views with their own limits add to it.
+    "DEFAULT_THROTTLE_CLASSES": ["core.throttles.OtherRequestsThrottle"],
 }
 
 # Background jobs run in a separate worker process, queued in PostgreSQL.

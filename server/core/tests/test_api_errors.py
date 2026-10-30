@@ -1,7 +1,7 @@
 import pytest
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.exceptions import NotFound, ParseError, ValidationError
 from rest_framework.test import APIRequestFactory
 
@@ -12,6 +12,7 @@ from core.permissions import PublicAccess
 def call(exception):
     @api_view(["GET"])
     @permission_classes([PublicAccess])
+    @throttle_classes([])
     def failing_view(request):
         raise exception
 

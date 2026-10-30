@@ -6,10 +6,9 @@ from rest_framework.decorators import (
 )
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import SimpleRateThrottle
 
 from core.permissions import PublicAccess
-from platform_settings.service import get_setting
+from core.throttles import RefreshThrottle, limited
 
 from . import service
 from .cookies import refresh_cookie_name, set_session_cookies
@@ -17,27 +16,11 @@ from .csrf import enforce_csrf
 from .kinds import ADMIN, COMPANY
 
 
-class RefreshRateThrottle(SimpleRateThrottle):
-    """Limits renewals per address. Its counts live in each server process's own cache until the
-    shared rate limiter exists."""
-
-    scope = "refresh"
-
-    def get_rate(self):
-        return f"{get_setting('tokens.refresh_attempts_per_minute')}/min"
-
-    def get_cache_key(self, request, view):
-        return self.cache_format % {
-            "scope": self.scope,
-            "ident": request.META.get("REMOTE_ADDR", ""),
-        }
-
-
 def make_refresh_view(kind):
     @api_view(["POST"])
     @authentication_classes([])
     @permission_classes([PublicAccess])  # the refresh token is the credential
-    @throttle_classes([RefreshRateThrottle])
+    @throttle_classes(limited(RefreshThrottle))
     def refresh(request):
         token = request.COOKIES.get(refresh_cookie_name(kind))
         if not token:

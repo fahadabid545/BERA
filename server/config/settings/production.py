@@ -1,4 +1,4 @@
-from config.environment import parse_origins, require_settings
+from config.environment import parse_origins, parse_proxy_count, require_settings
 
 from .base import *  # noqa: F403
 
@@ -9,6 +9,9 @@ ALLOWED_HOSTS = [
 ]
 # Only the real website addresses (https) may use the API from a browser.
 ALLOWED_ORIGINS = parse_origins(require_settings(["ALLOWED_ORIGINS"])["ALLOWED_ORIGINS"])
+TRUSTED_PROXY_COUNT = parse_proxy_count(
+    require_settings(["TRUSTED_PROXY_COUNT"])["TRUSTED_PROXY_COUNT"]
+)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_SSL_REDIRECT = True

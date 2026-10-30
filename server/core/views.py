@@ -2,7 +2,7 @@ import logging
 
 from django.db import OperationalError, connection
 from django.http import JsonResponse
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 
 from .errors import AppError
@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 @api_view(["GET"])
 @permission_classes([PublicAccess])
+@throttle_classes([])  # monitoring must not be limited, and works while the database is down
 def health(request):
     try:
         connection.ensure_connection()

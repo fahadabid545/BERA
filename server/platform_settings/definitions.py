@@ -63,7 +63,6 @@ SETTINGS = [
     SettingDefinition("tokens.access_minutes", 15, whole_number(1, 1440)),
     SettingDefinition("tokens.refresh_days", 7, whole_number(1, 90)),
     SettingDefinition("tokens.clock_leeway_seconds", 30, whole_number(0, 300)),
-    SettingDefinition("tokens.refresh_attempts_per_minute", 10, whole_number(1, 1000)),
     SettingDefinition("tokens.email_verification_hours", 24, whole_number(1, 720)),
     SettingDefinition("tokens.password_reset_hours", 1, whole_number(1, 72)),
     SettingDefinition("tokens.team_invite_days", 7, whole_number(1, 90)),
@@ -71,6 +70,20 @@ SETTINGS = [
     SettingDefinition("signin.max_failed_attempts", 5, whole_number(1, 100)),
     SettingDefinition("signin.attempt_window_minutes", 15, whole_number(1, 1440)),
     SettingDefinition("signin.lockout_minutes", 15, whole_number(1, 1440)),
+    # Rate limits. Counts per window; "address" means the visitor's real network address.
+    SettingDefinition("rate_limits.login_per_minute", 10, whole_number(1, 10000)),
+    SettingDefinition("rate_limits.refresh_per_minute", 30, whole_number(1, 10000)),
+    SettingDefinition("rate_limits.sign_up_per_hour", 5, whole_number(1, 10000)),
+    SettingDefinition("rate_limits.password_reset_per_hour", 5, whole_number(1, 10000)),
+    SettingDefinition("rate_limits.invites_per_hour", 20, whole_number(1, 10000)),
+    SettingDefinition("rate_limits.upload_files_per_10_minutes", 100, whole_number(1, 100000)),
+    SettingDefinition("rate_limits.downloads_per_minute", 60, whole_number(1, 10000)),
+    SettingDefinition("rate_limits.contact_per_hour", 3, whole_number(1, 10000)),
+    SettingDefinition("rate_limits.other_requests_per_minute", 120, whole_number(1, 100000)),
+    # Repeated abuse: this many refused requests within the window block the source.
+    SettingDefinition("rate_limits.violations_before_block", 5, whole_number(1, 1000)),
+    SettingDefinition("rate_limits.violation_window_minutes", 10, whole_number(1, 1440)),
+    SettingDefinition("rate_limits.block_minutes", 15, whole_number(1, 1440)),
     # Team
     SettingDefinition("team.max_accounts_per_company", 3, whole_number(1, 1000)),
     # Uploads

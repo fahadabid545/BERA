@@ -18,6 +18,7 @@ from rest_framework.response import Response
 
 from . import request_context
 from .errors import AppError, not_allowed, not_found, not_signed_in
+from .rate_limits import try_again_message
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,19 @@ NON_FIELD_KEY = "non_field_errors"
 
 def error_response(error):
     return Response({"error": error.to_dict()}, status=error.status_code)
+
+
+def too_many_requests(wait_seconds):
+    wait_seconds = int(wait_seconds or 60)
+    error = AppError(
+        "too_many_requests",
+        try_again_message(wait_seconds),
+        {"retry_after_seconds": wait_seconds},
+        status_code=429,
+    )
+    response = error_response(error)
+    response["Retry-After"] = str(wait_seconds)
+    return response
 
 
 def unexpected_error():
@@ -70,9 +84,7 @@ def api_exception_handler(exc, context):
             AppError("bad_request", "The request could not be read.", status_code=400)
         )
     if isinstance(exc, Throttled):
-        return error_response(
-            AppError("too_many_requests", "Too many attempts. Try again later.", status_code=429)
-        )
+        return too_many_requests(exc.wait)
     if isinstance(exc, (NotAuthenticated, AuthenticationFailed)):
         return error_response(not_signed_in())
     if isinstance(exc, (Http404, NotFound)):

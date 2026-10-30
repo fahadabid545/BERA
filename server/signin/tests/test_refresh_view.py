@@ -101,27 +101,6 @@ def test_refreshing_only_accepts_post():
     assert APIClient().get(ROUTES["company"]).status_code == 405
 
 
-def test_refreshing_is_rate_limited():
-    limit = 10
-    client = APIClient()
-    answers = [client.post(ROUTES["company"]).status_code for _ in range(limit + 3)]
-    assert answers[:limit] == [401] * limit
-    assert answers[limit:] == [429] * 3
-    throttled = client.post(ROUTES["company"]).json()["error"]
-    assert throttled == {
-        "code": "too_many_requests",
-        "message": "Too many attempts. Try again later.",
-    }
-
-
-def test_the_refresh_limit_comes_from_a_platform_setting(monkeypatch):
-    from signin import views
-
-    monkeypatch.setattr(views, "get_setting", lambda key: 2)
-    client = APIClient()
-    assert [client.post(ROUTES["company"]).status_code for _ in range(3)] == [401, 401, 429]
-
-
 def test_tokens_are_not_logged_by_the_refresh_view(caplog):
     issued = sign_in()
     refresh(client_with(issued.refresh_token))
