@@ -19,6 +19,8 @@ import {
   Tooltip,
 } from "@/components/ui";
 
+import { UpgradePrompt } from "@/components/company/BillingPrompt";
+
 import { DeleteConfirmation } from "./DeleteConfirmation";
 
 export const metadata = { title: "BERA design sample" };
@@ -171,6 +173,7 @@ export default function DesignSample() {
           ]}
         />
         <DeleteConfirmation />
+        <UpgradePrompt trigger={<Button variant="secondary">Open upgrade prompt</Button>} />
         <Menu
           trigger={<Button variant="secondary">Menu</Button>}
           items={[

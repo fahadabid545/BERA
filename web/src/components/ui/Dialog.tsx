@@ -16,6 +16,7 @@ export function Dialog({
   confirmLabel,
   onConfirm,
   destructive = false,
+  actions,
   children,
 }: {
   trigger: ReactNode;
@@ -24,6 +25,8 @@ export function Dialog({
   confirmLabel?: string;
   onConfirm?: () => void;
   destructive?: boolean;
+  /** Extra buttons or links shown beside Close, e.g. a link to another page. */
+  actions?: ReactNode;
   children?: ReactNode;
 }) {
   const isConfirmation = Boolean(confirmLabel && onConfirm);
@@ -47,6 +50,7 @@ export function Dialog({
                 </Button>
               </RadixDialog.Close>
             )}
+            {actions}
           </div>
         </RadixDialog.Content>
       </RadixDialog.Portal>

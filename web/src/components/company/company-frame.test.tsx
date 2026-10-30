@@ -203,17 +203,16 @@ describe("Advanced section", () => {
     expect(screen.getByRole("main").textContent).toBe("Page content");
   });
 
-  it.each([
-    "/company/advanced",
-    "/company/advanced/retention",
-    "/company/advanced/data",
-  ])("shows a member who types %s the no-access page, inside the frame", (address) => {
-    pathname.current = address;
-    renderFrame("member");
-    expect(screen.getByRole("heading", { name: "You do not have access" })).toBeTruthy();
-    expect(screen.queryByText("Page content")).toBeNull();
-    expect(screen.getByRole("navigation", { name: "Company" })).toBeTruthy();
-  });
+  it.each(["/company/advanced", "/company/advanced/retention", "/company/advanced/data"])(
+    "shows a member who types %s the no-access page, inside the frame",
+    (address) => {
+      pathname.current = address;
+      renderFrame("member");
+      expect(screen.getByRole("heading", { name: "You do not have access" })).toBeTruthy();
+      expect(screen.queryByText("Page content")).toBeNull();
+      expect(screen.getByRole("navigation", { name: "Company" })).toBeTruthy();
+    },
+  );
 
   it("still shows members their own pages and does not block look-alike addresses", () => {
     for (const address of ["/company/projects", "/company/advanced-old"]) {
