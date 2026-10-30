@@ -66,6 +66,11 @@ SETTINGS = [
     SettingDefinition("tokens.email_verification_hours", 24, whole_number(1, 720)),
     SettingDefinition("tokens.password_reset_hours", 1, whole_number(1, 72)),
     SettingDefinition("tokens.team_invite_days", 7, whole_number(1, 90)),
+    # Email: how long to wait before each new attempt when the provider fails. The number
+    # of entries is the number of retries.
+    SettingDefinition(
+        "email.retry_waits_seconds", [60, 300, 1800], list_of_whole_numbers(1, 86400)
+    ),
     # Sign-in protection
     SettingDefinition("signin.max_failed_attempts", 5, whole_number(1, 100)),
     SettingDefinition("signin.attempt_window_minutes", 15, whole_number(1, 1440)),

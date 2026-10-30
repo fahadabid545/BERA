@@ -1,6 +1,7 @@
 from config.environment import parse_origins, parse_proxy_count, require_settings
 
 from .base import *  # noqa: F403
+from .deployed import *  # noqa: F403
 
 APP_ENV = "staging"
 DEBUG = False

@@ -10,6 +10,11 @@ REAL = {
     "MIGRATION_DATABASE_URL": "postgres://migrator:test-only-migrator-pw-2718281828@127.0.0.1:5432/bera",  # nosecret: fake
     "FIELD_ENCRYPTION_KEY": "test-only-field-encryption-key-7c1d9e",
     "FIELD_HASH_KEY": "test-only-field-hash-key-4b8a2f6d03",
+    "EMAIL_HOST": "smtp.example.com",
+    "EMAIL_HOST_USER": "smtp-user-test",
+    "EMAIL_HOST_PASSWORD": "test-only-smtp-key-9d3b1f7a52c4",
+    "EMAIL_FROM_ADDRESS": "bera@example.com",
+    "WEB_BASE_URL": "https://app.example.com",
     "JWT_COMPANY_SECRET": "test-only-company-signing-key-3a9f1c7e5b",
     "JWT_ADMIN_SECRET": "test-only-admin-signing-key-8d2e6b4f0a",
     "TRUSTED_PROXY_COUNT": "1",
@@ -82,6 +87,7 @@ def test_a_placeholder_password_in_the_migrator_address_is_refused():
         "JWT_ADMIN_SECRET",
         "FIELD_ENCRYPTION_KEY",
         "FIELD_HASH_KEY",
+        "EMAIL_HOST_PASSWORD",
     ],
 )
 @pytest.mark.parametrize(

@@ -23,7 +23,7 @@ Replacing is not enough: the old value must stop working.
 | `FIELD_HASH_KEY` | Whoever holds the key can test guesses of known emails and phone numbers against the stored hashes. Replacing it means rebuilding every hash column (the hashes are filled from the encrypted values). |
 | AI provider key | Delete the key in the provider's dashboard, create a new one. |
 | Payment keys and webhook secret | Roll the keys in the payment dashboard (the old key stops working), update the webhook secret. |
-| Email provider key | Delete it in the provider's dashboard, create a new one. |
+| Email provider password (`EMAIL_HOST_PASSWORD`) | Delete it in the provider's dashboard, create a new one, update the setting, restart. |
 | Storage keys | Delete the access key in the storage dashboard, create a new one. |
 
 ## 3. Check what happened

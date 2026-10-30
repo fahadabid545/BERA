@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import dj_database_url
@@ -24,12 +25,25 @@ INSTALLED_APPS = [
     "core",
     "companies",
     "adminusers",
+    "emailing",
     "platform_settings",
     "signin",
 ]
 
 # Only strong, slow, one-way hashes. Company users and admin users each keep theirs in their
 # own table (companies, adminusers); Django's own user table is not used.
+# Only used to write emails (emailing/templates); the product has no server-rendered pages.
+TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "APP_DIRS": True}]
+
+# System emails (see emailing/). The sender is one configurable address; links in emails
+# point only to WEB_BASE_URL. Development saves messages in .dev-inbox instead of sending.
+EMAIL_TIMEOUT = 10
+EMAIL_BACKEND = "emailing.backends.DevInboxBackend"
+EMAIL_FILE_PATH = BASE_DIR.parent / ".dev-inbox"
+EMAIL_FROM_ADDRESS = os.environ.get("EMAIL_FROM_ADDRESS", "").strip() or "bera@example.test"
+DEFAULT_FROM_EMAIL = f"Bera <{EMAIL_FROM_ADDRESS}>"
+WEB_BASE_URL = os.environ.get("WEB_BASE_URL", "").strip().rstrip("/") or "http://localhost:3000"
+
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.Argon2PasswordHasher"]
 
 MIDDLEWARE = [

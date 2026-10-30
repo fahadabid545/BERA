@@ -2,7 +2,10 @@
 
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from dotenv import load_dotenv
 
 from core.errors import ConfigurationError
@@ -92,3 +95,23 @@ def parse_proxy_count(text):
             f"TRUSTED_PROXY_COUNT must be a whole number from 0 to {MAX_TRUSTED_PROXIES}.",
         )
     return int(text)
+
+
+def parse_web_base_url(text):
+    """The website's own address, used for every link in an email (https, no path)."""
+    address = text.strip().rstrip("/")
+    parts = urlsplit(address)
+    if parts.scheme != "https" or not parts.netloc or parts.path or parts.query or parts.fragment:
+        raise ConfigurationError(
+            "WEB_BASE_URL must be the https address of the website, such as https://app.example.com."
+        )
+    return address
+
+
+def parse_sender_address(text):
+    address = text.strip()
+    try:
+        validate_email(address)
+    except ValidationError:
+        raise ConfigurationError("EMAIL_FROM_ADDRESS must be a valid email address.") from None
+    return address

@@ -1,0 +1,10 @@
+{% autoescape off %}Bera
+
+{{ heading }}
+
+{% for paragraph in paragraphs %}{{ paragraph }}
+
+{% endfor %}{{ button_label }}: {{ link }}
+
+If you did not expect this email, you can ignore it.
+{% endautoescape %}

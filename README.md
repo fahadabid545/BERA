@@ -87,6 +87,23 @@ follow [docs/security/if-a-key-leaks.md](docs/security/if-a-key-leaks.md).
 
 `seed_dev_data` and `reset_dev_db` refuse to run outside development.
 
+### System emails
+
+All system emails go through `send_email(template, address, **values)` in `server/emailing`.
+The eight templates (verify email, reset password, team invite, password changed, email
+changed, new sign-in, usage notice, payment problem) share one layout with the Bera name, one
+main button and a plain-text version; the words are in `emailing/catalog.py`. Links must point
+to `WEB_BASE_URL` and can never carry a password (`emailing/links.py`). A provider failure is
+retried after 1, 5 and 30 minutes (`email.retry_waits_seconds`), then logged; it never breaks
+the user's action. Addresses the provider rejects are recorded and skipped from then on.
+
+In development nothing is sent: messages are saved as `.eml` files in `.dev-inbox/` (open them
+with any mail program or text editor). `python manage.py send_test_emails` (in `server/`) puts
+one of each template there. Staging and production send through SMTP and need `EMAIL_HOST`,
+`EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_FROM_ADDRESS` (the one sender) and
+`WEB_BASE_URL` (https). Webhooks that report bounces depend on the provider chosen and are not
+built yet; `record_bounce` is what they will call.
+
 ### Database accounts and protected data
 
 Three database accounts exist, locally too: the app (rows only, cannot change the structure), the

@@ -17,6 +17,11 @@ FAKE_VALUES = {
     "MIGRATION_DATABASE_URL": "postgres://migrator:test-only-migrator-pw-2718281828@127.0.0.1:5432/bera?sslmode=verify-full",  # nosecret: fake
     "FIELD_ENCRYPTION_KEY": "test-only-field-encryption-key-7c1d9e",
     "FIELD_HASH_KEY": "test-only-field-hash-key-4b8a2f6d03",
+    "EMAIL_HOST": "smtp.example.com",
+    "EMAIL_HOST_USER": "smtp-user-test",
+    "EMAIL_HOST_PASSWORD": "test-only-smtp-key-9d3b1f7a52c4",
+    "EMAIL_FROM_ADDRESS": "bera@example.com",
+    "WEB_BASE_URL": "https://app.example.com",
     "ALLOWED_HOSTS": "staging.example.com, www.example.com",
     "TRUSTED_PROXY_COUNT": "1",
     "ALLOWED_ORIGINS": "https://staging.example.com, https://www.example.com/",
@@ -34,7 +39,8 @@ def load_settings(app_env, **overrides):
         " 'origins': s.ALLOWED_ORIGINS, 'hsts': getattr(s, 'SECURE_HSTS_SECONDS', 0),"
         " 'redirect': getattr(s, 'SECURE_SSL_REDIRECT', False),"
         " 'referrer': s.SECURE_REFERRER_POLICY, 'proxies': s.TRUSTED_PROXY_COUNT,"
-        " 'db_user': s.DATABASES['default']['USER']}))"
+        " 'db_user': s.DATABASES['default']['USER'], 'email_backend': s.EMAIL_BACKEND,"
+        " 'sender': s.DEFAULT_FROM_EMAIL, 'web': s.WEB_BASE_URL}))"
     )
     return subprocess.run(
         [sys.executable, "-c", script], env=environ, capture_output=True, text=True, cwd="/"
@@ -67,6 +73,11 @@ def test_staging_and_production_turn_debug_off_and_read_hosts(app_env):
         "JWT_ADMIN_SECRET",
         "FIELD_ENCRYPTION_KEY",
         "FIELD_HASH_KEY",
+        "EMAIL_HOST",
+        "EMAIL_HOST_USER",
+        "EMAIL_HOST_PASSWORD",
+        "EMAIL_FROM_ADDRESS",
+        "WEB_BASE_URL",
     ],
 )
 def test_production_refuses_to_start_when_a_required_secret_is_missing(missing):
@@ -171,3 +182,33 @@ def test_the_field_keys_must_be_long_enough(key):
 def test_the_two_field_keys_must_differ():
     result = load_settings("development", FIELD_HASH_KEY=FAKE_VALUES["FIELD_ENCRYPTION_KEY"])
     assert result.returncode != 0 and "must be different" in result.stderr
+
+
+def test_development_saves_emails_in_the_inbox_folder_and_sends_nothing():
+    values = settings_of("development", WEB_BASE_URL="", EMAIL_FROM_ADDRESS="")
+    assert values["email_backend"] == "emailing.backends.DevInboxBackend"
+    assert values["sender"] == "Bera <bera@example.test>"
+    assert values["web"] == "http://localhost:3000"
+
+
+@pytest.mark.parametrize("app_env", ["staging", "production"])
+def test_staging_and_production_send_through_smtp_from_one_sender(app_env):
+    values = settings_of(app_env)
+    assert values["email_backend"] == "django.core.mail.backends.smtp.EmailBackend"
+    assert values["sender"] == "Bera <bera@example.com>"
+    assert values["web"] == "https://app.example.com"
+
+
+@pytest.mark.parametrize(
+    "address",
+    ["http://app.example.com", "app.example.com", "https://app.example.com/login", "https://"],
+)
+def test_production_refuses_a_website_address_that_is_not_plain_https(address):
+    result = load_settings("production", WEB_BASE_URL=address)
+    assert result.returncode != 0 and "WEB_BASE_URL" in result.stderr
+
+
+@pytest.mark.parametrize("address", ["not-an-address", "bera@", "@example.com"])
+def test_production_refuses_a_sender_that_is_not_an_email_address(address):
+    result = load_settings("production", EMAIL_FROM_ADDRESS=address)
+    assert result.returncode != 0 and "EMAIL_FROM_ADDRESS" in result.stderr
