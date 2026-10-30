@@ -8,6 +8,7 @@ import {
   Button,
   Card,
   Checkbox,
+  Textarea,
   Dialog,
   Menu,
   Input,
@@ -83,6 +84,16 @@ describe("form fields", () => {
     await userEvent.tab();
     await userEvent.keyboard(" ");
     expect((screen.getByLabelText("Notify me") as HTMLInputElement).checked).toBe(true);
+  });
+});
+
+describe("Textarea", () => {
+  it("is labelled and shows its error in words", () => {
+    render(<Textarea label="Message" error="Write a message." />);
+    const box = screen.getByLabelText("Message");
+    expect(box.tagName).toBe("TEXTAREA");
+    expect(box.getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByText("Write a message.")).toBeTruthy();
   });
 });
 

@@ -82,6 +82,10 @@
   color: var(--color-text);
   font: var(--text-md) var(--font-body); /* 16px stops phones zooming in */
 }
+.ui-textarea {
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+}
 .ui-input[aria-invalid="true"],
 .ui-select select[aria-invalid="true"] {
   border-color: var(--color-danger-text);
@@ -432,6 +436,11 @@
 .site-main {
   flex: 1;
   padding: var(--space-5) var(--page-gutter);
+}
+.page-form {
+  display: flex;
+  flex-direction: column;
+  max-width: 26rem;
 }
 .page-actions {
   display: flex;

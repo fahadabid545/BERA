@@ -8,6 +8,7 @@ import {
   Input,
   Menu,
   Select,
+  Textarea,
   Table,
   Tabs,
   Tag,
@@ -59,6 +60,7 @@ export default function DesignSample() {
             defaultValue="not-an-email"
             error="Enter a valid email address."
           />
+          <Textarea label="Notes" placeholder="Anything to add" />
           <Select
             label="Keep CVs for"
             options={[
