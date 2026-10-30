@@ -2,8 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import MissingAdminPage from "@/app/admin/[...missing]/page";
-import AdminNotFound from "@/app/admin/not-found";
+import MissingAdminPage from "@/app/admin/(panel)/[...missing]/page";
+import AdminNotFound from "@/app/admin/(panel)/not-found";
 
 import { AdminFrame } from "./AdminFrame";
 import {

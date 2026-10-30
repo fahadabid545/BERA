@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import AdminHome from "./admin/page";
+import AdminHome from "./admin/(panel)/page";
 import WebsiteHome from "./(website)/page";
 
 describe("the three separate areas", () => {
