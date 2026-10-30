@@ -36,6 +36,12 @@ PUBLIC_ROUTES = [
         reason="Monitoring must be able to check that the server is up without an account.",
     ),
     PublicRoute(
+        route="api/auth/password-check/",
+        category="sign_up",
+        reason="Sign up, reset and invite pages show the password rules live while typing, "
+        "before an account exists. It only reports which rules a text meets and stores nothing.",
+    ),
+    PublicRoute(
         route="api/auth/company/login/",
         category="login",
         reason="A company user signs in with email and password before having a session. "

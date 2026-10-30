@@ -45,6 +45,13 @@ class ConfigurationError(AppError):
         super().__init__("configuration_error", message, details)
 
 
+def form_error(fields):
+    """A form refused for the reasons in `fields` (field name to message)."""
+    return AppError(
+        "validation_error", "Please check the form and try again.", status_code=400, fields=fields
+    )
+
+
 # The only three answers a refusal may give. Each is built in one place so the text
 # is identical for every cause (a missing token and an expired one, a record that
 # does not exist and one that belongs to another company).

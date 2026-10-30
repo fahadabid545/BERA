@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { Button, ButtonLink, Checkbox, Dialog, Input, Select, TextLink } from "@/components/ui";
+import { NewPasswordFields } from "@/components/website/NewPasswordFields";
 import { ACCOUNT_LINKS, FOOTER_LINKS } from "@/components/website/links";
 import { postJson, getJson, type ApiError } from "@/lib/api";
 import { countryOptions, isCountryCode, OTHER_COUNTRY } from "@/lib/countries";
@@ -60,12 +61,10 @@ export function SignUpForm() {
         />
         <Input label="Your name" name="name" autoComplete="name" error={fields.name} />
         <Input label="Email" name="email" type="email" autoComplete="email" error={fields.email} />
-        <Input
-          label="Password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          error={fields.password}
+        <NewPasswordFields
+          passwordLabel="Password"
+          passwordName="password"
+          passwordError={fields.password}
         />
         <Select
           label="Country"

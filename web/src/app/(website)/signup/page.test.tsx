@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import SignUpPage from "./page";
 
+const HINTS = {
+  rules: [{ id: "min_length", text: "At least 12 characters", met: true }],
+  ok: true,
+};
 const NEUTRAL = "If this email can be used, we have sent instructions.";
 
 type Reply = { status?: number; body: unknown };
@@ -11,6 +15,8 @@ type Reply = { status?: number; body: unknown };
 /** Pretends to be the server: one answer for the country lookup, one for the sign-up. */
 function stubServer({ country, signUp }: { country?: Reply; signUp?: Reply }) {
   const fetchMock = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path.endsWith("/password-check/"))
+      return new Response(JSON.stringify(HINTS), { status: 200 });
     const reply = path.endsWith("/country/")
       ? (country ?? { body: { country: "ZZ" } })
       : (signUp ?? { body: {} });
@@ -22,7 +28,9 @@ function stubServer({ country, signUp }: { country?: Reply; signUp?: Reply }) {
 }
 
 function signUpCalls(fetchMock: ReturnType<typeof stubServer>) {
-  return fetchMock.mock.calls.filter(([path]) => !String(path).endsWith("/country/"));
+  return fetchMock.mock.calls.filter(
+    ([path]) => !String(path).endsWith("/country/") && !String(path).endsWith("/password-check/"),
+  );
 }
 
 async function fillIn(overrides: Partial<Record<string, string>> = {}) {

@@ -4,10 +4,24 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import ResetPasswordPage from "./page";
 
+const HINTS = {
+  rules: [{ id: "min_length", text: "At least 12 characters", met: true }],
+  ok: true,
+};
+
 function stubServer(status: number, body: unknown) {
-  const fetchMock = vi.fn(async () => new Response(JSON.stringify(body), { status }));
+  const fetchMock = vi.fn(async (path: string) =>
+    path.endsWith("/password-check/")
+      ? new Response(JSON.stringify(HINTS), { status: 200 })
+      : new Response(JSON.stringify(body), { status }),
+  );
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
+}
+
+/** The requests that are not the live password hints. */
+function resetCalls(server: ReturnType<typeof stubServer>) {
+  return server.mock.calls.filter(([path]) => !String(path).endsWith("/password-check/"));
 }
 
 function refusal(code: string, message: string, extra: object = {}) {
@@ -40,8 +54,8 @@ describe("reset password page", () => {
     const server = stubServer(200, { status: "ok" });
     await openPage("good-token");
     await fillIn(NEW_PASSWORD, NEW_PASSWORD);
-    await waitFor(() => expect(server).toHaveBeenCalled());
-    const [path, init] = server.mock.calls[0] as unknown as [string, RequestInit];
+    await waitFor(() => expect(resetCalls(server)).toHaveLength(1));
+    const [path, init] = resetCalls(server)[0] as unknown as [string, RequestInit];
     expect(path).toBe("/api/auth/company/reset-password/");
     expect(JSON.parse(String(init.body))).toEqual({
       token: "good-token",
@@ -81,7 +95,7 @@ describe("reset password page", () => {
     await openPage(undefined);
     expect(screen.getByRole("alert").textContent).toBe("This link is not valid.");
     expect(screen.getByRole("link", { name: "Request a new link" })).toBeTruthy();
-    expect(server).not.toHaveBeenCalled();
+    expect(resetCalls(server)).toHaveLength(0);
   });
 
   it("shows every reason a password was refused, next to the field, and keeps the form", async () => {
@@ -141,8 +155,8 @@ describe("reset password page", () => {
     const server = stubServer(200, { status: "ok" });
     await openPage(["first", "second"]);
     await fillIn();
-    await waitFor(() => expect(server).toHaveBeenCalled());
-    const init = (server.mock.calls[0] as unknown as [string, RequestInit])[1];
+    await waitFor(() => expect(resetCalls(server)).toHaveLength(1));
+    const init = (resetCalls(server)[0] as unknown as [string, RequestInit])[1];
     expect(JSON.parse(String(init.body)).token).toBe("first");
   });
 });

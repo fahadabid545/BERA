@@ -2,8 +2,9 @@
 
 import { useState, type FormEvent } from "react";
 
-import { Button, ButtonLink, Input, TextLink } from "@/components/ui";
+import { Button, ButtonLink, TextLink } from "@/components/ui";
 import { ACCOUNT_LINKS } from "@/components/website/links";
+import { NewPasswordFields } from "@/components/website/NewPasswordFields";
 import { postJson, type ApiError } from "@/lib/api";
 
 const LINK_PROBLEMS = ["link_invalid", "link_used", "link_expired"];
@@ -59,19 +60,15 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
   const generalError = error && Object.keys(fields).length === 0 ? error.message : null;
   return (
     <form className="page-form" onSubmit={submit} noValidate>
-      <Input
-        label="New password"
-        name="password"
-        type="password"
-        autoComplete="new-password"
-        error={fields.password}
-      />
-      <Input
-        label="Confirm password"
-        name="confirm_password"
-        type="password"
-        autoComplete="new-password"
-        error={fields.confirm_password}
+      <NewPasswordFields
+        passwordLabel="New password"
+        passwordName="password"
+        passwordError={fields.password}
+        confirm={{
+          label: "Confirm password",
+          name: "confirm_password",
+          error: fields.confirm_password,
+        }}
       />
       {generalError && (
         <p className="ui-error" role="alert">

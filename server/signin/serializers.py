@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from core.passwords import PasswordTextField
 from core.validation import StrictSerializer
 
 MAX_EMAIL_LENGTH = 254
@@ -20,3 +21,14 @@ class LoginSerializer(StrictSerializer):
             if isinstance(data, dict) and name in data and not isinstance(data[name], str):
                 raise serializers.ValidationError({name: ["Enter text."]})
         return super().to_internal_value(data)
+
+
+class PasswordCheckSerializer(StrictSerializer):
+    password = PasswordTextField()
+
+
+class ChangePasswordSerializer(StrictSerializer):
+    # The rules for the new password are applied after the current one is checked.
+    current_password = PasswordTextField()
+    password = PasswordTextField()
+    confirm_password = PasswordTextField()

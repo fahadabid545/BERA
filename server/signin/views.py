@@ -7,7 +7,9 @@ from rest_framework.decorators import (
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.response import Response
 
+from companies.models import CompanyUser
 from core import request_context
+from core.passwords import password_rule_results
 from core.permissions import PublicAccess
 from core.throttles import LoginThrottle, RefreshThrottle, limited
 
@@ -17,7 +19,8 @@ from .cookies import clear_session_cookies, refresh_cookie_name, set_session_coo
 from .csrf import enforce_csrf
 from .kinds import ADMIN, COMPANY
 from .login import check_login
-from .serializers import LoginSerializer
+from .password_change import change_password
+from .serializers import ChangePasswordSerializer, LoginSerializer, PasswordCheckSerializer
 from .service import RevokeReason
 
 
@@ -97,5 +100,36 @@ def login_company(request):
         user_id=person.pk, role=person.role, company_id=person.company_id, kind=COMPANY
     )
     response = Response({"status": "ok"})  # the tokens travel only in cookies
+    set_session_cookies(response, COMPANY, issued)
+    return response
+
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([PublicAccess])  # the hints are needed before an account exists
+@throttle_classes(limited())
+def check_password_rules(request):
+    serializer = PasswordCheckSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    rules = password_rule_results(serializer.validated_data["password"])
+    return Response({"rules": rules, "ok": all(rule["met"] for rule in rules)})
+
+
+@api_view(["POST"])
+@authentication_classes([CompanyAuthentication])  # signed-in company users only (IsSignedIn)
+@throttle_classes(limited())
+def change_company_password(request):
+    serializer = ChangePasswordSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    person = CompanyUser.objects.get(pk=request.user.user_id)
+    values = serializer.validated_data
+    change_password(
+        person, values["current_password"], values["password"], values["confirm_password"]
+    )
+    # Every old session ended with the change; this device gets a new one and stays signed in.
+    issued = service.start_session(
+        user_id=person.pk, role=person.role, company_id=person.company_id, kind=COMPANY
+    )
+    response = Response({"status": "ok"})
     set_session_cookies(response, COMPANY, issued)
     return response

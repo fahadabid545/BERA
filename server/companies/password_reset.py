@@ -1,9 +1,8 @@
 """Forgetting a password and choosing a new one through a link in an email."""
 
 from django.db import transaction
-from django.utils import timezone
 
-from core.errors import AppError
+from core.errors import form_error
 from emailing.link_tokens import (
     consume_link_token,
     issue_link_token,
@@ -12,10 +11,11 @@ from emailing.link_tokens import (
 )
 from emailing.links import build_link
 from emailing.models import LinkToken
-from emailing.rendering import duration_text, format_moment
+from emailing.rendering import duration_text
 from emailing.service import send_email
 from platform_settings.service import get_setting
 
+from .account_notices import send_password_changed_email
 from .models import CompanyUser
 
 PURPOSE = LinkToken.Purpose.RESET_PASSWORD
@@ -59,19 +59,8 @@ def reset_password(token, new_password):
     if person is None:
         raise link_refusal("link_invalid", "This link is not valid.")
     if person.check_password(new_password):
-        raise AppError(
-            "validation_error",
-            "Please check the form and try again.",
-            status_code=400,
-            fields={"password": SAME_PASSWORD},
-        )
+        raise form_error({"password": SAME_PASSWORD})
     person.set_password(new_password)
     person.save()
     retire_link_tokens(PURPOSE, person.pk)
-    send_email(
-        "password_changed",
-        person.email,
-        name=person.name,
-        when=format_moment(timezone.now()),
-        link=build_link("/forgot-password"),
-    )
+    send_password_changed_email(person)

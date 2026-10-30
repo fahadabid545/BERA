@@ -116,6 +116,23 @@ support." or "Please verify your email" (with a resend button). The existing log
 10 per minute per address applies as well. Passwords are only in the request body, never in
 addresses or logs.
 
+### Password rules and changing a password
+
+The rules live once, in `core/passwords.py`: at least `passwords.min_length` (12) and at most
+`passwords.max_length` (128) characters, and not one of the 20,000 most used passwords
+(`passwords.block_common_passwords`). Sign up, reset and the Profile page all refuse a weak
+password with every reason at once, and the team-invite acceptance will use the same
+`PasswordField`. `POST /api/auth/password-check/` reports which rules a typed text meets; the
+sign up, reset, invite and Profile pages show that as live hints and, where there is a confirm
+field, say live whether the two entries match.
+
+Profile → Change password (`POST /api/auth/company/change-password/`, signed in) takes the
+current password, the new one and its confirmation. The current password is checked first; a
+wrong one gets one plain message and no hints, and counts toward the same pause as wrong
+guesses at the login page (5 in 15 minutes pause the account for 15 minutes). A change ends
+every session of the person, starts a fresh one for this device, and sends the "password
+changed" email.
+
 ### Forgot and reset password
 
 `/forgot-password` (`POST /api/auth/company/forgot-password/`) always answers "If an account

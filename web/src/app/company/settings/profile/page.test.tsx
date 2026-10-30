@@ -1,8 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ProfilePage from "./page";
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response(JSON.stringify({ rules: [], ok: false }), { status: 200 })),
+  );
+});
+afterEach(() => vi.unstubAllGlobals());
+
 describe("profile settings page", () => {
   it("shows the profile fields, the password section and Save", () => {
     render(<ProfilePage />);
@@ -15,6 +23,12 @@ describe("profile settings page", () => {
       expect(section.contains(field)).toBe(true);
     }
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
+  });
+
+  it("has a button of its own to change the password", () => {
+    render(<ProfilePage />);
+    const section = screen.getByRole("region", { name: "Change password" });
+    expect(section.querySelector("button")?.textContent).toBe("Change password");
   });
 
   it("offers to sign out of all devices", () => {

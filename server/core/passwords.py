@@ -1,6 +1,8 @@
 """The password rules, the same everywhere a password is chosen: sign up, reset, invite, profile."""
 
 import functools
+from collections.abc import Callable
+from dataclasses import dataclass
 
 from django.contrib.auth.password_validation import CommonPasswordValidator
 from rest_framework import serializers
@@ -14,19 +16,50 @@ def _common_passwords():
     return CommonPasswordValidator().passwords
 
 
+@dataclass(frozen=True)
+class PasswordRule:
+    id: str
+    describe: Callable[[], str]  # shown as a live hint: "At least 12 characters"
+    problem: Callable[[], str]  # shown when the rule is broken: "Use at least 12 characters."
+    is_met: Callable[[str], bool]
+    applies: Callable[[], bool] = lambda: True
+
+
+RULES = (
+    PasswordRule(
+        "min_length",
+        lambda: f"At least {get_setting('passwords.min_length')} characters",
+        lambda: f"Use at least {get_setting('passwords.min_length')} characters.",
+        lambda password: len(password) >= get_setting("passwords.min_length"),
+    ),
+    PasswordRule(
+        "max_length",
+        lambda: f"At most {get_setting('passwords.max_length')} characters",
+        lambda: f"Use at most {get_setting('passwords.max_length')} characters.",
+        lambda password: len(password) <= get_setting("passwords.max_length"),
+    ),
+    PasswordRule(
+        "not_common",
+        lambda: "Not a commonly used password",
+        lambda: "This password is too common. Choose one that is harder to guess.",
+        lambda password: password.lower().strip() not in _common_passwords(),
+        applies=lambda: get_setting("passwords.block_common_passwords"),
+    ),
+)
+
+
+def password_rule_results(password):
+    """Each rule with whether this password meets it: the live hints while typing."""
+    return [
+        {"id": rule.id, "text": rule.describe(), "met": rule.is_met(password)}
+        for rule in RULES
+        if rule.applies()
+    ]
+
+
 def password_problems(password):
     """Every reason this password is refused, in words for the person; empty when it is fine."""
-    problems = []
-    minimum, maximum = get_setting("passwords.min_length"), get_setting("passwords.max_length")
-    if len(password) < minimum:
-        problems.append(f"Use at least {minimum} characters.")
-    if len(password) > maximum:
-        problems.append(f"Use at most {maximum} characters.")
-    if get_setting("passwords.block_common_passwords") and (
-        password.lower().strip() in _common_passwords()
-    ):
-        problems.append("This password is too common. Choose one that is harder to guess.")
-    return problems
+    return [rule.problem() for rule in RULES if rule.applies() and not rule.is_met(password)]
 
 
 class PasswordTextField(serializers.CharField):
