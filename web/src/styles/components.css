@@ -843,8 +843,7 @@
     padding: 0;
     width: var(--control-height);
   }
-  /* The switch and the new-project button shrink to their symbols; names stay for screen readers. */
-  .company-topbar .ui-switch__label,
+  /* The new-project button shrinks to its symbol; its name stays for screen readers. */
   .company-new-label {
     position: absolute;
     width: 1px;
@@ -852,9 +851,6 @@
     margin: -1px;
     overflow: hidden;
     clip: rect(0 0 0 0);
-  }
-  .company-topbar .ui-switch {
-    padding: 0 var(--space-2);
   }
   .company-topbar .ui-button {
     padding: 0 var(--space-3);

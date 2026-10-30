@@ -120,11 +120,11 @@ describe("Settings sub-menu", () => {
 });
 
 describe("top bar", () => {
-  it("shows the company name, the theme switch and a New project link", () => {
+  it("shows the company name and a New project link, with no theme switch", () => {
     renderFrame();
     const bar = screen.getByRole("banner");
     expect(within(bar).getByText("Fake Test Company")).toBeTruthy();
-    expect(within(bar).getByRole("switch", { name: "Dark mode" })).toBeTruthy();
+    expect(within(bar).queryByRole("switch")).toBeNull();
     expect(within(bar).getByRole("link", { name: "New project" }).getAttribute("href")).toBe(
       "/company/projects/new",
     );

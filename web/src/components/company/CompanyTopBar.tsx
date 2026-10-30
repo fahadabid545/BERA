@@ -1,4 +1,4 @@
-import { Button, ButtonLink, Menu, ThemeToggle } from "@/components/ui";
+import { Button, ButtonLink, Menu } from "@/components/ui";
 
 import { LOG_OUT_HREF, NEW_PROJECT_HREF, PROFILE_HREF } from "./navigation";
 
@@ -36,7 +36,6 @@ export function CompanyTopBar({
         <span aria-hidden="true">☰</span>
       </Button>
       <p className="company-topbar__name">{companyName}</p>
-      <ThemeToggle />
       <ButtonLink href={NEW_PROJECT_HREF}>
         <span aria-hidden="true">+</span>
         <span className="company-new-label">New project</span>
