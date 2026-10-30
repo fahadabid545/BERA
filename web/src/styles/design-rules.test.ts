@@ -256,3 +256,14 @@ describe("admin look", () => {
     );
   });
 });
+
+describe("Advanced divider", () => {
+  it("draws a divider above separated sidebar items, in the admin colours too", () => {
+    expect(componentsCss).toMatch(
+      /\.panel-nav > li\[data-separated="true"\]\s*\{[^}]*border-top: 1px solid var\(--color-border\)/,
+    );
+    expect(componentsCss).toMatch(
+      /\.panel--admin \.panel-nav > li\[data-separated="true"\]\s*\{[^}]*var\(--color-admin-hover\)/,
+    );
+  });
+});

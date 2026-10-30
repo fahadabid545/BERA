@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isCurrentPath, visibleItems, type NavigationItem } from "./navigation";
+import { blockedHrefs, isCurrentPath, visibleItems, type NavigationItem } from "./navigation";
 
 describe("isCurrentPath", () => {
   it("matches the page itself and pages below it", () => {
@@ -31,5 +31,25 @@ describe("visibleItems", () => {
 
   it("does not pass the roles on to the sidebar", () => {
     expect(visibleItems(items, "full")[0]).not.toHaveProperty("roles");
+  });
+});
+
+describe("blockedHrefs", () => {
+  const items: NavigationItem<"full" | "limited">[] = [
+    { label: "Open", href: "/open", icon: "dashboard", roles: ["full", "limited"] },
+    { label: "Hidden", href: "/hidden", icon: "team", roles: ["full"] },
+    { label: "Guarded", href: "/guarded", icon: "team", roles: ["full"], guarded: true },
+  ];
+
+  it("lists only the guarded items the role may not open", () => {
+    expect(blockedHrefs(items, "limited")).toEqual(["/guarded"]);
+  });
+
+  it("lists nothing for a role that may open everything", () => {
+    expect(blockedHrefs(items, "full")).toEqual([]);
+  });
+
+  it("does not pass the guarded flag on to the sidebar", () => {
+    expect(visibleItems(items, "full")[2]).not.toHaveProperty("guarded");
   });
 });

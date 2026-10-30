@@ -1,4 +1,4 @@
-import { visibleItems, type NavigationItem } from "@/components/panel/navigation";
+import { blockedHrefs, visibleItems, type NavigationItem } from "@/components/panel/navigation";
 
 export type CompanyRole = "owner" | "member";
 
@@ -18,8 +18,22 @@ export const NAVIGATION: readonly NavigationItem<CompanyRole>[] = [
     children: [
       { label: "Profile", href: "/company/settings/profile" },
       { label: "Company", href: "/company/settings/company" },
-      { label: "Retention", href: "/company/settings/retention" },
-      { label: "Defaults", href: "/company/settings/defaults" },
+    ],
+  },
+  {
+    // Settings people rarely change, kept apart from the daily items.
+    label: "Advanced",
+    href: "/company/advanced",
+    icon: "advanced",
+    roles: OWNER_ONLY,
+    separated: true,
+    guarded: true,
+    children: [
+      { label: "Scoring defaults", href: "/company/advanced/defaults" },
+      { label: "Retention", href: "/company/advanced/retention" },
+      { label: "Security", href: "/company/advanced/security" },
+      { label: "Notifications", href: "/company/advanced/notifications" },
+      { label: "Data and export", href: "/company/advanced/data-and-export" },
     ],
   },
 ];
@@ -30,3 +44,4 @@ export const PROFILE_HREF = "/company/settings/profile";
 export const LOG_OUT_HREF = "/login";
 
 export const visibleNavigation = (role: CompanyRole) => visibleItems(NAVIGATION, role);
+export const blockedCompanyHrefs = (role: CompanyRole) => blockedHrefs(NAVIGATION, role);

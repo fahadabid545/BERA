@@ -679,6 +679,12 @@
 .panel-nav .ui-icon-item {
   width: 100%;
 }
+/* Rarely used areas sit below a divider, apart from the daily items. */
+.panel-nav > li[data-separated="true"] {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
 .panel-group {
   border: 0;
   background: none;
@@ -886,6 +892,9 @@
 .panel--admin .panel-sidebar .ui-icon-item[aria-current="page"],
 .panel--admin .panel-sidebar .ui-icon-item[data-active="true"] {
   background: var(--color-admin-active);
+}
+.panel--admin .panel-nav > li[data-separated="true"] {
+  border-top-color: var(--color-admin-hover);
 }
 .panel--admin .panel-submenu {
   border-color: var(--color-admin-hover);

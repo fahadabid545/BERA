@@ -40,7 +40,7 @@ export function PanelSidebar({
             const itemLabel = <span className="panel-label">{item.label}</span>;
             if (!item.children) {
               return (
-                <li key={item.href}>
+                <li key={item.href} data-separated={item.separated || undefined}>
                   <Link
                     href={item.href}
                     className="ui-icon-item"
@@ -59,7 +59,7 @@ export function PanelSidebar({
             const submenuId = `panel-submenu-${item.label.toLowerCase().replace(/ /g, "-")}`;
             const isOpen = openGroup === item.label;
             return (
-              <li key={item.href}>
+              <li key={item.href} data-separated={item.separated || undefined}>
                 <button
                   type="button"
                   className="ui-icon-item panel-group"

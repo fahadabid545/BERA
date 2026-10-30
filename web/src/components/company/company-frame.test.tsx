@@ -43,13 +43,14 @@ describe("sidebar items", () => {
       expect(within(sidebar()).getByRole("link", { name }).getAttribute("href")).toBe(href);
     }
     expect(within(sidebar()).getByRole("button", { name: "Settings" })).toBeTruthy();
+    expect(within(sidebar()).getByRole("button", { name: "Advanced" })).toBeTruthy();
   });
 
-  it("hides Team, Usage and Billing and Settings from members", () => {
+  it("hides Team, Usage and Billing, Settings and Advanced from members", () => {
     renderFrame("member");
     expect(within(sidebar()).getByRole("link", { name: "Dashboard" })).toBeTruthy();
     expect(within(sidebar()).getByRole("link", { name: "Projects" })).toBeTruthy();
-    for (const name of ["Team", "Usage and Billing", "Settings"]) {
+    for (const name of ["Team", "Usage and Billing", "Settings", "Advanced"]) {
       expect(within(sidebar()).queryByRole("link", { name })).toBeNull();
       expect(within(sidebar()).queryByRole("button", { name })).toBeNull();
     }
@@ -83,10 +84,13 @@ describe("Settings sub-menu", () => {
 
     await user.click(settings);
     expect(settings.getAttribute("aria-expanded")).toBe("true");
-    for (const name of ["Profile", "Company", "Retention", "Defaults"]) {
+    for (const name of ["Profile", "Company"]) {
       expect(within(sidebar()).getByRole("link", { name }).getAttribute("href")).toBe(
         `/company/settings/${name.toLowerCase()}`,
       );
+    }
+    for (const name of ["Retention", "Scoring defaults", "Security", "Defaults"]) {
+      expect(within(sidebar()).queryByRole("link", { name })).toBeNull();
     }
 
     await user.click(settings);
@@ -95,7 +99,7 @@ describe("Settings sub-menu", () => {
 
   it("stays closed on a settings page, but marks Settings and the page as current", async () => {
     const user = userEvent.setup();
-    pathname.current = "/company/settings/retention";
+    pathname.current = "/company/settings/company";
     renderFrame();
     const settings = within(sidebar()).getByRole("button", { name: "Settings" });
 
@@ -104,7 +108,7 @@ describe("Settings sub-menu", () => {
 
     await user.click(settings);
     expect(
-      within(sidebar()).getByRole("link", { name: "Retention" }).getAttribute("aria-current"),
+      within(sidebar()).getByRole("link", { name: "Company" }).getAttribute("aria-current"),
     ).toBe("page");
     expect(
       within(sidebar()).getByRole("link", { name: "Profile" }).getAttribute("aria-current"),
@@ -116,6 +120,108 @@ describe("Settings sub-menu", () => {
     expect(
       within(sidebar()).getByRole("button", { name: "Settings" }).getAttribute("data-active"),
     ).toBe("false");
+  });
+});
+
+describe("Advanced section", () => {
+  const advancedPages = {
+    "Scoring defaults": "/company/advanced/defaults",
+    Retention: "/company/advanced/retention",
+    Security: "/company/advanced/security",
+    Notifications: "/company/advanced/notifications",
+    "Data and export": "/company/advanced/data-and-export",
+  };
+
+  it("sits below Settings, set apart by a divider", () => {
+    renderFrame();
+    const settings = within(sidebar()).getByRole("button", { name: "Settings" }).closest("li")!;
+    const advanced = within(sidebar()).getByRole("button", { name: "Advanced" }).closest("li")!;
+
+    expect(settings.compareDocumentPosition(advanced)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(advanced.getAttribute("data-separated")).toBe("true");
+    expect(settings.hasAttribute("data-separated")).toBe(false);
+  });
+
+  it("has its own outline and filled icon", () => {
+    renderFrame();
+    const advanced = within(sidebar()).getByRole("button", { name: "Advanced" });
+    expect(advanced.querySelector(".ui-toggle-icon__outline")).not.toBeNull();
+    expect(advanced.querySelector(".ui-toggle-icon__filled")).not.toBeNull();
+  });
+
+  it("opens only on click, with its five pages, and closes on click", async () => {
+    const user = userEvent.setup();
+    renderFrame();
+    const advanced = within(sidebar()).getByRole("button", { name: "Advanced" });
+
+    expect(advanced.getAttribute("aria-expanded")).toBe("false");
+    expect(within(sidebar()).queryByRole("link", { name: "Retention" })).toBeNull();
+
+    await user.click(advanced);
+    for (const [name, href] of Object.entries(advancedPages)) {
+      expect(within(sidebar()).getByRole("link", { name }).getAttribute("href")).toBe(href);
+    }
+
+    await user.click(advanced);
+    expect(within(sidebar()).queryByRole("link", { name: "Retention" })).toBeNull();
+  });
+
+  it("opens one sub-menu at a time", async () => {
+    const user = userEvent.setup();
+    renderFrame();
+
+    await user.click(within(sidebar()).getByRole("button", { name: "Settings" }));
+    await user.click(within(sidebar()).getByRole("button", { name: "Advanced" }));
+
+    expect(within(sidebar()).queryByRole("link", { name: "Profile" })).toBeNull();
+    expect(within(sidebar()).getByRole("link", { name: "Retention" })).toBeTruthy();
+  });
+
+  it("highlights the current Advanced page and marks Advanced as current", async () => {
+    const user = userEvent.setup();
+    pathname.current = "/company/advanced/retention";
+    renderFrame();
+    const advanced = within(sidebar()).getByRole("button", { name: "Advanced" });
+
+    expect(advanced.getAttribute("data-active")).toBe("true");
+    expect(
+      within(sidebar()).getByRole("button", { name: "Settings" }).getAttribute("data-active"),
+    ).toBe("false");
+
+    await user.click(advanced);
+    expect(
+      within(sidebar()).getByRole("link", { name: "Retention" }).getAttribute("aria-current"),
+    ).toBe("page");
+    expect(
+      within(sidebar()).getByRole("link", { name: "Security" }).getAttribute("aria-current"),
+    ).toBeNull();
+  });
+
+  it("shows the page to an owner who opens an Advanced address", () => {
+    pathname.current = "/company/advanced/retention";
+    renderFrame("owner");
+    expect(screen.getByRole("main").textContent).toBe("Page content");
+  });
+
+  it.each([
+    "/company/advanced",
+    "/company/advanced/retention",
+    "/company/advanced/data-and-export",
+  ])("shows a member who types %s the no-access page, inside the frame", (address) => {
+    pathname.current = address;
+    renderFrame("member");
+    expect(screen.getByRole("heading", { name: "You do not have access" })).toBeTruthy();
+    expect(screen.queryByText("Page content")).toBeNull();
+    expect(screen.getByRole("navigation", { name: "Company" })).toBeTruthy();
+  });
+
+  it("still shows members their own pages and does not block look-alike addresses", () => {
+    for (const address of ["/company/projects", "/company/advanced-old"]) {
+      pathname.current = address;
+      const { unmount } = renderFrame("member");
+      expect(screen.getByRole("main").textContent).toBe("Page content");
+      unmount();
+    }
   });
 });
 

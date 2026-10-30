@@ -5,7 +5,8 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui";
 
-import type { SidebarItem } from "./navigation";
+import { isCurrentPath, type SidebarItem } from "./navigation";
+import { NoAccess } from "./NoAccess";
 import { PanelSidebar } from "./PanelSidebar";
 
 /**
@@ -17,6 +18,7 @@ export function PanelFrame({
   navigationLabel,
   homeHref,
   items,
+  blockedHrefs = [],
   topBar,
   children,
 }: {
@@ -24,11 +26,13 @@ export function PanelFrame({
   navigationLabel: string;
   homeHref: string;
   items: SidebarItem[];
+  blockedHrefs?: string[];
   topBar: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const isBlocked = blockedHrefs.some((href) => isCurrentPath(pathname, href));
 
   // On phones the sidebar is a slide-out menu; close it after the user picks a page.
   useEffect(() => setMenuOpen(false), [pathname]);
@@ -55,7 +59,7 @@ export function PanelFrame({
           </Button>
           {topBar}
         </header>
-        <main className="panel-main">{children}</main>
+        <main className="panel-main">{isBlocked ? <NoAccess /> : children}</main>
       </div>
     </div>
   );

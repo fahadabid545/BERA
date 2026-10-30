@@ -49,7 +49,8 @@ and why, and ask before proceeding. Never bend a rule silently.
   the admin panel under `/admin`. Items a role may not open are hidden, not disabled.
   Both panels use the shared `components/panel` frame (sidebar, top bar, collapse);
   navigation lives in `components/company/navigation.ts` and
-  `components/admin/navigation.ts`. The admin panel must stay visibly different:
+  `components/admin/navigation.ts`. An item flagged `guarded` shows members the
+  "You do not have access" page when they type its address. The admin panel must stay visibly different:
   ink sidebar, green top stripe, solid ADMIN badge.
 - Page content, header and footer share one column (`.site-container`,
   `--container-width`); never let page text sit outside it.

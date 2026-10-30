@@ -71,6 +71,10 @@ const ICONS = {
     shape: <circle cx="8" cy="8" r="6.2" />,
     detail: <path d="M3.6 8h2l1.2-3 2.2 6 1.2-3h2.2" />,
   },
+  advanced: {
+    shape: <path d="M8 1.5 14 5v6l-6 3.5L2 11V5z" />,
+    detail: <path d="M2 5l6 3.5L14 5M8 8.5v6" />,
+  },
 } satisfies Record<string, { shape: ReactNode; detail?: ReactNode }>;
 
 export type ToggleIconName = keyof typeof ICONS;
