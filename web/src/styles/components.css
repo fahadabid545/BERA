@@ -615,3 +615,248 @@
 .ui-icon-item[data-active="true"] {
   background: var(--color-accent-soft);
 }
+
+/* ---------- Menu (dropdown) ---------- */
+.ui-menu {
+  min-width: 11rem;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+}
+.ui-menu__item {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.ui-menu__item[data-highlighted] {
+  background: var(--color-surface-muted);
+}
+
+/* ---------- Company panel frame ---------- */
+.company-frame {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  min-height: 100vh;
+}
+.company-sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100vh;
+  padding: var(--space-4);
+  overflow-y: auto;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.company-brand {
+  display: flex;
+  padding: 0 var(--space-3);
+}
+.company-nav,
+.company-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.company-nav .ui-icon-item {
+  width: 100%;
+}
+.company-group {
+  border: 0;
+  background: none;
+  font: 600 var(--text-md) var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+.company-label {
+  flex: 1;
+}
+.company-chevron {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--transition);
+}
+.company-group[aria-expanded="true"] .company-chevron {
+  transform: rotate(180deg);
+}
+.company-submenu {
+  margin: var(--space-1) 0 0 var(--space-5);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-border);
+}
+.company-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.company-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--topbar-height);
+  padding: 0 var(--page-gutter);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.company-topbar__name {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font: 700 var(--text-lg) var(--font-heading);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.company-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  border: 2px solid var(--color-control-border);
+  border-radius: 50%;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  font: 600 var(--text-sm) var(--font-body);
+  cursor: pointer;
+}
+.company-main {
+  flex: 1;
+  padding: var(--space-5) var(--page-gutter);
+}
+.company-menu-button,
+.company-scrim {
+  display: none;
+}
+
+/* Tablets: the sidebar shrinks to icons. Labels stay for screen readers, and a sub-menu
+   opens as a small panel beside the rail. */
+@media (min-width: 40rem) and (max-width: 63.99rem) {
+  .company-frame {
+    --sidebar-width: var(--sidebar-rail-width);
+  }
+  .company-sidebar {
+    align-items: center;
+    overflow: visible;
+  }
+  .company-brand {
+    padding: 0;
+    font-size: var(--text-lg);
+  }
+  .company-nav .ui-icon-item {
+    justify-content: center;
+    width: var(--control-height);
+    padding: 0;
+  }
+  .company-nav > li {
+    position: relative;
+  }
+  .company-label,
+  .company-chevron {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .company-submenu {
+    position: absolute;
+    top: 0;
+    left: calc(100% + var(--space-2));
+    z-index: 20;
+    min-width: 12rem;
+    margin: 0;
+    padding: var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-raised);
+  }
+  .company-nav .company-submenu .ui-icon-item {
+    justify-content: flex-start;
+    width: 100%;
+    padding: 0 var(--space-4);
+  }
+}
+
+/* Phones: the sidebar is a slide-out menu opened from the top bar. */
+@media (max-width: 39.99rem) {
+  .company-frame {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .company-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    width: min(18rem, 85vw);
+    box-shadow: var(--shadow-raised);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform var(--transition),
+      visibility var(--transition);
+  }
+  .company-frame[data-menu-open="true"] .company-sidebar {
+    transform: none;
+    visibility: visible;
+  }
+  .company-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: var(--color-overlay);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition);
+  }
+  .company-frame[data-menu-open="true"] .company-scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .company-menu-button {
+    display: inline-flex;
+    flex: none;
+    padding: 0;
+    width: var(--control-height);
+  }
+  /* The switch and the new-project button shrink to their symbols; names stay for screen readers. */
+  .company-topbar .ui-switch__label,
+  .company-new-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .company-topbar .ui-switch {
+    padding: 0 var(--space-2);
+  }
+  .company-topbar .ui-button {
+    padding: 0 var(--space-3);
+  }
+}

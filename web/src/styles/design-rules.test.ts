@@ -210,3 +210,25 @@ describe("popup", () => {
     );
   });
 });
+
+describe("company panel frame", () => {
+  it("collapses to icons on tablets and slides out on phones", () => {
+    expect(componentsCss).toMatch(/@media \(min-width: 40rem\) and \(max-width: 63\.99rem\)/);
+    expect(componentsCss).toMatch(/--sidebar-width: var\(--sidebar-rail-width\)/);
+    expect(componentsCss).toMatch(/@media \(max-width: 39\.99rem\)/);
+    expect(componentsCss).toMatch(/\.company-sidebar\s*\{[^}]*transform: translateX\(-100%\)/);
+  });
+
+  it("keeps hidden labels available to screen readers", () => {
+    const tablet = componentsCss.split("@media (min-width: 40rem)")[1] ?? "";
+    expect(tablet).toMatch(/\.company-label,[^{]*\{[^}]*clip: rect\(0 0 0 0\)/);
+    expect(tablet).not.toMatch(/\.company-label[^{]*\{[^}]*display: none/);
+  });
+});
+
+describe("theme choice survives page re-renders", () => {
+  it("does not hard-code a theme on <html>, so React never resets the saved one", () => {
+    const layout = readFileSync(join(__dirname, "../app/layout.tsx"), "utf8");
+    expect(layout).not.toMatch(/<html[^>]*data-theme/);
+  });
+});

@@ -88,5 +88,8 @@
   --control-height: 2.75rem; /* comfortable touch target */
   --page-gutter: var(--space-4);
   --container-width: 72rem;
+  --sidebar-width: 15rem;
+  --sidebar-rail-width: 4.75rem;
+  --topbar-height: 4rem;
   --transition: 180ms cubic-bezier(0.2, 0, 0, 1);
 }

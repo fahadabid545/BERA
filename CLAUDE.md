@@ -45,6 +45,9 @@ and why, and ask before proceeding. Never bend a rule silently.
   when selected, a tinted row with a green bar on the left; never a pill.
 - Icons use `ToggleIcon`: outline when idle, filled when current, with the
   fade/scale transition from tokens (`--transition`). Motion stops for reduced motion.
+- The company panel lives under `/company` (all its pages, e.g. `/company/projects`);
+  the admin panel under `/admin`. Items a role may not open are hidden, not disabled.
+  Navigation is defined once in `components/company/navigation.ts`.
 - Page content, header and footer share one column (`.site-container`,
   `--container-width`); never let page text sit outside it.
 

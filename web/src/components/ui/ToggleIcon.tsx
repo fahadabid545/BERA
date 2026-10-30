@@ -28,6 +28,38 @@ const ICONS = {
     shape: <rect x="1.5" y="3" width="13" height="10" rx="1.5" />,
     detail: <path d="m2.2 4.3 5.8 4.6 5.8-4.6" />,
   },
+  dashboard: {
+    shape: <rect x="2" y="2" width="12" height="12" rx="2" />,
+    detail: <path d="M2 6h12M6 6v8" />,
+  },
+  projects: {
+    shape: (
+      <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3H6l1.5 1.8h5A1.5 1.5 0 0 1 14 6.3v5.2a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z" />
+    ),
+  },
+  team: {
+    shape: (
+      <>
+        <circle cx="6" cy="5.5" r="2.3" />
+        <path d="M1.5 13c0-2.4 1.9-3.9 4.5-3.9s4.5 1.5 4.5 3.9z" />
+        <circle cx="11.6" cy="6" r="1.7" />
+        <path d="M11.8 9.4c1.8.1 2.9 1.3 2.9 3.2h-2.6" />
+      </>
+    ),
+  },
+  billing: {
+    shape: <rect x="1.5" y="3" width="13" height="10" rx="1.5" />,
+    detail: <path d="M1.8 6.6h12.4M4 10.5h2.6" />,
+  },
+  settings: {
+    shape: (
+      <>
+        <path d="M2 5h1.2M6.8 5H14M2 11h6.2M11.8 11H14" />
+        <circle cx="5" cy="5" r="1.8" />
+        <circle cx="10" cy="11" r="1.8" />
+      </>
+    ),
+  },
 } satisfies Record<string, { shape: ReactNode; detail?: ReactNode }>;
 
 export type ToggleIconName = keyof typeof ICONS;

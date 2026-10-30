@@ -4,6 +4,7 @@ import "@fontsource/ibm-plex-sans/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import type { ReactNode } from "react";
 
+import { ThemeSync } from "@/components/ThemeSync";
 import { themeInitScript } from "@/lib/theme";
 
 import "@/styles/tokens.css";
@@ -14,11 +15,14 @@ export const metadata = { title: "BERA" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <ThemeSync />
+        {children}
+      </body>
     </html>
   );
 }

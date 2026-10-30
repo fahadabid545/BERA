@@ -4,6 +4,8 @@ export { Card } from "./Card";
 export { Checkbox } from "./Checkbox";
 export { Dialog } from "./Dialog";
 export { Input } from "./Input";
+export { Menu } from "./Menu";
+export type { MenuItem } from "./Menu";
 export { Select } from "./Select";
 export { Table } from "./Table";
 export { Tabs } from "./Tabs";

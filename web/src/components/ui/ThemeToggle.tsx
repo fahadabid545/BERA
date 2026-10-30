@@ -28,7 +28,7 @@ export function ThemeToggle() {
       <span className="ui-switch__track" aria-hidden="true">
         <span className="ui-switch__thumb" />
       </span>
-      Dark mode
+      <span className="ui-switch__label">Dark mode</span>
     </button>
   );
 }

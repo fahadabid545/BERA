@@ -6,6 +6,7 @@ import {
   Card,
   Checkbox,
   Input,
+  Menu,
   Select,
   Table,
   Tabs,
@@ -157,6 +158,13 @@ export default function DesignSample() {
           ]}
         />
         <DeleteConfirmation />
+        <Menu
+          trigger={<Button variant="secondary">Menu</Button>}
+          items={[
+            { label: "Profile", href: "/company/settings/profile" },
+            { label: "Log out", href: "/login" },
+          ]}
+        />
       </section>
     </main>
   );

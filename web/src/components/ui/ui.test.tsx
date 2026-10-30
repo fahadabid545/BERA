@@ -9,6 +9,7 @@ import {
   Card,
   Checkbox,
   Dialog,
+  Menu,
   Input,
   Select,
   Table,
@@ -197,6 +198,28 @@ describe("Dialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onConfirm).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("Menu", () => {
+  it("opens a list of links from its trigger and closes with Escape", async () => {
+    render(
+      <Menu
+        trigger={<Button>Account</Button>}
+        items={[
+          { label: "Profile", href: "/profile" },
+          { label: "Log out", href: "/login" },
+        ]}
+      />,
+    );
+    expect(screen.queryByRole("menuitem")).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Account" }));
+    expect(screen.getByRole("menuitem", { name: "Profile" }).getAttribute("href")).toBe("/profile");
+    expect(screen.getByRole("menuitem", { name: "Log out" }).getAttribute("href")).toBe("/login");
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("menuitem")).toBeNull();
   });
 });
 
