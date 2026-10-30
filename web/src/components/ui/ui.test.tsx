@@ -283,3 +283,13 @@ describe("ThemeToggle", () => {
     expect(screen.getByRole("switch").getAttribute("aria-checked")).toBe("true");
   });
 });
+
+describe("Select with several choices", () => {
+  it("is a list box without the drop-down arrow styling", () => {
+    const { container } = render(
+      <Select label="Many" multiple options={[{ value: "a", label: "A" }]} />,
+    );
+    expect((screen.getByLabelText("Many") as HTMLSelectElement).multiple).toBe(true);
+    expect(container.querySelector(".ui-select--multiple")).toBeTruthy();
+  });
+});

@@ -97,6 +97,13 @@
   appearance: none;
   padding-right: var(--space-6);
 }
+/* A list box has no drop-down arrow and grows with its options. */
+.ui-select--multiple::after {
+  display: none;
+}
+.ui-select.ui-select--multiple select {
+  padding: var(--space-2) var(--space-3);
+}
 .ui-select::after {
   content: "";
   position: absolute;
