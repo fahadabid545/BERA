@@ -433,6 +433,11 @@
   flex: 1;
   padding: var(--space-5) var(--page-gutter);
 }
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
 .site-header,
 .site-footer {
   border-color: var(--color-border);
