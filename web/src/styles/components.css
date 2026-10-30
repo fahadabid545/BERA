@@ -240,28 +240,56 @@
   position: fixed;
   inset: 0;
   background: var(--color-overlay);
+  backdrop-filter: blur(3px);
+  animation: ui-fade-in var(--transition);
 }
 .ui-dialog {
   position: fixed;
   top: 50%;
   left: 50%;
-  width: min(32rem, calc(100% - 2 * var(--space-4)));
+  width: min(26rem, calc(100% - 2 * var(--space-4)));
   max-height: calc(100% - 2 * var(--space-4));
   overflow-y: auto;
   transform: translate(-50%, -50%);
-  padding: var(--space-5);
+  padding: var(--space-6) var(--space-5) var(--space-5);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: calc(var(--radius) * 2);
   background: var(--color-surface);
   color: var(--color-text);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
+  text-align: center;
+  animation: ui-dialog-in 220ms cubic-bezier(0.2, 0, 0, 1);
 }
+.ui-dialog h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+.ui-dialog p {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+}
+/* Buttons sit in the middle, equal width, and stack on narrow phones. */
 .ui-dialog__actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: center;
   gap: var(--space-3);
-  margin-top: var(--space-4);
+  margin-top: var(--space-5);
+}
+.ui-dialog__actions .ui-button {
+  flex: 1 1 8rem;
+  max-width: 11rem;
+}
+@keyframes ui-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes ui-dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
 }
 .ui-tooltip {
   max-width: min(20rem, calc(100vw - 2 * var(--space-4)));

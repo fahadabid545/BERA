@@ -196,3 +196,17 @@ describe("buttons, cards, rows and tags", () => {
     expect(componentsCss).toMatch(/\.ui-tag--warning\s*\{[^}]*repeating-linear-gradient/);
   });
 });
+
+describe("popup", () => {
+  it("centres its buttons and fades in, and motion stops for reduced motion", () => {
+    expect(componentsCss).toMatch(/\.ui-dialog__actions\s*\{[^}]*justify-content:\s*center/);
+    expect(componentsCss).toMatch(/\.ui-dialog\s*\{[^}]*animation:\s*ui-dialog-in/);
+    expect(baseCss).toContain("prefers-reduced-motion: reduce");
+  });
+
+  it("hides the Next.js development badge", () => {
+    expect(readFileSync(join(__dirname, "../../next.config.ts"), "utf8")).toContain(
+      "devIndicators: false",
+    );
+  });
+});
