@@ -49,18 +49,3 @@ package = "esbuild"
 scope = "development"
 reason = "Part of the vitest chain; the finding is about a running dev server accepting outside requests."
 review_by = 2027-01-31
-
-# Production, temporary: the fix needs Next.js 16, a major upgrade done in its own ticket (BERA-081).
-[[accepted]]
-ecosystem = "npm"
-package = "postcss"
-scope = "production"
-reason = "Reached through Next.js. The findings concern stringifying or reading CSS and source maps supplied by an attacker; the product only processes its own stylesheets. Fixed by upgrading Next.js in BERA-081."
-review_by = 2026-12-31
-
-[[accepted]]
-ecosystem = "npm"
-package = "next"
-scope = "production"
-reason = "Only carries the postcss finding above. Upgrade is BERA-081."
-review_by = 2026-12-31

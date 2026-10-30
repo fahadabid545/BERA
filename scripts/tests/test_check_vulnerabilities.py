@@ -93,8 +93,8 @@ def test_the_projects_acceptances_are_complete_and_dated_in_the_future():
     for entry in entries:
         assert entry["reason"].strip() and isinstance(entry["review_by"], date), entry["package"]
         assert entry["scope"] in {PRODUCTION, DEVELOPMENT}
-    # Only the development tools named in the decision, plus the temporary Next.js one.
-    assert {e["package"] for e in entries if e["scope"] == PRODUCTION} == {"postcss", "next"}
+    # Only development tools may be accepted; every production library must be clean.
+    assert [e["package"] for e in entries if e["scope"] == PRODUCTION] == []
 
 
 @pytest.mark.network
