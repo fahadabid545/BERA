@@ -5,7 +5,7 @@ from django.test import RequestFactory
 
 from core import views
 
-pytestmark = pytest.mark.urls("core.tests.urls_for_tests")
+pytestmark = [pytest.mark.urls("core.tests.urls_for_tests"), pytest.mark.django_db]
 
 
 def test_forced_error_shows_friendly_message_and_the_log_has_the_same_reference(

@@ -20,6 +20,8 @@ EXPECTED_DEFAULTS = {
     "uploads.max_file_size_mb": 10,
     "uploads.max_files_per_batch": 50,
     "uploads.cv_pages_read": 15,
+    "requests.max_form_kilobytes": 256,
+    "requests.max_file_name_characters": 150,
     "jobs.description_max_characters": 15000,
     "jobs.max_requirements_per_project": 30,
     "retention.choices_days": [30, 90, 180, 365],

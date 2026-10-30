@@ -76,6 +76,9 @@ SETTINGS = [
     SettingDefinition("uploads.max_file_size_mb", 10, whole_number(1, 100)),
     SettingDefinition("uploads.max_files_per_batch", 50, whole_number(1, 500)),
     SettingDefinition("uploads.cv_pages_read", 15, whole_number(1, 200)),
+    # Request limits: forms stay small, only uploads may be large (see uploads.* above)
+    SettingDefinition("requests.max_form_kilobytes", 256, whole_number(1, 4096)),
+    SettingDefinition("requests.max_file_name_characters", 150, whole_number(10, 255)),
     # Job descriptions and requirements
     SettingDefinition("jobs.description_max_characters", 15000, whole_number(100, 100000)),
     SettingDefinition("jobs.max_requirements_per_project", 30, whole_number(1, 200)),
