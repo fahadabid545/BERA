@@ -64,7 +64,7 @@ def test_a_placeholder_secret_stops_staging_and_production(name, placeholder, ap
     "database_url",
     [
         "postgres://bera:fake-dev-db-password@127.0.0.1:5432/bera",
-        "postgres://bera:changeme@127.0.0.1:5432/bera",
+        "postgres://bera:changeme@127.0.0.1:5432/bera",  # nosecret: a placeholder on purpose
         "postgres://bera@127.0.0.1:5432/bera",
         "postgres://bera:@127.0.0.1:5432/bera",
     ],
@@ -112,7 +112,7 @@ def test_a_random_looking_value_is_not_a_placeholder():
 @pytest.mark.parametrize("name", ["DJANGO_SECRET_KEY", "JWT_ADMIN_SECRET", "DATABASE_URL"])
 def test_the_refusal_never_contains_a_secret_value(name):
     leaked = "fake-leak-check-value-must-never-show-up"
-    environ = {**REAL, name: leaked if name != "DATABASE_URL" else f"postgres://u:{leaked}@h/db"}
+    environ = {**REAL, name: leaked if name != "DATABASE_URL" else f"postgres://u:{leaked}@h/db"}  # nosecret: built from a fake value
     error = refusal(environ, "production")
     assert leaked not in error.message and leaked not in str(error.details)
 
