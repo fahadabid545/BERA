@@ -25,8 +25,16 @@ and why, and ask before proceeding. Never bend a rule silently.
 ## UI design
 - Use the building blocks in `web/src/components/ui` and the tokens in
   `web/src/styles/tokens.css`; never hard-code colours, fonts or sizes in pages.
-- Green is a fill or indicator only, never text. Warnings pair red/amber with an
-  icon and words. Focus rings are never removed. Everything works at phone width.
+- Green is a fill or indicator only, never text. Status and errors are written in
+  plain words (no decorative icons); tags also differ by surface, never colour alone.
+  Focus rings are never removed. Everything works at phone width.
+- No descriptive or helper text on pages or sections; keep them basic. The owner
+  supplies any copy. Confirmations (delete, save, important actions) use a popup
+  (`Dialog` with `confirmLabel`), never inline messages or `window.confirm`.
+- Selected card: raised shadow, no green outline. Selected table row: neutral
+  texture, no green bar or green tint. Disabled buttons are flat grey. The Delete
+  button flips to red words on the surface on hover. Dark mode is graphite with
+  low-saturation surfaces; keep it refined.
 - Add any new colour pair to `design-rules.test.ts` so contrast stays checked.
 - The sample page `/design` (development only) must show every building block.
 - Look and feel: classy, decent and calm, inspired by SonarQube (light surfaces,

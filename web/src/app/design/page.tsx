@@ -5,7 +5,6 @@ import {
   ButtonLink,
   Card,
   Checkbox,
-  Dialog,
   Input,
   Select,
   Table,
@@ -15,6 +14,8 @@ import {
   ToggleIcon,
   Tooltip,
 } from "@/components/ui";
+
+import { DeleteConfirmation } from "./DeleteConfirmation";
 
 export const metadata = { title: "BERA design sample" };
 
@@ -29,11 +30,9 @@ export default function DesignSample() {
 
       <section className="sample-section" aria-labelledby="sample-type">
         <h2 id="sample-type">Type and colour</h2>
-        <h3>Heading in Bricolage Grotesque</h3>
-        <p>Body text in IBM Plex Sans stays dark in light mode and light in dark mode.</p>
-        <p>
-          Codes and numbers use the mono font: <span className="mono">REF A1B2C3D4 · 1,284.50</span>
-        </p>
+        <h3>Heading</h3>
+        <p>Body</p>
+        <p className="mono">REF A1B2C3D4 · 1,284.50</p>
       </section>
 
       <section className="sample-section" aria-labelledby="sample-buttons">
@@ -52,7 +51,7 @@ export default function DesignSample() {
       <section className="sample-section" aria-labelledby="sample-inputs">
         <h2 id="sample-inputs">Inputs, selects and checkboxes</h2>
         <div className="sample-grid">
-          <Input label="Project name" hint="Shown to your team." placeholder="Senior welder" />
+          <Input label="Project name" placeholder="Senior welder" />
           <Input
             label="Email"
             type="email"
@@ -79,11 +78,9 @@ export default function DesignSample() {
         <div className="sample-grid">
           <Card>
             <h3>Normal card</h3>
-            <p>Plain surface with a soft border.</p>
           </Card>
           <Card selected>
             <h3>Selected card</h3>
-            <p>The glow marks selected and live items only.</p>
           </Card>
         </div>
         <div className="sample-row" style={{ marginTop: "var(--space-4)" }}>
@@ -92,7 +89,7 @@ export default function DesignSample() {
           <Tag variant="warning">Missing must-have</Tag>
           <Tag variant="danger">Not recommended</Tag>
           <Tag variant="live">Live</Tag>
-          <Tooltip content="Tooltips open on hover and on keyboard focus.">
+          <Tooltip content="Tooltip">
             <Button variant="secondary">Hover or focus me</Button>
           </Tooltip>
         </div>
@@ -117,7 +114,7 @@ export default function DesignSample() {
               </td>
             </tr>
             <tr>
-              <td>Candidate 1043 (hover a row to see its tint)</td>
+              <td>Candidate 1043</td>
               <td className="mono">61</td>
               <td>
                 <Tag variant="warning">Possible</Tag>
@@ -129,7 +126,6 @@ export default function DesignSample() {
 
       <section className="sample-section" aria-labelledby="sample-icons">
         <h2 id="sample-icons">Icon items</h2>
-        <p>Idle items show an outline icon, the current one a filled icon in a green pill.</p>
         <div className="sample-row">
           <span className="ui-icon-item">
             <ToggleIcon name="features" />
@@ -155,16 +151,12 @@ export default function DesignSample() {
         <Tabs
           label="Sample sections"
           tabs={[
-            { value: "overview", label: "Overview", content: <p>Overview content.</p> },
-            { value: "details", label: "Details", content: <p>Details content.</p> },
-            { value: "history", label: "History", content: <p>History content.</p> },
+            { value: "overview", label: "Overview", content: <p>Overview</p> },
+            { value: "details", label: "Details", content: <p>Details</p> },
+            { value: "history", label: "History", content: <p>History</p> },
           ]}
         />
-        <Dialog
-          trigger={<Button variant="secondary">Open popup</Button>}
-          title="Delete this project?"
-          description="This cannot be undone."
-        />
+        <DeleteConfirmation />
       </section>
     </main>
   );

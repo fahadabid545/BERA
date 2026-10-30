@@ -1,7 +1,5 @@
 import { useId, type ReactNode } from "react";
 
-import { ErrorIcon } from "./icons";
-
 export type FieldProps = { label: string; hint?: string; error?: string };
 
 export type FieldControlProps = {
@@ -39,11 +37,8 @@ export function Field({
       )}
       {error && (
         <p id={errorId} className="ui-error">
-          <ErrorIcon />
-          <span>
-            <span className="visually-hidden">Error: </span>
-            {error}
-          </span>
+          <span className="visually-hidden">Error: </span>
+          {error}
         </p>
       )}
     </div>

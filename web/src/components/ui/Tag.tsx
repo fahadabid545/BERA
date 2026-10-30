@@ -1,18 +1,8 @@
 import type { ReactNode } from "react";
 
-import { CheckIcon, ErrorIcon, WarningIcon } from "./icons";
-
 export type TagVariant = "neutral" | "success" | "warning" | "danger" | "live";
 
-const ICONS: Record<TagVariant, ReactNode> = {
-  neutral: null,
-  success: <CheckIcon />,
-  warning: <WarningIcon />,
-  danger: <ErrorIcon />,
-  live: <span className="ui-tag__dot" aria-hidden="true" />,
-};
-
-/** Status is always shown by an icon and the words, never by colour alone. */
+/** Status is always shown in words; each variant also has its own surface (see components.css). */
 export function Tag({
   variant = "neutral",
   children,
@@ -22,7 +12,7 @@ export function Tag({
 }) {
   return (
     <span className={`ui-tag ui-tag--${variant}`}>
-      {ICONS[variant]}
+      {variant === "live" && <span className="ui-tag__dot" aria-hidden="true" />}
       {children}
     </span>
   );

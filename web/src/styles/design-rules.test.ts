@@ -48,6 +48,7 @@ const TEXT_PAIRS = [
   ["color-warning-text", "color-warning-bg"],
   ["color-success-text", "color-success-bg"],
   ["color-tooltip-text", "color-tooltip-bg"],
+  ["color-text-muted", "color-surface-muted"],
 ] as const;
 
 // Borders, focus rings and other parts needed to use a control: 3:1.
@@ -60,6 +61,7 @@ const CONTROL_PAIRS = [
   ["color-danger-text", "color-surface"],
   ["color-checked-border", "color-surface"],
   ["color-checked-border", "color-bg"],
+  ["color-danger", "color-surface"],
 ] as const;
 
 describe.each(Object.entries(MODES))("%s mode colours", (_mode, tokens) => {
@@ -144,7 +146,9 @@ describe("highlight styles and icon transitions", () => {
   it("uses a pill for content highlights and a row tint plus bar for tables", () => {
     expect(componentsCss).toMatch(/\.ui-icon-item\s*\{[^}]*border-radius:\s*var\(--radius-pill\)/);
     expect(componentsCss).toMatch(/\.ui-table tbody tr:not\(\[data-selected="true"\]\):hover td/);
-    expect(componentsCss).toMatch(/\.ui-table tr\[data-selected="true"\] td:first-child/);
+    expect(componentsCss).toMatch(
+      /\.ui-table tr\[data-selected="true"\] td\s*\{[^}]*repeating-linear-gradient/,
+    );
   });
 
   it("shares one content column between the header, page and footer", () => {
@@ -154,5 +158,41 @@ describe("highlight styles and icon transitions", () => {
     expect(componentsCss).toMatch(
       /\.site-header__inner,\s*\.site-footer__inner\s*\{[^}]*max-width:\s*var\(--container-width\)/,
     );
+  });
+});
+
+describe("buttons, cards, rows and tags", () => {
+  it("makes disabled buttons flat grey with no green", () => {
+    const rule = componentsCss.match(/\.ui-button:disabled\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toContain("var(--color-surface-muted)");
+    expect(rule).not.toContain("accent");
+  });
+
+  it("flips the delete button on hover", () => {
+    const rule =
+      componentsCss.match(/\.ui-button--danger:not\(:disabled\):hover\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toContain("background: var(--color-surface)");
+    expect(rule).toContain("color: var(--color-danger-text)");
+  });
+
+  it("marks a selected card with a raised shadow, never a green outline", () => {
+    const rule = componentsCss.match(/\.ui-card\[data-selected="true"\]\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toContain("var(--shadow-raised)");
+    expect(rule).not.toContain("accent");
+    expect(rule).not.toContain("glow");
+  });
+
+  it("selects table rows without a green bar or green tint", () => {
+    const rule =
+      componentsCss.match(/\.ui-table tr\[data-selected="true"\] td\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).not.toContain("accent");
+    expect(componentsCss).not.toContain("inset 4px 0 0");
+  });
+
+  it("gives every tag status its own surface and no icons", () => {
+    for (const variant of ["success", "warning", "danger", "live"]) {
+      expect(componentsCss).toContain(`.ui-tag--${variant} {`);
+    }
+    expect(componentsCss).toMatch(/\.ui-tag--warning\s*\{[^}]*repeating-linear-gradient/);
   });
 });

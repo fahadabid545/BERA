@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 
@@ -49,10 +49,10 @@ describe("form fields", () => {
     );
   });
 
-  it("show an error with an icon and the word, not colour alone", () => {
+  it("show an error in plain words with no icon, announced as an error", () => {
     render(<Input label="Email" error="Enter a valid email address." />);
     const message = document.querySelector(".ui-error")!;
-    expect(message.querySelector("svg")).not.toBeNull();
+    expect(message.querySelector("svg")).toBeNull();
     expect(message.textContent).toContain("Error: Enter a valid email address.");
   });
 
@@ -86,14 +86,20 @@ describe("form fields", () => {
 });
 
 describe("Tag", () => {
-  it.each(["success", "warning", "danger", "live"] as const)(
-    "%s status has an icon as well as words",
+  it.each(["neutral", "success", "warning", "danger", "live"] as const)(
+    "%s status is shown in words with its own surface class and no icon",
     (variant) => {
       render(<Tag variant={variant}>Status words</Tag>);
       const tag = screen.getByText("Status words");
-      expect(tag.querySelector("svg, .ui-tag__dot")).not.toBeNull();
+      expect(tag.classList.contains(`ui-tag--${variant}`)).toBe(true);
+      expect(tag.querySelector("svg")).toBeNull();
     },
   );
+
+  it("shows a pulsing dot only for live", () => {
+    render(<Tag variant="live">Live</Tag>);
+    expect(document.querySelector(".ui-tag__dot")).not.toBeNull();
+  });
 });
 
 describe("Card and Table", () => {
@@ -154,6 +160,42 @@ describe("Dialog", () => {
     expect(within(dialog).getByText("This cannot be undone.")).toBeTruthy();
 
     await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("as a confirmation, runs the action only after the confirm button", async () => {
+    const onConfirm = vi.fn();
+    render(
+      <Dialog
+        trigger={<Button>Open</Button>}
+        title="Delete project?"
+        confirmLabel="Delete"
+        destructive
+        onConfirm={onConfirm}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(onConfirm).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("does nothing when cancelled", async () => {
+    const onConfirm = vi.fn();
+    render(
+      <Dialog
+        trigger={<Button>Open</Button>}
+        title="Delete project?"
+        confirmLabel="Delete"
+        onConfirm={onConfirm}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onConfirm).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
