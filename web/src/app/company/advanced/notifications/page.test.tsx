@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import NotificationsPage from "./page";describe("notifications page", () => {
+import NotificationsPage from "./page";
+describe("notifications page", () => {
   it("shows only a Save button", () => {
     const { container } = render(<NotificationsPage />);
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();

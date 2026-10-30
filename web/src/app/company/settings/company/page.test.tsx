@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import CompanySettingsPage from "./page";describe("company settings page", () => {
+import CompanySettingsPage from "./page";
+describe("company settings page", () => {
   it("shows the Company name field and Save", () => {
     render(<CompanySettingsPage />);
     expect(screen.getByLabelText("Company name")).toBeTruthy();

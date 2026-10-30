@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import ProfilePage from "./page";describe("profile settings page", () => {
+import ProfilePage from "./page";
+describe("profile settings page", () => {
   it("shows the profile fields, the password section and Save", () => {
     render(<ProfilePage />);
     expect(screen.getByLabelText("Name")).toBeTruthy();

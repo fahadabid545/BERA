@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import RetentionPage from "./page";describe("retention settings page", () => {
+import RetentionPage from "./page";
+describe("retention settings page", () => {
   it("offers 30, 90, 180 and 365 days and a Save button", () => {
     render(<RetentionPage />);
     const selector = screen.getByLabelText("Retention") as HTMLSelectElement;

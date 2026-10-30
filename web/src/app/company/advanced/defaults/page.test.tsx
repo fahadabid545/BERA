@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import ScoringDefaultsPage from "./page";describe("scoring defaults page", () => {
+import ScoringDefaultsPage from "./page";
+describe("scoring defaults page", () => {
   it("shows only a Save button", () => {
     const { container } = render(<ScoringDefaultsPage />);
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();

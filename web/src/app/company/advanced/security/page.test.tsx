@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import SecurityPage from "./page";describe("security page", () => {
+import SecurityPage from "./page";
+describe("security page", () => {
   it("shows both buttons and nothing else", () => {
     const { container } = render(<SecurityPage />);
     expect(screen.getByRole("button", { name: "Set up two-step verification" })).toBeTruthy();
