@@ -33,7 +33,7 @@ export const NAVIGATION: readonly NavigationItem<CompanyRole>[] = [
       { label: "Retention", href: "/company/advanced/retention" },
       { label: "Security", href: "/company/advanced/security" },
       { label: "Notifications", href: "/company/advanced/notifications" },
-      { label: "Data and export", href: "/company/advanced/data-and-export" },
+      { label: "Data and export", href: "/company/advanced/data" },
     ],
   },
 ];

@@ -129,7 +129,7 @@ describe("Advanced section", () => {
     Retention: "/company/advanced/retention",
     Security: "/company/advanced/security",
     Notifications: "/company/advanced/notifications",
-    "Data and export": "/company/advanced/data-and-export",
+    "Data and export": "/company/advanced/data",
   };
 
   it("sits below Settings, set apart by a divider", () => {
@@ -206,7 +206,7 @@ describe("Advanced section", () => {
   it.each([
     "/company/advanced",
     "/company/advanced/retention",
-    "/company/advanced/data-and-export",
+    "/company/advanced/data",
   ])("shows a member who types %s the no-access page, inside the frame", (address) => {
     pathname.current = address;
     renderFrame("member");
