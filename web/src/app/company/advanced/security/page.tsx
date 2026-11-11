@@ -1,10 +1,13 @@
-import { Button } from "@/components/ui";
+import { SignOutEverywhere } from "@/components/company/SignOutEverywhere";
+import { TwoStepSettings } from "@/components/company/TwoStepSettings";
 
 export default function SecurityPage() {
   return (
-    <div className="page-actions">
-      <Button>Set up two-step verification</Button>
-      <Button variant="secondary">Sign out of all devices</Button>
+    <div className="page-stack">
+      <TwoStepSettings />
+      <div className="page-actions">
+        <SignOutEverywhere />
+      </div>
     </div>
   );
 }

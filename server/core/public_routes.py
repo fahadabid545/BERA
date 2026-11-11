@@ -48,6 +48,27 @@ PUBLIC_ROUTES = [
         "Wrong guesses all look alike, are limited per address and pause the account.",
     ),
     PublicRoute(
+        route="api/auth/company/login/two-step/",
+        category="login",
+        reason="After a right password, a person with two-step verification gives the code "
+        "before a session starts. The signed, short-lived step from the password check is "
+        "the credential, and wrong codes are limited and pause the account.",
+    ),
+    PublicRoute(
+        route="api/auth/company/login/two-step/setup/",
+        category="login",
+        reason="A member whose company requires two-step verification sets it up at login, "
+        "before having a session. The signed, short-lived step from the password check is "
+        "the credential.",
+    ),
+    PublicRoute(
+        route="api/auth/company/login/two-step/setup/confirm/",
+        category="login",
+        reason="Finishes the setup above with a right code and starts the session. The signed, "
+        "short-lived step from the password check is the credential, and wrong codes are "
+        "limited and pause the account.",
+    ),
+    PublicRoute(
         route="api/auth/company/refresh/",
         category="login",
         reason="A company user whose short access token ended must renew it with the refresh "

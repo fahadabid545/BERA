@@ -77,6 +77,12 @@ SETTINGS = [
     SettingDefinition("signin.max_failed_attempts", 5, whole_number(1, 100)),
     SettingDefinition("signin.attempt_window_minutes", 15, whole_number(1, 1440)),
     SettingDefinition("signin.lockout_minutes", 15, whole_number(1, 1440)),
+    # Two-step verification
+    SettingDefinition("two_step.recovery_code_count", 10, whole_number(1, 50)),
+    # Codes from this many 30-second steps before and after now are accepted (clock drift).
+    SettingDefinition("two_step.code_drift_steps", 1, whole_number(0, 5)),
+    # How long a person has, after the password, to give the code or finish setting up.
+    SettingDefinition("two_step.challenge_minutes", 10, whole_number(1, 60)),
     # Rate limits. Counts per window; "address" means the visitor's real network address.
     SettingDefinition("rate_limits.login_per_minute", 10, whole_number(1, 10000)),
     SettingDefinition("rate_limits.refresh_per_minute", 30, whole_number(1, 10000)),

@@ -4,18 +4,28 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Button, Input, TextLink } from "@/components/ui";
+import { AuthenticatorSetup } from "@/components/website/AuthenticatorSetup";
 import { ACCOUNT_LINKS } from "@/components/website/links";
 import { ResendVerificationButton } from "@/components/website/ResendVerificationButton";
+import { TwoStepLogin } from "@/components/website/TwoStepLogin";
 import { postJson, type ApiError } from "@/lib/api";
 import { pageAfterLogin } from "@/lib/redirect";
 
 const EMAIL_NOT_VERIFIED = "email_not_verified";
+const SETUP_BASE = "/api/auth/company/login/two-step/setup/";
+
+type LoginReply =
+  { status: "ok" } | { status: "two_step_required" | "two_step_setup_required"; challenge: string };
+/** Where the login is when the password alone did not finish it. */
+type Pending = { step: "code" | "setup"; challenge: string };
 
 export function LoginForm({ next }: { next?: string | string[] }) {
   const router = useRouter();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [typedEmail, setTypedEmail] = useState("");
+  const [pending, setPending] = useState<Pending | null>(null);
+  const signedIn = () => router.push(pageAfterLogin(next));
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,16 +34,38 @@ export function LoginForm({ next }: { next?: string | string[] }) {
     setSending(true);
     setError(null);
     setTypedEmail(email);
-    const result = await postJson("/api/auth/company/login/", {
+    const result = await postJson<LoginReply>("/api/auth/company/login/", {
       email,
       password: form.get("password"),
     });
-    if (result.ok) {
-      router.push(pageAfterLogin(next));
-      return;
-    }
+    if (result.ok && result.data.status === "ok") return signedIn();
     setSending(false);
-    setError(result.error);
+    if (!result.ok) return setError(result.error);
+    if (result.data.status === "two_step_required") {
+      setPending({ step: "code", challenge: result.data.challenge });
+    } else if (result.data.status === "two_step_setup_required") {
+      setPending({ step: "setup", challenge: result.data.challenge });
+    }
+  }
+
+  if (pending?.step === "code") {
+    return (
+      <TwoStepLogin
+        challenge={pending.challenge}
+        onSignedIn={signedIn}
+        onStartOver={() => setPending(null)}
+      />
+    );
+  }
+  if (pending?.step === "setup") {
+    const { challenge } = pending;
+    return (
+      <AuthenticatorSetup
+        begin={() => postJson(SETUP_BASE, { challenge })}
+        confirm={(code) => postJson(`${SETUP_BASE}confirm/`, { challenge, code })}
+        onFinished={signedIn}
+      />
+    );
   }
 
   const fields = error?.fields ?? {};

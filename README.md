@@ -194,6 +194,39 @@ one of each template there. Staging and production send through SMTP and need `E
 `WEB_BASE_URL` (https). Webhooks that report bounces depend on the provider chosen and are not
 built yet; `record_bounce` is what they will call.
 
+### Sign-in safety notices and two-step verification
+
+**Notices.** The person whose account it is gets an email when a sign-in comes from a device
+or country not seen before (`signin/new_sign_in.py`), when the password changes, and when the
+email address changes. The first sign-in is the baseline and sends nothing. A device is the
+browser and system (for example "Firefox on Windows"), a place is the country from the
+Cloudflare header (see Sign up); where the country is unknown it is Other and never counts as
+a new place. Only the device text and the country are kept, never an address. The "email
+changed" email goes to the address the person had before; the future email-change flow
+**must** call `send_email_changed_notice(person, previous_address)` in
+`companies/account_notices.py` once the new address is saved.
+
+**Two-step verification** (authenticator app, `twostep/`). The owner switches it on under
+Advanced → Security: scan the QR code (or type the key), give a code from the app, and get
+`two_step.recovery_code_count` (10) one-time recovery codes, shown once and stored only as
+keyed hashes. The secret is stored encrypted (`FIELD_ENCRYPTION_KEY`). Login with it takes two
+steps: the right password returns `two_step_required` and a signed challenge (valid
+`two_step.challenge_minutes`, 10), and only a right code (or an unused recovery code) at
+`/api/auth/company/login/two-step/` starts the session. A code can be used only once; codes
+from `two_step.code_drift_steps` (1) steps either side of now are accepted. Wrong codes pause
+the account like wrong passwords, with a count of their own so logging in again does not reset
+it. Turning it off needs the password and a code.
+
+**Company-wide requirement.** An owner can require it for all members
+(`PUT /api/auth/company/two-step/company-requirement/`). A member without it gets
+`two_step_setup_required` at their next login and no session until they have set it up. While
+it is required, members cannot turn it off. Owners are not forced.
+
+**Lost device.** A recovery code replaces the app code once. A person with neither device nor
+codes sees "Lost your device and your recovery codes? Contact support." Recovery by support
+(after identity checks, audited) is not built: it needs the audit log (BERA-094) and the admin
+panel's login and roles (BERA-092, BERA-093), and comes with the admin controls ticket.
+
 ### Database accounts and protected data
 
 Three database accounts exist, locally too: the app (rows only, cannot change the structure), the

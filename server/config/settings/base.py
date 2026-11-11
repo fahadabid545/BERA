@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "emailing",
     "platform_settings",
     "signin",
+    "twostep",
 ]
 
 # Development only (see development.py): the country the sign-up form pretends the visitor is in.

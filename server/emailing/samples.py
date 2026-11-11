@@ -18,7 +18,7 @@ def sample_values(template_name):
         },
         "password_changed": shared,
         "email_changed": shared,
-        "new_sign_in": {**shared, "device": "Firefox on Windows", "place": "Berlin, Germany"},
+        "new_sign_in": {**shared, "device": "Firefox on Windows", "place": "Germany"},
         "already_registered": {"name": shared["name"], "link": link},
         "usage_notice": {
             **shared,

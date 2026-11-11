@@ -74,3 +74,11 @@ export function postJson<T>(path: string, body: unknown) {
     body: JSON.stringify(body),
   });
 }
+
+export function putJson<T>(path: string, body: unknown) {
+  return request<T>(path, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}

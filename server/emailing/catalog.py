@@ -69,9 +69,9 @@ CATALOG = {
         paragraphs=(
             GREETING,
             "The email address on your account was changed on {when}.",
-            "If this was not you, secure your account now.",
+            "If this was not you, contact support right away.",
         ),
-        button_label="Secure my account",
+        button_label="Contact support",
         variables=("name", "when", "link"),
     ),
     "new_sign_in": EmailTemplate(
@@ -79,10 +79,10 @@ CATALOG = {
         heading="New sign-in",
         paragraphs=(
             GREETING,
-            "We noticed a new sign-in on {when} from {device}, near {place}.",
-            "If this was you, no action is needed. If not, secure your account.",
+            "We noticed a new sign-in on {when} from {device} in {place}.",
+            "If this was you, no action is needed. If not, reset your password now.",
         ),
-        button_label="Review sign-ins",
+        button_label="Reset password",
         variables=("name", "when", "device", "place", "link"),
     ),
     "already_registered": EmailTemplate(

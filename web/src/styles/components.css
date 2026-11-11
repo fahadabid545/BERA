@@ -972,3 +972,30 @@ a.ui-tab {
   color: var(--color-text);
   font-weight: 600;
 }
+
+/* ---------- Two-step verification ---------- */
+.two-step-qr {
+  width: 12rem;
+  height: 12rem;
+  margin-bottom: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-qr-background);
+}
+.recovery-codes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+}
+.two-step-note {
+  margin: var(--space-3) 0;
+}
+.page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}

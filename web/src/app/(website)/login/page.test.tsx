@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import LoginPage from "./page";
 
+vi.mock("qrcode", () => ({ default: { toDataURL: async () => "data:image/png;base64,AAAA" } }));
+
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
@@ -229,5 +231,68 @@ describe("an email that is not verified", () => {
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Resend verification email" })).toBeNull(),
     );
+  });
+});
+
+describe("two-step verification at login", () => {
+  const LOGIN_PATH = "/api/auth/company/login/";
+  const STEP = `${LOGIN_PATH}two-step/`;
+
+  function stubTwoStep(login: unknown, extra: Record<string, unknown> = {}) {
+    const fetchMock = vi.fn(async (path: string) => {
+      const body = path === LOGIN_PATH ? login : extra[path];
+      return new Response(JSON.stringify(body ?? {}), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  it("asks for the code after a right password and signs in only after it", async () => {
+    stubTwoStep({ status: "two_step_required", challenge: "signed" }, { [STEP]: { status: "ok" } });
+    await openPage();
+    await logIn();
+    await userEvent.type(await screen.findByLabelText("Code from your app"), "123456");
+    expect(push).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/company"));
+  });
+
+  it("goes back to the login form when the person starts over", async () => {
+    const fetchMock = stubTwoStep({ status: "two_step_required", challenge: "signed" });
+    fetchMock.mockImplementation(async (path: string) =>
+      path === LOGIN_PATH
+        ? new Response(JSON.stringify({ status: "two_step_required", challenge: "signed" }))
+        : new Response(
+            JSON.stringify({
+              error: { code: "two_step_challenge_ended", message: "Your login took too long." },
+            }),
+            { status: 400 },
+          ),
+    );
+    await openPage();
+    await logIn();
+    await userEvent.type(await screen.findByLabelText("Code from your app"), "123456");
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Back to login" }));
+    expect(screen.getByLabelText("Email")).toBeTruthy();
+  });
+
+  it("makes a member whose company requires it set it up before getting in", async () => {
+    const setup = `${STEP}setup/`;
+    stubTwoStep(
+      { status: "two_step_setup_required", challenge: "signed" },
+      {
+        [setup]: { secret: "ABCDEFGH", uri: "otpauth://totp/x" },
+        [`${setup}confirm/`]: { status: "ok", recovery_codes: ["AAAAA-BBBBB"] },
+      },
+    );
+    await openPage();
+    await logIn();
+    await userEvent.type(await screen.findByLabelText("Code from your app"), "123456");
+    await userEvent.click(screen.getByRole("button", { name: "Turn on" }));
+    expect(await screen.findByRole("list", { name: "Recovery codes" })).toBeTruthy();
+    expect(push).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "I have saved my codes" }));
+    expect(push).toHaveBeenCalledWith("/company");
   });
 });

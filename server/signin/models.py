@@ -36,3 +36,21 @@ class RetiredRefreshToken(models.Model):
 
     token_hash = models.CharField(max_length=64, unique=True)
     session = models.ForeignKey(Session, on_delete=models.CASCADE, related_name="retired_tokens")
+
+
+class KnownSignIn(models.Model):
+    """A device and country a person has signed in from, to tell when a sign-in is new.
+
+    Only a short device description and a country are kept, never an address."""
+
+    user = models.ForeignKey("companies.CompanyUser", on_delete=models.CASCADE, related_name="+")
+    device = models.CharField(max_length=100)
+    country = models.CharField(max_length=2)
+    first_seen_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "device", "country"], name="knownsignin_is_unique"
+            )
+        ]

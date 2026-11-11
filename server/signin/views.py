@@ -12,6 +12,7 @@ from core import request_context
 from core.passwords import password_rule_results
 from core.permissions import PublicAccess
 from core.throttles import LoginThrottle, RefreshThrottle, limited
+from twostep.challenge import SETUP, VERIFY, make_challenge
 
 from . import service
 from .authentication import AdminAuthentication, CompanyAuthentication
@@ -19,6 +20,7 @@ from .cookies import clear_session_cookies, refresh_cookie_name, set_session_coo
 from .csrf import enforce_csrf
 from .kinds import ADMIN, COMPANY
 from .login import check_login
+from .login_session import finish_company_login
 from .password_change import change_password
 from .serializers import ChangePasswordSerializer, LoginSerializer, PasswordCheckSerializer
 from .service import RevokeReason
@@ -95,13 +97,17 @@ def login_company(request):
     serializer.is_valid(raise_exception=True)
     person = check_login(**serializer.validated_data)
     request_context.bind_actor(person.pk, person.company_id)
-    # Every sign-in is its own session, so a second device never signs out the first.
-    issued = service.start_session(
-        user_id=person.pk, role=person.role, company_id=person.company_id, kind=COMPANY
-    )
-    response = Response({"status": "ok"})  # the tokens travel only in cookies
-    set_session_cookies(response, COMPANY, issued)
-    return response
+    # A right password is not enough where two-step is on, or the company requires it: the
+    # session only starts after the code (or after setting two-step up).
+    if person.two_step_enabled:
+        return Response(
+            {"status": "two_step_required", "challenge": make_challenge(person, VERIFY)}
+        )
+    if person.company.require_two_step and person.role == CompanyUser.Role.MEMBER:
+        return Response(
+            {"status": "two_step_setup_required", "challenge": make_challenge(person, SETUP)}
+        )
+    return finish_company_login(request, person)
 
 
 @api_view(["POST"])

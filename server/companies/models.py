@@ -3,6 +3,7 @@ from django.db.models import Q
 
 from core.errors import AppError
 from core.models import PersonAccount
+from core.protected_fields import EncryptedTextField
 
 from .countries import OTHER_COUNTRY
 
@@ -29,6 +30,8 @@ class Company(models.Model):
     country = models.CharField(max_length=2, default=OTHER_COUNTRY)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
     created_at = models.DateTimeField(auto_now_add=True)
+    # When on, every member must have two-step verification (set up at their next login).
+    require_two_step = models.BooleanField(default=False)
 
     objects = CompanyQuerySet.as_manager()
 
@@ -61,6 +64,12 @@ class CompanyUser(PersonAccount):
     email_verified = models.BooleanField(default=False)
     # When the person ticked the Terms and Privacy Policy at sign-up (or accepted an invite).
     terms_accepted_at = models.DateTimeField(null=True)
+    # Two-step verification. The secret is saved when setup starts and only counts once
+    # `two_step_enabled` is true, after the person proved their app shows the right codes.
+    two_step_secret = EncryptedTextField(purpose="companyuser.two_step_secret", default="")
+    two_step_enabled = models.BooleanField(default=False)
+    # The newest 30-second step already used, so one code cannot be used twice.
+    two_step_last_step = models.BigIntegerField(null=True)
 
     class Meta:
         constraints = [

@@ -59,6 +59,9 @@ EXPECTED_DEFAULTS = {
     "scoring.strong_match_min": 75,
     "scoring.possible_match_min": 55,
     "live_updates.max_delay_seconds": 3,
+    "two_step.recovery_code_count": 10,
+    "two_step.code_drift_steps": 1,
+    "two_step.challenge_minutes": 10,
 }
 
 

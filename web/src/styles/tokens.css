@@ -5,6 +5,8 @@
 :root,
 :root[data-theme="light"] {
   --color-bg: #f6f7f2;
+  /* A QR code must stay dark on light to be scanned, so this is the same in both themes. */
+  --color-qr-background: #ffffff;
   --color-surface: #ffffff;
   --color-surface-muted: #eceee5;
   --color-text: #0d100c;
@@ -40,6 +42,7 @@
 
 :root[data-theme="dark"] {
   --color-bg: #0b0d0b;
+  --color-qr-background: #ffffff;
   --color-surface: #141714;
   --color-surface-muted: #1c201c;
   --color-text: #ecefe9;
