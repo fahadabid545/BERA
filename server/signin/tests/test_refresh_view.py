@@ -2,7 +2,7 @@ import pytest
 from django.conf import settings
 from rest_framework.test import APIClient
 
-from signin import service
+from core.tests.factories import start_session_for
 from signin.cookies import CSRF_COOKIE, access_cookie_name, refresh_cookie_name
 from signin.models import Session
 from signin.service import RevokeReason
@@ -13,8 +13,8 @@ ROUTES = {"company": "/api/auth/company/refresh/", "admin": "/api/auth/admin/ref
 
 def sign_in(kind="company"):
     if kind == "company":
-        return service.start_session(user_id=7, role="owner", company_id=3, kind="company")
-    return service.start_session(user_id=1, role="super", company_id=None, kind="admin")
+        return start_session_for(user_id=7, role="owner", company_id=3, kind="company")
+    return start_session_for(user_id=1, role="super", company_id=None, kind="admin")
 
 
 def client_with(refresh_token, kind="company", csrf="csrf-value"):

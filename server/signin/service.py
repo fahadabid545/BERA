@@ -5,12 +5,12 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from django.db import transaction
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import Case, CharField, Exists, OuterRef, Q, Subquery, When
 from django.utils import timezone
 from rest_framework.exceptions import NotAuthenticated
 
 from adminusers.models import AdminUser
-from companies.models import CompanyUser
+from companies.models import Company, CompanyUser
 from platform_settings.service import get_setting
 
 from .kinds import ADMIN, COMPANY, KINDS, ROLES
@@ -56,15 +56,31 @@ class SignedInUser:
 
 
 def _account_is_active():
-    """True in a query only while the account exists and is not blocked or removed.
+    """True in a query only while the account exists and is not blocked or removed, and, for
+    a company user, still belongs to the session's company while that company is active.
 
     Each kind of session is checked in its own table, so a company user's id can never
     stand in for an admin's."""
     company_user = CompanyUser.objects.filter(
-        id=OuterRef("user_id"), status=CompanyUser.Status.ACTIVE
+        id=OuterRef("user_id"),
+        company_id=OuterRef("company_id"),
+        status=CompanyUser.Status.ACTIVE,
+        company__status=Company.Status.ACTIVE,
     )
     admin_user = AdminUser.objects.filter(id=OuterRef("user_id"), status=AdminUser.Status.ACTIVE)
     return (Q(kind=COMPANY) & Q(Exists(company_user))) | (Q(kind=ADMIN) & Q(Exists(admin_user)))
+
+
+def _current_role():
+    """The role stored for the person now, so a change applies at once, not at the next
+    token renewal."""
+    company_role = CompanyUser.objects.filter(id=OuterRef("user_id")).values("role")[:1]
+    admin_role = AdminUser.objects.filter(id=OuterRef("user_id")).values("role")[:1]
+    return Case(
+        When(kind=COMPANY, then=Subquery(company_role)),
+        default=Subquery(admin_role),
+        output_field=CharField(),
+    )
 
 
 def _check_who(kind, role, company_id):
@@ -128,20 +144,25 @@ def verify_access_token(token, kind):
     """
     claims = read_token(token, kind=kind, token_type=ACCESS)
     company_id = claims.get("cid")
-    still_active = Session.objects.filter(
-        _account_is_active(),
-        id=claims["sid"],
-        kind=kind,
-        user_id=int(claims["sub"]),
-        company_id=company_id,
-        status=Session.Status.ACTIVE,
-        expires_at__gt=timezone.now(),
-    ).exists()
-    if not still_active:
+    current_role = (
+        Session.objects.filter(
+            _account_is_active(),
+            id=claims["sid"],
+            kind=kind,
+            user_id=int(claims["sub"]),
+            company_id=company_id,
+            status=Session.Status.ACTIVE,
+            expires_at__gt=timezone.now(),
+        )
+        .annotate(current_role=_current_role())
+        .values_list("current_role", flat=True)
+        .first()
+    )
+    if current_role is None:
         raise NotAuthenticated()
     return SignedInUser(
         user_id=int(claims["sub"]),
-        role=claims["role"],
+        role=current_role,
         company_id=company_id,
         kind=kind,
         session_id=claims["sid"],
@@ -156,14 +177,15 @@ def refresh_session(token, kind):
     reuse_detected = False
     with transaction.atomic():
         session = (
-            Session.objects.select_for_update()
+            Session.objects.select_for_update(of=("self",))
             .filter(_account_is_active(), id=claims["sid"], kind=kind, user_id=int(claims["sub"]))
+            .annotate(current_role=_current_role())
             .first()
         )
         if session and session.status == Session.Status.ACTIVE and session.expires_at > now:
             if session.refresh_token_hash == digest:
                 RetiredRefreshToken.objects.create(token_hash=digest, session=session)
-                issued = _finish(session, claims["role"], now)
+                issued = _finish(session, session.current_role, now)
                 session.save(update_fields=["refresh_token_hash", "expires_at"])
                 return issued
             reuse_detected = session.retired_tokens.filter(token_hash=digest).exists()

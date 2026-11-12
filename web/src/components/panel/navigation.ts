@@ -12,11 +12,14 @@ export type NavigationItem<Role extends string> = {
   separated?: boolean;
   /** A user who may not open it and types its address sees the "no access" page. */
   guarded?: boolean;
+  /** For a guarded item some of whose pages everyone may open: only these addresses are
+   * refused, instead of the item's own address and everything below it. */
+  guardedHrefs?: readonly string[];
   children?: readonly { label: string; href: string }[];
 };
 
 /** What the sidebar draws: an item that has already been filtered for the user's role. */
-export type SidebarItem = Omit<NavigationItem<string>, "roles" | "guarded">;
+export type SidebarItem = Omit<NavigationItem<string>, "roles" | "guarded" | "guardedHrefs">;
 
 export function visibleItems<Role extends string>(
   items: readonly NavigationItem<Role>[],
@@ -24,7 +27,7 @@ export function visibleItems<Role extends string>(
 ): SidebarItem[] {
   return items
     .filter((item) => item.roles.includes(role))
-    .map(({ roles: _roles, guarded: _guarded, ...item }) => item);
+    .map(({ roles: _roles, guarded: _guarded, guardedHrefs: _guardedHrefs, ...item }) => item);
 }
 
 /** Addresses this role must see the "no access" page for, even if it types them in. */
@@ -34,7 +37,7 @@ export function blockedHrefs<Role extends string>(
 ): string[] {
   return items
     .filter((item) => item.guarded && !item.roles.includes(role))
-    .map((item) => item.href);
+    .flatMap((item) => item.guardedHrefs ?? [item.href]);
 }
 
 export function isCurrentPath(pathname: string, href: string, exact = false): boolean {

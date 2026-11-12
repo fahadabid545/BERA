@@ -4,6 +4,7 @@ import pytest
 from django.utils import timezone
 from rest_framework.exceptions import NotAuthenticated
 
+from core.tests.factories import start_session_for
 from signin import service
 from signin.models import Session
 from signin.service import RevokeReason
@@ -12,7 +13,7 @@ pytestmark = pytest.mark.django_db
 
 
 def sign_in(user_id=7, role="owner", company_id=3, kind="company"):
-    return service.start_session(user_id=user_id, role=role, company_id=company_id, kind=kind)
+    return start_session_for(user_id=user_id, role=role, company_id=company_id, kind=kind)
 
 
 def test_a_new_sign_in_can_be_verified():
@@ -39,7 +40,8 @@ def test_admin_sign_ins_have_no_company():
 )
 def test_issuing_refuses_a_mismatched_kind_role_or_company(kind, role, company_id):
     with pytest.raises(ValueError):
-        sign_in(kind=kind, role=role, company_id=company_id)
+        # Straight to the service: these combinations must never reach an account.
+        service.start_session(user_id=7, kind=kind, role=role, company_id=company_id)
     assert Session.objects.count() == 0
 
 

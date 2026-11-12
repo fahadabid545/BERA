@@ -4,6 +4,7 @@ import itertools
 
 from adminusers.models import AdminUser
 from companies.models import Company, CompanyUser
+from signin import service
 
 _numbers = itertools.count(1)
 
@@ -36,3 +37,24 @@ def make_admin_user(**fields):
             **fields,
         }
     )
+
+
+def start_session_for(*, user_id, role, company_id, kind):
+    """A session for an account, after making the stored account match what the session says.
+
+    Every request reads the role and company from the account, not from the token, so a
+    session for "user 7, an owner of company 3" only works if the account is stored that way.
+    """
+    if kind == "company":
+        Company.objects.get_or_create(
+            id=company_id, defaults={"name": f"Fake Company {company_id}"}
+        )
+        if role == CompanyUser.Role.OWNER:
+            # A company has one owner; whoever held it is a member now.
+            CompanyUser.objects.filter(company_id=company_id, role="owner").exclude(
+                id=user_id
+            ).update(role="member")
+        CompanyUser.objects.filter(id=user_id).update(company_id=company_id, role=role)
+    else:
+        AdminUser.objects.filter(id=user_id).update(role=role)
+    return service.start_session(user_id=user_id, role=role, company_id=company_id, kind=kind)

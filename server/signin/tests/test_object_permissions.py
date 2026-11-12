@@ -7,6 +7,7 @@ from rest_framework.test import APIClient
 
 from companies.models import Company, CompanyUser
 from core.models import CompanyOwnedModel
+from core.tests.factories import start_session_for
 from signin import service
 from signin.service import RevokeReason
 from signin.tests.models_for_tests import KINDS_OF_OBJECT
@@ -30,9 +31,7 @@ def companies(db):
 
 
 def sign_in(company, *, user_id=2, role="owner"):
-    issued = service.start_session(
-        user_id=user_id, role=role, company_id=company.id, kind="company"
-    )
+    issued = start_session_for(user_id=user_id, role=role, company_id=company.id, kind="company")
     return APIClient(HTTP_AUTHORIZATION=f"Bearer {issued.access_token}")
 
 
@@ -126,7 +125,7 @@ def test_the_role_decides_after_the_company_has_been_checked(companies):
 def test_an_admin_sign_in_does_not_open_company_data(companies):
     mine, _ = companies
     record = KINDS_OF_OBJECT["Project"].objects.create(company=mine)
-    issued = service.start_session(user_id=4, role="super", company_id=None, kind="admin")
+    issued = start_session_for(user_id=4, role="super", company_id=None, kind="admin")
     client = APIClient(HTTP_AUTHORIZATION=f"Bearer {issued.access_token}")
     assert client.get(route("Project", record.id)).status_code == 401
 
@@ -154,7 +153,7 @@ def test_a_removed_person_loses_access_at_once(companies):
 
 def test_a_blocked_person_cannot_renew_their_tokens_either(companies):
     mine, _ = companies
-    issued = service.start_session(user_id=5, role="owner", company_id=mine.id, kind="company")
+    issued = start_session_for(user_id=5, role="owner", company_id=mine.id, kind="company")
     CompanyUser.objects.filter(id=5).update(status="blocked")
     from rest_framework.exceptions import NotAuthenticated
 

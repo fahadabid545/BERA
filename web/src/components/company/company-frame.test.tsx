@@ -214,8 +214,31 @@ describe("Advanced section", () => {
     },
   );
 
+  it.each(["/company/team", "/company/billing", "/company/settings/company"])(
+    "shows a member who types %s the no-access page",
+    (address) => {
+      pathname.current = address;
+      renderFrame("member");
+      expect(screen.getByRole("heading", { name: "You do not have access" })).toBeTruthy();
+    },
+  );
+
+  it.each(["/company/team", "/company/billing", "/company/settings/company"])(
+    "shows an owner %s",
+    (address) => {
+      pathname.current = address;
+      renderFrame("owner");
+      expect(screen.getByRole("main").textContent).toBe("Page content");
+    },
+  );
+
   it("still shows members their own pages and does not block look-alike addresses", () => {
-    for (const address of ["/company/projects", "/company/advanced-old"]) {
+    for (const address of [
+      "/company/projects",
+      "/company/settings/profile",
+      "/company/advanced-old",
+      "/company/team-old",
+    ]) {
       pathname.current = address;
       const { unmount } = renderFrame("member");
       expect(screen.getByRole("main").textContent).toBe("Page content");

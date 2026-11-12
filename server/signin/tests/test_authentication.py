@@ -1,6 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 
+from core.tests.factories import start_session_for
 from signin import service
 from signin.cookies import CSRF_COOKIE, access_cookie_name
 from signin.service import RevokeReason
@@ -16,11 +17,11 @@ def bearer(token):
 
 
 def company_sign_in():
-    return service.start_session(user_id=7, role="owner", company_id=3, kind="company")
+    return start_session_for(user_id=7, role="owner", company_id=3, kind="company")
 
 
 def admin_sign_in():
-    return service.start_session(user_id=1, role="super", company_id=None, kind="admin")
+    return start_session_for(user_id=1, role="super", company_id=None, kind="admin")
 
 
 def test_a_valid_token_opens_a_route_of_its_kind():

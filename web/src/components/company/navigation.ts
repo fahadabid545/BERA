@@ -8,13 +8,22 @@ const OWNER_ONLY: readonly CompanyRole[] = ["owner"];
 export const NAVIGATION: readonly NavigationItem<CompanyRole>[] = [
   { label: "Dashboard", href: "/company", icon: "dashboard", roles: EVERYONE, exact: true },
   { label: "Projects", href: "/company/projects", icon: "projects", roles: EVERYONE },
-  { label: "Team", href: "/company/team", icon: "team", roles: OWNER_ONLY },
-  { label: "Usage and Billing", href: "/company/billing", icon: "billing", roles: OWNER_ONLY },
+  { label: "Team", href: "/company/team", icon: "team", roles: OWNER_ONLY, guarded: true },
+  {
+    label: "Usage and Billing",
+    href: "/company/billing",
+    icon: "billing",
+    roles: OWNER_ONLY,
+    guarded: true,
+  },
   {
     label: "Settings",
     href: "/company/settings",
     icon: "settings",
     roles: OWNER_ONLY,
+    guarded: true,
+    // Members change their own password on the Profile page, reached from the user menu.
+    guardedHrefs: ["/company/settings/company"],
     children: [
       { label: "Profile", href: "/company/settings/profile" },
       { label: "Company", href: "/company/settings/company" },

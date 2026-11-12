@@ -1,16 +1,16 @@
 """Keeps sessions in step with the account they belong to.
 
-A session ends the moment its person is blocked or removed, or changes their password. Each
-check on a request also looks at the account, so a token is refused even where this cannot
-run (a bulk update skips signals); ending the session as well means that setting the person
-active again later does not bring old tokens back to life.
+A session ends the moment its person is blocked or removed, changes their password, or their
+company is suspended. Each check on a request also looks at the account, so a token is
+refused even where this cannot run (a bulk update skips signals); ending the session as well
+means that setting the person active again later does not bring old tokens back to life.
 """
 
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from adminusers.models import AdminUser
-from companies.models import CompanyUser
+from companies.models import Company, CompanyUser
 
 from . import service
 from .kinds import ADMIN, COMPANY
@@ -38,3 +38,11 @@ def end_sessions_that_should_not_continue(sender, instance, created, **_):
         service.revoke_user_sessions(instance.pk, ENDING_STATUSES[instance.status], kind=kind)
     elif getattr(instance, "_password_changed", False):
         service.revoke_user_sessions(instance.pk, RevokeReason.PASSWORD_CHANGED, kind=kind)
+
+
+@receiver(post_save, sender=Company)
+def end_sessions_of_a_suspended_company(sender, instance, created, **_):
+    # Requests already refuse a suspended company's tokens; ending the sessions as well means
+    # that lifting the suspension later does not bring old tokens back to life.
+    if not created and instance.status == Company.Status.SUSPENDED:
+        service.revoke_company_sessions(instance.pk, RevokeReason.COMPANY_SUSPENDED)

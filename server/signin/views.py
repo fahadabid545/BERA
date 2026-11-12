@@ -139,3 +139,14 @@ def change_company_password(request):
     response = Response({"status": "ok"})
     set_session_cookies(response, COMPANY, issued)
     return response
+
+
+@api_view(["GET"])
+@authentication_classes([CompanyAuthentication])  # signed-in company users only (IsSignedIn)
+@throttle_classes(limited())
+def company_me(request):
+    """Who is signed in, for the panel to show the right name, company and menu."""
+    person = CompanyUser.objects.select_related("company").get(pk=request.user.user_id)
+    return Response(
+        {"name": person.name, "company_name": person.company.name, "role": request.user.role}
+    )

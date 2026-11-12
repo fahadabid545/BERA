@@ -57,8 +57,13 @@ describe("visibleNavigation", () => {
     expect(advanced.guarded).toBe(true);
   });
 
-  it("blocks only Advanced for members and nothing for owners", () => {
-    expect(blockedCompanyHrefs("member")).toEqual(["/company/advanced"]);
+  it("blocks every owner-only page for members, but not their Profile, and nothing for owners", () => {
+    expect(blockedCompanyHrefs("member")).toEqual([
+      "/company/team",
+      "/company/billing",
+      "/company/settings/company",
+      "/company/advanced",
+    ]);
     expect(blockedCompanyHrefs("owner")).toEqual([]);
   });
 });

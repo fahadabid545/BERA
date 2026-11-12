@@ -6,8 +6,7 @@ from rest_framework.test import APIClient
 
 from core import rate_limits
 from core.models import BlockedSource, RateCounter
-from core.tests.factories import make_company_user
-from signin import service
+from core.tests.factories import make_company_user, start_session_for
 
 pytestmark = [pytest.mark.urls("core.tests.urls_for_limits"), pytest.mark.django_db]
 
@@ -33,9 +32,7 @@ def clock(monkeypatch):
 def person(company_id=3, role="owner"):
     """A signed-in company user, as a client that sends its token."""
     user = make_company_user()
-    issued = service.start_session(
-        user_id=user.id, role=role, company_id=company_id, kind="company"
-    )
+    issued = start_session_for(user_id=user.id, role=role, company_id=company_id, kind="company")
     return APIClient(HTTP_AUTHORIZATION=f"Bearer {issued.access_token}")
 
 

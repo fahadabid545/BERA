@@ -2,11 +2,12 @@
 
 class ProjectDetail(CompanyObjectView, RetrieveAPIView):
     queryset = Project.objects.all()
-    allowed_roles = {"owner"}   # leave out to allow every company role
+    required_action = "project.delete"   # leave out to allow every company role
 """
 
 from rest_framework.generics import GenericAPIView
 
+from companies.role_matrix import roles_allowed
 from core.permissions import IsSignedIn
 from core.scoping import get_company_object, require_role, scope_to_company
 
@@ -16,13 +17,17 @@ from .authentication import CompanyAuthentication
 class CompanyObjectView(GenericAPIView):
     authentication_classes = [CompanyAuthentication]
     permission_classes = [IsSignedIn]
-    allowed_roles = None
+    required_action = None  # an action of companies/role_matrix.py
+    allowed_roles = None  # only for a view the matrix has no action for
     lookup_field = "id"
+
+    def permitted_roles(self):
+        return roles_allowed(self.required_action) if self.required_action else self.allowed_roles
 
     def get_queryset(self):
         # Lists and searches see only the user's company, not just single records.
         queryset = scope_to_company(super().get_queryset(), self.request.user)
-        require_role(self.request.user, self.allowed_roles)
+        require_role(self.request.user, self.permitted_roles())
         return queryset
 
     def get_object(self):
@@ -30,6 +35,6 @@ class CompanyObjectView(GenericAPIView):
         return get_company_object(
             super().get_queryset(),
             self.request.user,
-            allowed_roles=self.allowed_roles,
+            allowed_roles=self.permitted_roles(),
             **{self.lookup_field: lookup_value},
         )

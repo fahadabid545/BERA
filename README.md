@@ -227,6 +227,31 @@ codes sees "Lost your device and your recovery codes? Contact support." Recovery
 (after identity checks, audited) is not built: it needs the audit log (BERA-094) and the admin
 panel's login and roles (BERA-092, BERA-093), and comes with the admin controls ticket.
 
+### Route protection and roles
+
+Every company request is checked on the server. The one check reads the session, the person
+and the company in a single lookup: the session must be live, the person must be active and
+belong to the session's company, and the company must be active. Suspending a company or
+blocking or removing a person stops their tokens at once, and ends their sessions so lifting
+the block later does not bring them back. The **role is read from the stored account on every
+request**, never from the token, so a role change applies immediately (a renewed token also
+carries the current role).
+
+What each role may do is written once, in `companies/role_matrix.py`: the owner can do
+everything; a member can create, edit and archive projects, upload and download CVs, view
+candidates, change stages, write notes, delete individual candidates, and download and share
+reports, but cannot invite or remove people, see Usage and Billing, change company settings,
+open Advanced, delete projects or delete the company. A view names its action
+(`required_action = "team.invite"` on a `CompanyObjectView`, or `require_action(user, action)`
+in a function view) and never lists roles. `companies/tests/test_role_matrix.py` repeats the
+rules from the ticket and tests every action for both roles; a change to a rule must change
+that list too.
+
+The web menu only hides what a role cannot use. A member who types an owner-only address
+(Team, Usage and Billing, Settings → Company, Advanced) sees the "You do not have access"
+page; their own Profile stays open. The panel learns who is signed in from
+`GET /api/auth/company/me/` and reads it again on every page change.
+
 ### Database accounts and protected data
 
 Three database accounts exist, locally too: the app (rows only, cannot change the structure), the
