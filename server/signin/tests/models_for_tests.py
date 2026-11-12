@@ -21,6 +21,21 @@ def stand_in(name):
     )
 
 
+# Every kind of company data the product will hold, named in the isolation ticket: projects,
+# CVs, results, users (tested with the real model), files, usage, invoices, exports and shared
+# reports. Add a name here when a new kind of company data is planned.
 KINDS_OF_OBJECT = {
-    name: stand_in(name) for name in ("Project", "Candidate", "StoredFile", "Report", "Invoice")
+    name: stand_in(name)
+    for name in (
+        "Project",
+        "Candidate",
+        "Cv",
+        "Result",
+        "StoredFile",
+        "Report",
+        "SharedReport",
+        "Export",
+        "UsageRecord",
+        "Invoice",
+    )
 }

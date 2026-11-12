@@ -252,6 +252,24 @@ The web menu only hides what a role cannot use. A member who types an owner-only
 page; their own Profile stays open. The panel learns who is signed in from
 `GET /api/auth/company/me/` and reads it again on every page change.
 
+### Company data isolation
+
+A company can only reach its own data: through `core/scoping.py`, lists, searches, single
+records, downloads and updates all start from the signed-in person's company, and a record of
+another company gives exactly the answer for a record that does not exist. The isolation tests
+(`signin/tests/test_company_isolation.py`) try to reach another company's data for every kind
+the ticket names (projects, CVs, results, users, files, usage, invoices, exports, shared
+reports), by detail, list, live updates, search, download or export link, change, delete,
+company parameters in the address, other kinds' identifiers, forged and moved sessions, and as
+a visitor or an admin. They use stand-in kinds until the real features exist. **When a new kind
+of company data is added**, its model must be built on `CompanyOwnedModel`, and a test fails
+until its name is listed in `REAL_MODELS_WITH_ISOLATION_TESTS` there, next to isolation tests
+for it. Run them alone, for example before launch, with:
+
+```
+python -m pytest -m isolation
+```
+
 ### Database accounts and protected data
 
 Three database accounts exist, locally too: the app (rows only, cannot change the structure), the
