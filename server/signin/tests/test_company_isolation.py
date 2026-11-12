@@ -43,7 +43,8 @@ KINDS_NAMED_IN_THE_TICKET = {
 # tests, in the same change that adds the model).
 # Invitation: companies/tests/test_invites.py (own company's list, resend and revoke only).
 # ActivityEntry: activity/tests/test_activity_log.py (the list holds only the own company's).
-REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {"Invitation", "ActivityEntry"}
+# Subscription: plans/tests/test_subscription_states.py (companies are kept apart).
+REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {"Invitation", "ActivityEntry", "Subscription"}
 
 
 @pytest.fixture(autouse=True)

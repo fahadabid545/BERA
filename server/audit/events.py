@@ -39,6 +39,7 @@ KINDS = _kinds(
     EventKind("export.created"),  # not built yet
     EventKind("retention.changed"),  # not built yet
     EventKind("plan.changed"),  # not built yet
+    EventKind("subscription.state_changed"),
     # Admin actions. One that changes another account or a company needs a written reason;
     # reading things needs none.
     EventKind("admin.first_super_admin_created"),
@@ -49,7 +50,8 @@ KINDS = _kinds(
     EventKind("admin.plan_created"),
     EventKind("admin.plan_changed", reason_required=True),
     EventKind("admin.plan_deleted", reason_required=True),
-    EventKind("admin.free_subscription_granted", reason_required=True),  # not built yet
+    EventKind("admin.free_subscription_granted", reason_required=True),
+    EventKind("admin.free_subscription_ended", reason_required=True),
     EventKind("admin.limit_changed", reason_required=True),  # not built yet
     EventKind("admin.two_step_reset", reason_required=True),  # not built yet
 )

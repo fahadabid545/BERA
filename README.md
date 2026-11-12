@@ -368,6 +368,25 @@ listed) above the pending invitations. API under `/api/company/team/`: `members/
   immediately, with the tokens they already have.
 - Both actions are written to the audit log and the company activity log.
 
+### Subscription states
+
+Each company has one `Subscription` (plan, state, period start and end, renewal on or off). States:
+No plan (new company), Active, Past due, Cancelled (active until the period ends), Expired and
+Granted free. All changes go through `plans/subscriptions.py` (`activate`, `mark_past_due`,
+`cancel`, `expire`, `grant_free`, `end_free`); only payment events and admin actions call them and
+there is no route, so a company cannot change its own state.
+
+- **Access** (`can_view`, `can_create_project`, `can_upload`, `can_score`): No plan and Expired can
+  view and download only; Active, Past due (with a warning), Cancelled and Granted free have full
+  access. The upload, project and scoring tickets must call these helpers.
+- **Dates:** the state in use (`effective_state`) is worked out from the dates, so access is right
+  even if no job ran. Past due ends after `billing.past_due_grace_days`; a cancelled period, a free
+  grant or an active period with renewal off ends at its end date. `expire_lapsed_subscriptions`
+  saves, logs and emails those changes; it is not scheduled until periodic jobs exist.
+- **Log and email:** every change is an audit entry (`subscription.state_changed`, or the admin free
+  kinds with a required reason) and the owner is emailed. A free grant is refused while a
+  subscription still gives access, so a company never holds two.
+
 ### Regional pricing
 
 `GET /api/plans/` (public) lists the active plans in display order, never hidden or archived ones,
