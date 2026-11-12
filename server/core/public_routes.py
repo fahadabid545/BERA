@@ -36,6 +36,13 @@ PUBLIC_ROUTES = [
         reason="Monitoring must be able to check that the server is up without an account.",
     ),
     PublicRoute(
+        route="api/plans/",
+        category="website",
+        reason="The public pricing page lists the active plans with the price for the "
+        "visitor's detected country before an account exists. Hidden and archived plans are "
+        "never listed, and it returns no subscriber counts or internal fields.",
+    ),
+    PublicRoute(
         route="api/auth/password-check/",
         category="sign_up",
         reason="Sign up, reset and invite pages show the password rules live while typing, "

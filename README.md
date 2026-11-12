@@ -368,6 +368,15 @@ listed) above the pending invitations. API under `/api/company/team/`: `members/
   immediately, with the tokens they already have.
 - Both actions are written to the audit log and the company activity log.
 
+### Regional pricing
+
+`GET /api/plans/` (public) lists the active plans in display order, never hidden or archived ones,
+with the price for the visitor's detected country. `plans/pricing.py::price_for(plan, country)` is
+the one rule: Pakistan sees the PKR price when set, otherwise USD with a note; every other or
+unknown country sees USD. Billing, upgrade and renewal pop-ups and plan display for a signed-in
+company must call it with the company's locked country. A company's country is set at sign up and
+no route changes it (support only).
+
 ### Plans management
 
 Super admins manage the subscription plans under `/api/admin/plans/` (list and create; read,
