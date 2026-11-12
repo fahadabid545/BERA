@@ -41,6 +41,33 @@ jobs:
       - run: ruff check server scripts && ruff format --check server scripts
       - run: python -m pytest
 
+  security:
+    name: Security tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bera
+          POSTGRES_PASSWORD: test-only-ci-db-pw
+          POSTGRES_DB: bera
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U bera" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://bera:test-only-ci-db-pw@127.0.0.1:5432/bera
+      MIGRATION_DATABASE_URL: postgres://bera:test-only-ci-db-pw@127.0.0.1:5432/bera
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: cp .env.example .env
+      - run: pip install -r server/requirements.txt -r server/requirements-dev.txt
+      # The same tests also run in the job above; this one shows the security suite as its own
+      # check, which the repository can require before a change is merged.
+      - run: python -m pytest -m security
+
   web:
     name: Web tests
     runs-on: ubuntu-latest

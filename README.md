@@ -270,6 +270,23 @@ for it. Run them alone, for example before launch, with:
 python -m pytest -m isolation
 ```
 
+### Security test suite
+
+The tests that protect the security rules are listed by area in
+`server/core/tests/security_suite.py` and carry the `security` marker: sign-in, tokens
+(tampered, unsigned, expired, reused, wrong audience), permissions per role, wrong-company
+access for every kind of object, hostile input, rate limits, and blocked or suspended people.
+`core/tests/test_security_every_route.py` walks every protected route of the server and
+attacks it in all of those ways, so a new route is covered the day it is added.
+
+They run with the normal `python -m pytest`, so a failing security test fails the change.
+`python -m pytest -m security` runs them alone, and CI shows them as their own check, "Security
+tests". To make that check block merging, require "Security tests" (with the other checks) in
+the repository's branch protection settings on GitHub; that setting lives on GitHub, not in
+the code. **Keep extending it**: when a feature adds a route, a role, a kind of company data
+or a limit, its security tests go into one of the areas above (or a new area is added there);
+`core/tests/test_security_suite.py` checks that every area and file is present.
+
 ### Database accounts and protected data
 
 Three database accounts exist, locally too: the app (rows only, cannot change the structure), the
