@@ -10,6 +10,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Exists, OuterRef
 from django.utils import timezone
 
+from activity import service as activity
 from audit.service import record
 from core.errors import AppError
 from core.field_protection import normalize_email
@@ -106,6 +107,13 @@ def invite_member(owner, email):
         invitation = Invitation.objects.create(company=company, email=email, invited_by=owner)
         _send_invitation(invitation, owner.name, company.name)
         record("invite.sent", actor=owner, target=invitation)
+        activity.record(
+            "invite_sent",
+            company_id=company.pk,
+            actor=owner,
+            target_kind="invitation",
+            target_id=invitation.pk,
+        )
     return invitation
 
 
@@ -121,6 +129,13 @@ def resend_invitation(invitation, inviter):
             raise _limit_reached(limit)
         _send_invitation(invitation, inviter.name, company.name)
         record("invite.resent", actor=inviter, target=invitation)
+        activity.record(
+            "invite_resent",
+            company_id=company.pk,
+            actor=inviter,
+            target_kind="invitation",
+            target_id=invitation.pk,
+        )
 
 
 def revoke_invitation(invitation, revoked_by):
@@ -130,6 +145,13 @@ def revoke_invitation(invitation, revoked_by):
     invitation.save(update_fields=["status"])
     retire_link_tokens(PURPOSE, invitation.token_subject)
     record("invite.revoked", actor=revoked_by, target=invitation)
+    activity.record(
+        "invite_revoked",
+        company_id=invitation.company_id,
+        actor=revoked_by,
+        target_kind="invitation",
+        target_id=invitation.pk,
+    )
 
 
 def describe_invitations(company):
@@ -199,4 +221,11 @@ def accept_invitation(token, name, password):
     invitation.save(update_fields=["status"])
     retire_link_tokens(PURPOSE, invitation.token_subject)
     record("invite.accepted", actor=member, target=invitation)
+    activity.record(
+        "invite_accepted",
+        company_id=invitation.company_id,
+        actor=member,
+        target_kind="invitation",
+        target_id=invitation.pk,
+    )
     return member

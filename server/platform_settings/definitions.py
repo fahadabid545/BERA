@@ -121,6 +121,7 @@ SETTINGS = [
     # Job descriptions and requirements
     SettingDefinition("jobs.description_max_characters", 15000, whole_number(100, 100000)),
     SettingDefinition("jobs.max_requirements_per_project", 30, whole_number(1, 200)),
+    SettingDefinition("activity.page_size", 50, whole_number(1, 500)),
     # Data retention
     SettingDefinition("retention.choices_days", [30, 90, 180, 365], list_of_whole_numbers(1, 3650)),
     SettingDefinition("retention.default_days", 180, whole_number(1, 3650)),

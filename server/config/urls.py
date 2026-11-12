@@ -7,6 +7,7 @@ urlpatterns = [
     path("api/auth/", include("twostep.urls")),
     path("api/auth/", include("adminusers.urls")),
     path("api/company/team/", include("companies.team_urls")),
+    path("api/company/activity/", include("activity.urls")),
 ]
 
 handler404 = "core.views.not_found"

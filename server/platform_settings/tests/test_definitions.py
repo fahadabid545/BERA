@@ -10,6 +10,7 @@ EXPECTED_DEFAULTS = {
     "passwords.max_length": 128,
     "tokens.access_minutes": 15,
     "tokens.refresh_days": 7,
+    "activity.page_size": 50,
     "security.alert_cooldown_minutes": 60,
     "security.download_alert_window_minutes": 60,
     "security.download_alert_threshold": 200,

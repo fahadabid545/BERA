@@ -24,6 +24,7 @@ MEMBER_MAY = [
     "report.share",
 ]
 MEMBER_MAY_NOT = [
+    "activity.view",
     "team.invite",
     "team.remove",
     "billing.view",

@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "signin",
     "twostep",
     "audit",
+    "activity",
 ]
 
 # Development only (see development.py): the country the sign-up form pretends the visitor is in.

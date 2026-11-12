@@ -28,6 +28,7 @@ ROLES_ALLOWED = {
     "candidate.delete": EVERYONE,
     "report.download": EVERYONE,
     "report.share": EVERYONE,
+    "activity.view": OWNER_ONLY,
     "team.invite": OWNER_ONLY,
     "team.remove": OWNER_ONLY,
     "billing.view": OWNER_ONLY,

@@ -336,6 +336,23 @@ Every active super admin is emailed at their own address, at most once per kind 
 (`security.alert_cooldown_minutes`). With no active super admin nothing is sent. To check that
 alerts arrive: `python manage.py send_test_security_alert`.
 
+### Company activity log
+
+`activity/` keeps what a company's team did (uploads, stage changes, downloads, shares, invites,
+removals, setting changes), for the Activity tab later. It is separate from project data and from
+the admin audit log. Each entry holds who (their number and the name they had then, so it stays
+readable after they are removed), what, when and the item concerned, never CV text, passwords or
+addresses. Kinds are listed in `activity/events.py`; the ones marked "not built yet" must be
+recorded by the ticket that builds them, with `activity.service.record(...)`.
+
+- **Reading:** `GET /api/company/activity/`, owner only (`activity.view`), newest first, in pages
+  (`activity.page_size`, continue with `?before=<next_before>`). It only ever shows the signed-in
+  company's own entries.
+- **Retention:** every company follows `retention.default_days` until companies can choose their
+  own (Profile and company settings ticket). Older entries are not listed, and
+  `activity.service.purge_expired_entries` deletes them; it still has to be scheduled as a
+  periodic job.
+
 ### Company data isolation
 
 A company can only reach its own data: through `core/scoping.py`, lists, searches, single

@@ -29,6 +29,7 @@ AREAS = {
         "companies/tests/test_role_matrix.py",
         "companies/tests/test_invites.py",
         "adminusers/tests/test_admin_roles.py",
+        "activity/tests/test_activity_log.py",
         "twostep/tests/test_company_requirement.py",
     ],
     "wrong-company access for every kind of object": [
