@@ -3,6 +3,7 @@ way in, and it works only while no admin exists at all (a removed admin still co
 
 from django.db import connection, transaction
 
+from audit.service import record
 from core.errors import AppError
 from core.field_protection import normalize_email
 from core.passwords import password_problems
@@ -25,4 +26,5 @@ def create_first_super_admin(*, name, email, password):
         admin = AdminUser(name=name, email=normalize_email(email), role=AdminUser.Role.SUPER)
         admin.set_password(password)
         admin.save()
+        record("admin.first_super_admin_created", target=admin)
     return admin

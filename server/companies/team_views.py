@@ -60,7 +60,7 @@ class InviteResend(InvitationView):
 
 class InviteRevoke(InvitationView):
     def delete(self, request, id):
-        revoke_invitation(self.get_object())
+        revoke_invitation(self.get_object(), self.inviter())
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

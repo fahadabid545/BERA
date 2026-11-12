@@ -9,6 +9,7 @@ from core.tests.factories import make_admin_user, make_company_user, start_sessi
 from signin import service
 
 pytestmark = pytest.mark.django_db
+REASON = "Fake reason for the test."
 
 # The matrix as BERA-093 states it, written out again on purpose: changing a rule in
 # role_matrix.py must also change this list, so a rule never changes by accident.
@@ -97,7 +98,7 @@ class TestChangesApplyAtOnce:
         admin = make_admin_user(role="support")
         client = client_for(admin)
         assert do(client, "plan.change").status_code == 403
-        change_role(admin.pk, "super")
+        change_role(admin.pk, "super", by=admin, reason=REASON)
         assert do(client, "plan.change").status_code == 200
 
     def test_demoting_a_super_admin_takes_the_rights_away_with_the_same_token(self):
@@ -105,7 +106,7 @@ class TestChangesApplyAtOnce:
         admin = make_admin_user(role="super")
         client = client_for(admin)
         assert do(client, "admin_user.manage").status_code == 200
-        change_role(admin.pk, "support")
+        change_role(admin.pk, "support", by=admin, reason=REASON)
         assert do(client, "admin_user.manage").status_code == 403
         assert do(client, "job.retry").status_code == 200
 
@@ -123,7 +124,7 @@ class TestChangesApplyAtOnce:
         make_admin_user(role="super")
         admin = make_admin_user(role="super")
         client = client_for(admin)
-        set_status(admin.pk, "blocked")
+        set_status(admin.pk, "blocked", by=admin, reason=REASON)
         assert do(client, "job.view").status_code == 401
 
 
@@ -131,7 +132,7 @@ class TestTheLastSuperAdmin:
     def test_the_only_super_admin_cannot_be_demoted(self):
         admin = make_admin_user(role="super")
         with pytest.raises(AppError) as error:
-            change_role(admin.pk, "support")
+            change_role(admin.pk, "support", by=admin, reason=REASON)
         assert error.value.code == "last_super_admin" and error.value.message == LAST_SUPER_ADMIN
         admin.refresh_from_db()
         assert admin.role == "super"
@@ -141,7 +142,7 @@ class TestTheLastSuperAdmin:
         admin = make_admin_user(role="super")
         make_admin_user(role="support")  # support does not count
         with pytest.raises(AppError) as error:
-            set_status(admin.pk, status)
+            set_status(admin.pk, status, by=admin, reason=REASON)
         assert error.value.code == "last_super_admin"
         admin.refresh_from_db()
         assert admin.status == "active"
@@ -151,27 +152,27 @@ class TestTheLastSuperAdmin:
         make_admin_user(role="super", status="blocked")
         make_admin_user(role="super", status="removed")
         with pytest.raises(AppError):
-            change_role(admin.pk, "support")
+            change_role(admin.pk, "support", by=admin, reason=REASON)
 
     def test_with_another_active_super_admin_the_change_is_allowed(self):
         admin = make_admin_user(role="super")
         make_admin_user(role="super")
-        assert change_role(admin.pk, "support").role == "support"
+        assert change_role(admin.pk, "support", by=admin, reason=REASON).role == "support"
 
     def test_two_super_admins_cannot_both_leave(self):
         first, second = make_admin_user(role="super"), make_admin_user(role="super")
-        change_role(first.pk, "support")
+        change_role(first.pk, "support", by=first, reason=REASON)
         with pytest.raises(AppError):
-            set_status(second.pk, "removed")
+            set_status(second.pk, "removed", by=second, reason=REASON)
 
     def test_changes_that_keep_the_super_admin_are_fine(self):
         admin = make_admin_user(role="super")
-        assert change_role(admin.pk, "super").role == "super"
-        assert set_status(admin.pk, "active").status == "active"
+        assert change_role(admin.pk, "super", by=admin, reason=REASON).role == "super"
+        assert set_status(admin.pk, "active", by=admin, reason=REASON).status == "active"
 
     def test_support_can_be_removed_and_a_removed_super_admin_can_return(self):
         make_admin_user(role="super")
         support = make_admin_user(role="support")
-        assert set_status(support.pk, "removed").status == "removed"
+        assert set_status(support.pk, "removed", by=support, reason=REASON).status == "removed"
         gone = make_admin_user(role="super", status="removed")
-        assert set_status(gone.pk, "active").status == "active"
+        assert set_status(gone.pk, "active", by=gone, reason=REASON).status == "active"

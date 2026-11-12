@@ -7,6 +7,7 @@ import pyotp
 from django.db.models import Q
 
 from adminusers.models import AdminUser
+from audit.service import record
 from companies.models import CompanyUser
 from core.errors import AppError
 from platform_settings.service import get_setting
@@ -48,6 +49,8 @@ def _wrong_code(person):
 
 def _refuse_wrong_code(person):
     """Counts the failure toward a pause of its own, apart from wrong passwords."""
+    # The password was right, so this is someone signing in who gave a wrong code.
+    record("auth.two_step_failed", target=person)
     guess_limit.record_failure(person.email, _wrong_code(person), scope=code_scope(person))
 
 

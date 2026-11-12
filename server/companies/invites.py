@@ -10,6 +10,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Exists, OuterRef
 from django.utils import timezone
 
+from audit.service import record
 from core.errors import AppError
 from core.field_protection import normalize_email
 from emailing.link_tokens import (
@@ -104,6 +105,7 @@ def invite_member(owner, email):
             raise _limit_reached(limit)
         invitation = Invitation.objects.create(company=company, email=email, invited_by=owner)
         _send_invitation(invitation, owner.name, company.name)
+        record("invite.sent", actor=owner, target=invitation)
     return invitation
 
 
@@ -118,14 +120,16 @@ def resend_invitation(invitation, inviter):
         if seats_in_use(company, ignoring=invitation) >= limit:
             raise _limit_reached(limit)
         _send_invitation(invitation, inviter.name, company.name)
+        record("invite.resent", actor=inviter, target=invitation)
 
 
-def revoke_invitation(invitation):
+def revoke_invitation(invitation, revoked_by):
     if invitation.status != Invitation.Status.PENDING:
         raise AppError("invitation_closed", "This invitation is no longer open.", status_code=409)
     invitation.status = Invitation.Status.REVOKED
     invitation.save(update_fields=["status"])
     retire_link_tokens(PURPOSE, invitation.token_subject)
+    record("invite.revoked", actor=revoked_by, target=invitation)
 
 
 def describe_invitations(company):
@@ -194,4 +198,5 @@ def accept_invitation(token, name, password):
     invitation.status = Invitation.Status.ACCEPTED
     invitation.save(update_fields=["status"])
     retire_link_tokens(PURPOSE, invitation.token_subject)
+    record("invite.accepted", actor=member, target=invitation)
     return member

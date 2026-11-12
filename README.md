@@ -304,6 +304,25 @@ server (403) if requested directly. The role is read from the database on every 
 change applies at once. `adminusers/admin_accounts.py` (`change_role`, `set_status`) refuses to
 demote, block or remove the last active super admin.
 
+### Audit log
+
+`audit/` keeps a permanent record of important actions: who (`actor_kind` and `actor_id`), what
+(`kind`), when, which company or person, and the written reason where one is required. Every kind
+is listed in `audit/events.py`; to log a new action, add its kind there and call
+`audit.service.record(kind, actor=…, target=…, reason=…, details=…)` in the same transaction as
+the change. The kinds marked "not built yet" there (member removed, project deleted, export,
+retention change, plan change and the admin ones) must be recorded by the ticket that builds them.
+
+- **Reason:** every admin action that changes another account or a company needs a written
+  reason (`reason_required` in the list). Without it the action is refused and undone.
+- **Permanent:** the app cannot update or delete an entry (model and queryset refuse), and a
+  database trigger refuses it too, even for direct queries.
+- **No secrets:** passwords, tokens, codes, email addresses and CV text are never recorded:
+  `details` accepts only short plain values and refuses names that suggest a secret. A failed login
+  names the account tried, never the typed address.
+- Entries hold plain numbers, not links, so they outlive the accounts they are about. The viewer
+  comes with the Audit log page.
+
 ### Company data isolation
 
 A company can only reach its own data: through `core/scoping.py`, lists, searches, single

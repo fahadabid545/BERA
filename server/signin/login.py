@@ -10,6 +10,7 @@ import functools
 
 from django.contrib.auth.hashers import check_password, is_password_usable, make_password
 
+from audit.service import record
 from companies.models import Company, CompanyUser
 from core.errors import AppError
 from core.field_protection import normalize_email
@@ -49,6 +50,8 @@ def check_login(email, password):
     person = CompanyUser.objects.filter(email=email).select_related("company").first()
     password_ok = password_matches(person, password)
     if not password_ok or person.status != CompanyUser.Status.ACTIVE:
+        # Nobody is signed in, so the entry names the account tried, never the typed address.
+        record("auth.login_failed", target=person)
         guess_limit.record_failure(email, _wrong_credentials())
 
     # From here the password was right, so saying more is no help to a guesser.

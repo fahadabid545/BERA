@@ -35,6 +35,9 @@ AREAS = {
         "signin/tests/test_object_permissions.py",
         "signin/tests/test_company_isolation.py",
     ],
+    "audit log: complete, permanent, free of secrets": [
+        "audit/tests/test_audit_log.py",
+    ],
     "hostile input": [
         "core/tests/test_hostile_input.py",
         "core/tests/test_browser_protection.py",

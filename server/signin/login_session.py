@@ -2,6 +2,8 @@
 
 from rest_framework.response import Response
 
+from audit.service import record
+
 from . import service
 from .cookies import set_session_cookies
 from .kinds import ADMIN, COMPANY
@@ -14,6 +16,7 @@ def finish_company_login(request, person, extra=None):
         user_id=person.pk, role=person.role, company_id=person.company_id, kind=COMPANY
     )
     notify_if_new_sign_in(person, request)
+    record("auth.login", actor=person)
     response = Response({"status": "ok", **(extra or {})})  # the tokens travel only in cookies
     set_session_cookies(response, COMPANY, issued)
     return response
@@ -21,6 +24,7 @@ def finish_company_login(request, person, extra=None):
 
 def finish_admin_login(admin):
     issued = service.start_session(user_id=admin.pk, role=admin.role, company_id=None, kind=ADMIN)
+    record("auth.login", actor=admin)
     response = Response({"status": "ok"})
     set_session_cookies(response, ADMIN, issued)
     return response
