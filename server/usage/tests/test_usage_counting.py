@@ -208,10 +208,13 @@ class TestPerProject:
 
 
 class TestOnlyTheServerCanChangeCounters:
-    def test_no_route_reaches_the_counters(self):
+    def test_no_route_can_change_the_counters(self):
         from core.tests.test_route_protection import all_routes
 
-        assert not [r for r, _ in all_routes() if "usage" in r]
+        writes = ("post", "put", "patch", "delete")
+        for route, view in all_routes():
+            if "usage" in route:
+                assert not [m for m in writes if hasattr(view.cls, m)], route
 
 
 @pytest.mark.django_db(transaction=True)

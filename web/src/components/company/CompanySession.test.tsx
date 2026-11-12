@@ -14,7 +14,11 @@ vi.mock("@/lib/navigation", () => ({
 type Reply = { status?: number; body: unknown };
 
 function stubMe(reply: Reply | (() => Reply)) {
-  const fetchMock = vi.fn(async () => {
+  const fetchMock = vi.fn(async (path: string) => {
+    // The top-bar meter reads its own figures; these tests are about the session.
+    if (path === "/api/company/usage/") {
+      return new Response(JSON.stringify({ error: { code: "x", message: "x" } }), { status: 403 });
+    }
     const { status = 200, body } = typeof reply === "function" ? reply() : reply;
     return new Response(JSON.stringify(body), { status });
   });

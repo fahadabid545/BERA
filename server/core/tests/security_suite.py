@@ -35,6 +35,7 @@ AREAS = {
         "plans/tests/test_subscription_states.py",
         "usage/tests/test_usage_counting.py",
         "plans/tests/test_limits.py",
+        "plans/tests/test_plan_display.py",
         "activity/tests/test_activity_log.py",
         "twostep/tests/test_company_requirement.py",
     ],

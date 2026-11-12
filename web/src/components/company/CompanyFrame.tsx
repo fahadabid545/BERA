@@ -24,7 +24,7 @@ export function CompanyFrame({
       homeHref="/company"
       items={visibleNavigation(role)}
       blockedHrefs={blockedCompanyHrefs(role)}
-      topBar={<CompanyTopBar companyName={companyName} userName={userName} />}
+      topBar={<CompanyTopBar companyName={companyName} userName={userName} role={role} />}
     >
       {children}
     </PanelFrame>

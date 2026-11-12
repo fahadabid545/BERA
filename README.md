@@ -368,6 +368,20 @@ listed) above the pending invitations. API under `/api/company/team/`: `members/
   immediately, with the tokens they already have.
 - Both actions are written to the audit log and the company activity log.
 
+### Plan and usage display
+
+`GET /api/company/usage/` (owner only, `billing.view`; members get 403) returns the company's plan
+name and state, the current period dates, CVs used/limit/left (scored plus waiting, exactly what the
+monthly limit check counts), tokens used against the cap, the estimated cost stored for the period,
+projects used, a `warning` of 80 or 100 for CVs and for tokens (the percents come from the platform
+setting `usage.warning_percents`) and `refresh_seconds` (`live_updates.max_delay_seconds`). It is
+read only and shares its functions with the limit checks, so what is shown is what is enforced.
+Projects used is 0 until projects exist (`plans/summary.py::projects_in_use`).
+
+The company top bar shows the owner a small meter (CVs used of the limit) that re-reads on that
+interval and opens a popup with the full figures and warnings in words. The full Usage tab and the
+billing pages come in their own tickets.
+
 ### Limit enforcement
 
 `plans/limits.py` answers whether one more thing fits the plan. Each check returns allowed or not,
