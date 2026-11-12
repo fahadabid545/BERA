@@ -30,6 +30,7 @@ AREAS = {
         "companies/tests/test_invites.py",
         "companies/tests/test_team_members.py",
         "adminusers/tests/test_admin_roles.py",
+        "plans/tests/test_plans.py",
         "activity/tests/test_activity_log.py",
         "twostep/tests/test_company_requirement.py",
     ],

@@ -49,7 +49,21 @@ def _checked_details(details):
     return details
 
 
-def record(kind, *, actor=None, target=None, company_id=None, reason="", details=None):
+def _checked_changes(changes):
+    """Old and new values of what an edit changed: {field: {"old": ..., "new": ...}}. The field
+    names are the code's own (never typed by a user), so only the values are checked."""
+    for name, values in changes.items():
+        if set(values) != {"old", "new"}:
+            raise ValueError(f"The change to {name!r} must hold exactly an old and a new value.")
+        for value in values.values():
+            if not isinstance(value, ALLOWED_VALUE_TYPES) or len(str(value)) > MAX_DETAIL_LENGTH:
+                raise ValueError(f"The audit change {name!r} must be short plain values.")
+    return changes
+
+
+def record(
+    kind, *, actor=None, target=None, company_id=None, reason="", details=None, changes=None
+):
     """Adds one entry. `actor` and `target` are accounts, a company or an invitation (or
     left out). A kind that needs a reason without one is refused, so call this inside the
     same transaction as the change: a refusal then undoes the change too."""
@@ -61,6 +75,9 @@ def record(kind, *, actor=None, target=None, company_id=None, reason="", details
         )
     actor_kind, actor_id, actor_company = _who(actor)
     target_kind, target_id, target_company = _what(target)
+    details = _checked_details(details or {})
+    if changes:
+        details = {**details, "changes": _checked_changes(changes)}
     return AuditEvent.objects.create(
         kind=kind,
         actor_kind=actor_kind,
@@ -69,5 +86,5 @@ def record(kind, *, actor=None, target=None, company_id=None, reason="", details
         target_kind=target_kind,
         target_id=str(target_id) if target_id is not None else "",
         reason=reason[:MAX_REASON_LENGTH],
-        details=_checked_details(details or {}),
+        details=details,
     )

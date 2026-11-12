@@ -368,6 +368,28 @@ listed) above the pending invitations. API under `/api/company/team/`: `members/
   immediately, with the tokens they already have.
 - Both actions are written to the audit log and the company activity log.
 
+### Plans management
+
+Super admins manage the subscription plans under `/api/admin/plans/` (list and create; read,
+`PATCH` and `DELETE` on `<id>/`). API only; the Admin Plans and Pricing pages and the public
+pricing route (which needs the visitor's country) come with later tickets.
+
+- **Fields:** name, short description, USD price per month, optional PKR price, CVs per month, CVs
+  per project, maximum projects, maximum team accounts (including the owner), maximum top-N,
+  monthly AI token cap, status (active, hidden, archived) and display order. Plans are monthly; no
+  rollover. Limits are positive whole numbers; prices are positive with two decimals.
+- **Starting plans** (data migration, hidden): Starter 250 CVs / 3,000 PKR, Growth 500 CVs /
+  5,000 PKR, Scale 7,000 PKR. The USD prices, the Scale CV count and the other limits are set by the
+  owner. A plan cannot be active until every number except the PKR price is filled in.
+- **Subscribers:** price and limit changes never reach current subscribers silently. They wait as
+  a pending change until renewal (`plans.service.apply_pending_change`, for the Subscription
+  states ticket to call) unless the edit says `"apply": "now"`. Name, description, order and
+  status apply at once. `plans/subscribers.py` (`subscriber_count`) returns 0 until subscriptions
+  exist. A plan with subscribers can be archived but not deleted.
+- **Pricing page:** `plans.service.active_plans()` returns only active plans, in display order.
+- **Audit:** create, change and delete are written with the old and new values; a change or delete
+  needs a written reason. Only super admins can do any of it.
+
 ### Company data isolation
 
 A company can only reach its own data: through `core/scoping.py`, lists, searches, single

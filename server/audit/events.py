@@ -46,7 +46,9 @@ KINDS = _kinds(
     EventKind("admin.status_changed", reason_required=True),
     EventKind("admin.member_blocked", reason_required=True),  # not built yet
     EventKind("admin.member_unblocked", reason_required=True),  # not built yet
-    EventKind("admin.plan_changed", reason_required=True),  # not built yet
+    EventKind("admin.plan_created"),
+    EventKind("admin.plan_changed", reason_required=True),
+    EventKind("admin.plan_deleted", reason_required=True),
     EventKind("admin.free_subscription_granted", reason_required=True),  # not built yet
     EventKind("admin.limit_changed", reason_required=True),  # not built yet
     EventKind("admin.two_step_reset", reason_required=True),  # not built yet

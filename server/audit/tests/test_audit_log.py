@@ -71,6 +71,7 @@ class TestTheWrittenReason:
             "admin.member_blocked",
             "admin.member_unblocked",
             "admin.plan_changed",
+            "admin.plan_deleted",
             "admin.free_subscription_granted",
             "admin.limit_changed",
             "admin.two_step_reset",
