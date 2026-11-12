@@ -85,18 +85,34 @@ describe("sidebar items", () => {
     expect(current.map((link) => link.textContent)).toEqual(["Companies"]);
   });
 
-  it("shows support admins the six main items but not Advanced", () => {
-    expect(visibleAdminNavigation("support").map((item) => item.label)).toEqual([
+  it("shows support admins only Dashboard, Companies and Operations", () => {
+    const items = visibleAdminNavigation("support");
+    expect(items.map((item) => item.label)).toEqual(["Dashboard", "Companies", "Operations"]);
+    expect(items[2].children?.map((child) => child.label)).toEqual([
+      "Jobs",
+      "Announcements",
+      "Data requests",
+    ]);
+    renderFrame("support");
+    for (const name of ["Advanced", "AI", "Settings", "Plans and Pricing"]) {
+      expect(within(sidebar()).queryByRole("button", { name })).toBeNull();
+      expect(within(sidebar()).queryByRole("link", { name })).toBeNull();
+    }
+    expect(within(sidebar()).getAllByRole("link").length).toBeGreaterThan(0);
+  });
+
+  it("shows super admins every item, including Payments", () => {
+    expect(visibleAdminNavigation("super").map((item) => item.label)).toEqual([
       "Dashboard",
       "Companies",
       "Plans and Pricing",
       "AI",
       "Operations",
       "Settings",
+      "Advanced",
     ]);
-    renderFrame("support");
-    expect(within(sidebar()).queryByRole("button", { name: "Advanced" })).toBeNull();
-    expect(within(sidebar()).getAllByRole("link").length).toBeGreaterThan(0);
+    const operations = visibleAdminNavigation("super").find((item) => item.label === "Operations");
+    expect(operations?.children?.map((child) => child.label)).toContain("Payments");
   });
 });
 
@@ -237,8 +253,16 @@ describe("Advanced section", () => {
     ).toBeNull();
   });
 
-  it("blocks only Advanced, and only for support admins", () => {
-    expect(blockedAdminHrefs("support")).toEqual(["/admin/advanced"]);
+  it("blocks every super-admin-only address, and only for support admins", () => {
+    expect(blockedAdminHrefs("support").sort()).toEqual(
+      [
+        "/admin/plans",
+        "/admin/ai",
+        "/admin/settings",
+        "/admin/advanced",
+        "/admin/operations/payments",
+      ].sort(),
+    );
     expect(blockedAdminHrefs("super")).toEqual([]);
   });
 
@@ -248,19 +272,31 @@ describe("Advanced section", () => {
     expect(screen.getByRole("main").textContent).toBe("Page content");
   });
 
-  it.each(["/admin/advanced", "/admin/advanced/limits", "/admin/advanced/maintenance"])(
-    "shows a support admin who types %s the no-access page, inside the frame",
-    (address) => {
-      pathname.current = address;
-      renderFrame("support");
-      expect(screen.getByRole("heading", { name: "You do not have access" })).toBeTruthy();
-      expect(screen.queryByText("Page content")).toBeNull();
-      expect(screen.getByRole("navigation", { name: "Admin" })).toBeTruthy();
-    },
-  );
+  it.each([
+    "/admin/advanced",
+    "/admin/advanced/limits",
+    "/admin/advanced/maintenance",
+    "/admin/plans",
+    "/admin/ai/models",
+    "/admin/settings/audit-log",
+    "/admin/settings/admins",
+    "/admin/operations/payments",
+  ])("shows a support admin who types %s the no-access page, inside the frame", (address) => {
+    pathname.current = address;
+    renderFrame("support");
+    expect(screen.getByRole("heading", { name: "You do not have access" })).toBeTruthy();
+    expect(screen.queryByText("Page content")).toBeNull();
+    expect(screen.getByRole("navigation", { name: "Admin" })).toBeTruthy();
+  });
 
   it("still shows support admins their own pages and does not block look-alike addresses", () => {
-    for (const address of ["/admin/companies", "/admin/advanced-old"]) {
+    for (const address of [
+      "/admin/companies",
+      "/admin/advanced-old",
+      "/admin/operations/jobs",
+      "/admin/operations/data-requests",
+      "/admin/operations/payments-old",
+    ]) {
       pathname.current = address;
       const { unmount } = renderFrame("support");
       expect(screen.getByRole("main").textContent).toBe("Page content");

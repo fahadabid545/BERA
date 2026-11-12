@@ -292,6 +292,18 @@ yet sets one up at that point. There is no public admin sign up and no recovery 
 - **Lost device:** another super admin must reset the authenticator; the wrong-code message says
   so. The reset action is built with admin controls (BERA-093/094), after the audit log exists.
 
+### Admin roles
+
+`adminusers/role_matrix.py` is the one place that says what each admin role may do; a route names
+an action (`require_action(request.user, "plan.change")`) and never lists roles. Support may view
+companies, usage and jobs, block or unblock a team member, retry or cancel jobs, handle data
+requests and read announcements. Everything else (plans, prices, AI, settings, limits,
+subscriptions, admin users, Payments, the Audit log and Advanced) is super admin only: hidden in
+the menu (`components/admin/navigation.ts`), shown "no access" if typed in, and refused by the
+server (403) if requested directly. The role is read from the database on every request, so a
+change applies at once. `adminusers/admin_accounts.py` (`change_role`, `set_status`) refuses to
+demote, block or remove the last active super admin.
+
 ### Company data isolation
 
 A company can only reach its own data: through `core/scoping.py`, lists, searches, single

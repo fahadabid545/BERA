@@ -15,11 +15,21 @@ export type NavigationItem<Role extends string> = {
   /** For a guarded item some of whose pages everyone may open: only these addresses are
    * refused, instead of the item's own address and everything below it. */
   guardedHrefs?: readonly string[];
-  children?: readonly { label: string; href: string }[];
+  /** A child only some of the item's roles may open; leave out to follow the item. */
+  children?: readonly NavigationChild<Role>[];
+};
+
+export type NavigationChild<Role extends string> = {
+  label: string;
+  href: string;
+  roles?: readonly Role[];
 };
 
 /** What the sidebar draws: an item that has already been filtered for the user's role. */
-export type SidebarItem = Omit<NavigationItem<string>, "roles" | "guarded" | "guardedHrefs">;
+export type SidebarItem = Omit<
+  NavigationItem<string>,
+  "roles" | "guarded" | "guardedHrefs" | "children"
+> & { children?: readonly { label: string; href: string }[] };
 
 export function visibleItems<Role extends string>(
   items: readonly NavigationItem<Role>[],
@@ -27,7 +37,16 @@ export function visibleItems<Role extends string>(
 ): SidebarItem[] {
   return items
     .filter((item) => item.roles.includes(role))
-    .map(({ roles: _roles, guarded: _guarded, guardedHrefs: _guardedHrefs, ...item }) => item);
+    .map(
+      ({ roles: _roles, guarded: _guarded, guardedHrefs: _guardedHrefs, children, ...item }) => ({
+        ...item,
+        ...(children && {
+          children: children
+            .filter((child) => !child.roles || child.roles.includes(role))
+            .map(({ label, href }) => ({ label, href })),
+        }),
+      }),
+    );
 }
 
 /** Addresses this role must see the "no access" page for, even if it types them in. */
@@ -35,9 +54,16 @@ export function blockedHrefs<Role extends string>(
   items: readonly NavigationItem<Role>[],
   role: Role,
 ): string[] {
-  return items
+  const blockedItems = items
     .filter((item) => item.guarded && !item.roles.includes(role))
     .flatMap((item) => item.guardedHrefs ?? [item.href]);
+  // Pages of an item the role may open, which it may not open itself.
+  const blockedChildren = items
+    .filter((item) => item.roles.includes(role))
+    .flatMap((item) => item.children ?? [])
+    .filter((child) => child.roles && !child.roles.includes(role))
+    .map((child) => child.href);
+  return [...blockedItems, ...blockedChildren];
 }
 
 export function isCurrentPath(pathname: string, href: string, exact = false): boolean {
