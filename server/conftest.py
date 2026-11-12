@@ -35,5 +35,9 @@ def fresh_platform_settings():
 def pytest_collection_modifyitems(items):
     """The security suite is the test files named in core/tests/security_suite.py."""
     for item in items:
-        if Path(item.fspath).relative_to(SERVER_ROOT).as_posix() in SECURITY_TEST_FILES:
+        path = Path(item.fspath)
+        # Tests outside the server folder (the scripts tests) are not part of the suite.
+        if path.is_relative_to(SERVER_ROOT) and (
+            path.relative_to(SERVER_ROOT).as_posix() in SECURITY_TEST_FILES
+        ):
             item.add_marker(pytest.mark.security)

@@ -43,13 +43,13 @@ def test_every_file_of_the_suite_exists_and_holds_tests(path):
 
 
 def test_the_suite_is_marked_so_it_can_run_alone(request):
-    marked = {
-        Path(item.fspath).relative_to(SERVER_ROOT).as_posix()
-        for item in request.session.items
-        if item.get_closest_marker("security")
-    }
+    inside = [
+        item for item in request.session.items if Path(item.fspath).is_relative_to(SERVER_ROOT)
+    ]
+
+    def name(item):
+        return Path(item.fspath).relative_to(SERVER_ROOT).as_posix()
+
+    marked = {name(item) for item in inside if item.get_closest_marker("security")}
     # Under a partial run (one file) only the collected files can be marked.
-    collected = {
-        Path(item.fspath).relative_to(SERVER_ROOT).as_posix() for item in request.session.items
-    }
-    assert marked == SECURITY_TEST_FILES & collected
+    assert marked == SECURITY_TEST_FILES & {name(item) for item in inside}
