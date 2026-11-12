@@ -368,6 +368,26 @@ listed) above the pending invitations. API under `/api/company/team/`: `members/
   immediately, with the tokens they already have.
 - Both actions are written to the audit log and the company activity log.
 
+### Usage counting
+
+`usage/service.py` counts what each company uses, per company, per project and per billing period.
+Periods are monthly, starting on the subscription's start day (the sign-up day before any
+subscription; short months use their last day), are stored and kept for ever. There is no route:
+only the server's own work writes counters, so a company cannot change its own.
+
+- `accept_cv` when a file is accepted: fixes the period the CV counts in and records it in a ledger
+  (`CvUsage`). Calling it again for the same CV changes nothing. Rejected files and skipped
+  duplicates never reach it.
+- `mark_scored` when scoring succeeds: counts the CV once, in the period it was accepted in.
+  Re-scoring returns False and adds nothing. `mark_failed` gives the allowance back (the CV is
+  never counted). `waiting_cvs` counts accepted CVs still waiting, for the monthly limit.
+- `add_tokens` (tokens in and out and the estimated cost, passed in by the AI usage tracking):
+  work on a CV, re-scoring included, counts in the period the CV was accepted in, whenever the
+  call ran. Work with no CV counts in the period now.
+- `current_usage`, `usage_history`: totals and per-project figures. Reading creates nothing.
+- Every change locks the company's row first, so parallel uploads are never double counted or
+  missed.
+
 ### Subscription states
 
 Each company has one `Subscription` (plan, state, period start and end, renewal on or off). States:

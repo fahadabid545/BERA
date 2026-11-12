@@ -44,7 +44,15 @@ KINDS_NAMED_IN_THE_TICKET = {
 # Invitation: companies/tests/test_invites.py (own company's list, resend and revoke only).
 # ActivityEntry: activity/tests/test_activity_log.py (the list holds only the own company's).
 # Subscription: plans/tests/test_subscription_states.py (companies are kept apart).
-REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {"Invitation", "ActivityEntry", "Subscription"}
+# UsagePeriod, UsageCounter, CvUsage: usage/tests/test_usage_counting.py (kept apart per company).
+REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
+    "Invitation",
+    "ActivityEntry",
+    "Subscription",
+    "UsagePeriod",
+    "UsageCounter",
+    "CvUsage",
+}
 
 
 @pytest.fixture(autouse=True)

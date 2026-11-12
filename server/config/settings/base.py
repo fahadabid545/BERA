@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "audit",
     "activity",
     "plans",
+    "usage",
 ]
 
 # Development only (see development.py): the country the sign-up form pretends the visitor is in.
