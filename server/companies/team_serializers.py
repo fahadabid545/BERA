@@ -20,3 +20,8 @@ class AcceptInviteSerializer(StrictSerializer):
         if values["password"] != values["confirm_password"]:
             raise serializers.ValidationError({"confirm_password": "The passwords do not match."})
         return values
+
+
+class TransferOwnershipSerializer(StrictSerializer):
+    member_id = serializers.IntegerField(min_value=1)
+    password = PasswordTextField()

@@ -353,6 +353,21 @@ recorded by the ticket that builds them, with `activity.service.record(...)`.
   `activity.service.purge_expired_entries` deletes them; it still has to be scheduled as a
   periodic job.
 
+### Team management
+
+The Team page (owner only) lists the members (name, email, role, status; removed people are not
+listed) above the pending invitations. API under `/api/company/team/`: `members/` (list),
+`members/<id>/` (DELETE removes), `transfer-ownership/` (POST `member_id` and the owner's
+`password`).
+
+- **Removing:** the person's status becomes removed, which ends their sessions at once. Their
+  work and their row stay with the company, and the activity log keeps their name. The owner can
+  never be removed, so there is always exactly one owner; the owner hands the company over first.
+- **Handing over:** needs the owner's password (wrong entries count toward the login pause),
+  and only an active member of the same company can receive it. Both people's rights change
+  immediately, with the tokens they already have.
+- Both actions are written to the audit log and the company activity log.
+
 ### Company data isolation
 
 A company can only reach its own data: through `core/scoping.py`, lists, searches, single

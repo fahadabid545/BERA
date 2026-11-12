@@ -33,7 +33,8 @@ KINDS = _kinds(
     EventKind("invite.resent"),
     EventKind("invite.revoked"),
     EventKind("invite.accepted"),
-    EventKind("team.member_removed"),  # not built yet
+    EventKind("team.member_removed"),
+    EventKind("team.ownership_transferred"),
     EventKind("project.deleted"),  # not built yet
     EventKind("export.created"),  # not built yet
     EventKind("retention.changed"),  # not built yet

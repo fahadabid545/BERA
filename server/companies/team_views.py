@@ -19,7 +19,12 @@ from .invites import (
     revoke_invitation,
 )
 from .models import CompanyUser, Invitation
-from .team_serializers import AcceptInviteSerializer, InviteSerializer
+from .team import hand_over_company, remove_member, team_members
+from .team_serializers import (
+    AcceptInviteSerializer,
+    InviteSerializer,
+    TransferOwnershipSerializer,
+)
 
 
 class InvitationView(CompanyObjectView):
@@ -62,6 +67,55 @@ class InviteRevoke(InvitationView):
     def delete(self, request, id):
         revoke_invitation(self.get_object(), self.inviter())
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MemberView(CompanyObjectView):
+    """People of the owner's own company. Only the owner may use any of these routes."""
+
+    queryset = CompanyUser.objects.all()
+
+    def owner(self):
+        return CompanyUser.objects.select_related("company").get(pk=self.request.user.user_id)
+
+
+class MemberList(MemberView):
+    required_action = "team.view"
+
+    def get(self, request):
+        self.get_queryset()  # checks the company and the owner's role
+        return Response(
+            [
+                {
+                    "id": member.pk,
+                    "name": member.name,
+                    "email": member.email,
+                    "role": member.role,
+                    "status": member.status,
+                }
+                for member in team_members(request.user.company_id)
+            ]
+        )
+
+
+class MemberRemove(MemberView):
+    required_action = "team.remove"
+
+    def delete(self, request, id):
+        self.get_queryset()
+        remove_member(self.owner(), id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class OwnershipTransfer(MemberView):
+    required_action = "team.transfer_ownership"
+
+    def post(self, request):
+        self.get_queryset()
+        serializer = TransferOwnershipSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        values = serializer.validated_data
+        hand_over_company(self.owner(), values["member_id"], values["password"])
+        return Response({"status": "ok"})
 
 
 @api_view(["POST"])

@@ -25,8 +25,10 @@ MEMBER_MAY = [
 ]
 MEMBER_MAY_NOT = [
     "activity.view",
+    "team.view",
     "team.invite",
     "team.remove",
+    "team.transfer_ownership",
     "billing.view",
     "settings.change",
     "advanced.open",
