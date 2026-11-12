@@ -71,6 +71,16 @@ def validation_error(exc):
     return AppError("validation_error", summary, status_code=400, fields=fields or None)
 
 
+def _record_refusal(context):
+    """A signed-in person asked for something their role may not do. Visitors are not
+    recorded: they get "not signed in" instead, and cost nothing to repeat."""
+    from audit.security import record_security_event  # late: the audit log needs the models
+
+    user = getattr(context.get("request"), "user", None)
+    if getattr(user, "is_authenticated", False):
+        record_security_event("security.permission_refused", actor=user)
+
+
 def api_exception_handler(exc, context):
     """Turn every failure into the shared `{"error": {...}}` response shape."""
     if isinstance(exc, AppError):
@@ -90,6 +100,7 @@ def api_exception_handler(exc, context):
     if isinstance(exc, (Http404, NotFound)):
         return error_response(not_found())
     if isinstance(exc, (PermissionDenied, DrfPermissionDenied)):
+        _record_refusal(context)
         return error_response(not_allowed())
     if isinstance(exc, APIException):
         return error_response(

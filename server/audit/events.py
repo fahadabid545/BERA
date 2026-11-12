@@ -23,6 +23,11 @@ KINDS = _kinds(
     EventKind("auth.login"),
     EventKind("auth.login_failed"),
     EventKind("auth.two_step_failed"),
+    # Security events; the super admins are emailed about these (audit/alerts.py).
+    EventKind("security.token_reuse"),
+    EventKind("security.permission_refused"),
+    EventKind("security.abuse_blocked"),
+    EventKind("security.download_volume"),
     # Key company actions.
     EventKind("invite.sent"),
     EventKind("invite.resent"),

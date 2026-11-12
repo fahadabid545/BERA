@@ -65,6 +65,11 @@ SETTINGS = [
     SettingDefinition("tokens.access_minutes", 15, whole_number(1, 1440)),
     SettingDefinition("tokens.refresh_days", 7, whole_number(1, 90)),
     # Admin sessions are shorter than company ones: an admin can see every company.
+    # Security alerts to the super admins: one email per kind of event per cooldown, and the
+    # number of CV downloads by one user in the window that counts as unusual.
+    SettingDefinition("security.alert_cooldown_minutes", 60, whole_number(1, 1440)),
+    SettingDefinition("security.download_alert_window_minutes", 60, whole_number(1, 1440)),
+    SettingDefinition("security.download_alert_threshold", 200, whole_number(1, 100000)),
     SettingDefinition("tokens.admin_access_minutes", 10, whole_number(1, 1440)),
     SettingDefinition("tokens.admin_refresh_hours", 8, whole_number(1, 168)),
     SettingDefinition("tokens.clock_leeway_seconds", 30, whole_number(0, 300)),

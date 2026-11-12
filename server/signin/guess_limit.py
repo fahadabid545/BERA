@@ -48,7 +48,7 @@ def record_failure(email, refusal, scope=PASSWORD_SCOPE):
     window = get_setting("signin.attempt_window_minutes") * SECONDS_PER_MINUTE
     total = rate_limits.count_in_window(_failure_counter(scope), subject, window)
     if total >= get_setting("signin.max_failed_attempts"):
-        rate_limits.block(subject, _pause_seconds())
+        rate_limits.block(subject, _pause_seconds(), why=f"{scope}_guesses")
         raise Throttled(wait=_pause_seconds())
     raise refusal
 

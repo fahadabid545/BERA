@@ -48,6 +48,7 @@ def test_the_catalog_holds_exactly_the_agreed_emails():
         "new_sign_in",
         "usage_notice",
         "payment_problem",
+        "security_alert",
     }
 
 

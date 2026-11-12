@@ -63,6 +63,17 @@ CATALOG = {
         button_label="Reset password",
         variables=("name", "when", "link"),
     ),
+    "security_alert": EmailTemplate(
+        subject="Bera security alert",
+        heading="Security alert",
+        paragraphs=(
+            GREETING,
+            "{what}",
+            "It happened on {when}. Further alerts of this kind are held back for a while.",
+        ),
+        button_label="Open the audit log",
+        variables=("name", "what", "when", "link"),
+    ),
     "email_changed": EmailTemplate(
         subject="Your Bera email address was changed",
         heading="Your email address was changed",

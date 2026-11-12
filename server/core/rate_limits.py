@@ -79,12 +79,16 @@ def seconds_blocked(subject):
     return max(0, math.ceil(remaining))
 
 
-def block(subject, seconds):
-    """Refuses everything from this subject (see seconds_blocked) for a while."""
+def block(subject, seconds, why="rate_limit"):
+    """Refuses everything from this subject (see seconds_blocked) for a while. `why` says
+    which kind of limit it was, for the security record; the subject itself is never recorded."""
+    from audit.security import record_security_event  # late: the audit log needs the models
+
     BlockedSource.objects.update_or_create(
         key=_digest("block", subject),
         defaults={"blocked_until": now() + timedelta(seconds=seconds)},
     )
+    record_security_event("security.abuse_blocked", details={"why": why, "seconds": seconds})
 
 
 def count_in_window(name, subject, window_seconds, cost=1):

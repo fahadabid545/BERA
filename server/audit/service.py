@@ -22,6 +22,8 @@ def _who(person):
         return AuditEvent.ActorKind.ADMIN, person.pk, None
     if isinstance(person, CompanyUser):
         return AuditEvent.ActorKind.COMPANY, person.pk, person.company_id
+    if hasattr(person, "kind") and hasattr(person, "user_id"):  # a sign-in or its session
+        return person.kind, person.user_id, person.company_id
     return AuditEvent.ActorKind.NONE, None, None
 
 

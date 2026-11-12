@@ -59,3 +59,11 @@ class AuditEvent(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ConfigurationError(PERMANENT)
+
+
+class AlertState(models.Model):
+    """When the super admins were last emailed about each kind of security event, so a kind
+    is announced at most once per cooldown. Not part of the record: it may be updated."""
+
+    kind = models.CharField(max_length=60, unique=True)
+    last_sent_at = models.DateTimeField()

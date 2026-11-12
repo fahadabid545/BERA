@@ -25,6 +25,10 @@ def sample_values(template_name):
             "title": "You have used 80% of your plan",
             "message": "Your company has used 80% of its included analyses this month.",
         },
+        "security_alert": {
+            **shared,
+            "what": "A sign-in token that had already been used was presented again.",
+        },
         "payment_problem": {
             **shared,
             "message": "We could not take your last payment. Please update your payment method.",

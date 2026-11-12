@@ -37,6 +37,7 @@ AREAS = {
     ],
     "audit log: complete, permanent, free of secrets": [
         "audit/tests/test_audit_log.py",
+        "audit/tests/test_security_events.py",
     ],
     "hostile input": [
         "core/tests/test_hostile_input.py",

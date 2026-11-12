@@ -323,6 +323,19 @@ retention change, plan change and the admin ones) must be recorded by the ticket
 - Entries hold plain numbers, not links, so they outlive the accounts they are about. The viewer
   comes with the Audit log page.
 
+### Security events and alerts
+
+Security events are `security.*` kinds in the audit log: a used refresh token presented again,
+a signed-in person refused an action their role may not do, a source blocked for too many
+requests or wrong attempts (recorded once per block, not per request), and more than 200 CV
+downloads by one user in an hour (`security.download_alert_threshold`; the CV download calls
+`audit.security.watch_cv_downloads(user)`). Failed logins and admin actions are audit entries
+already. Record a new security event with `audit.security.record_security_event`.
+
+Every active super admin is emailed at their own address, at most once per kind per hour
+(`security.alert_cooldown_minutes`). With no active super admin nothing is sent. To check that
+alerts arrive: `python manage.py send_test_security_alert`.
+
 ### Company data isolation
 
 A company can only reach its own data: through `core/scoping.py`, lists, searches, single

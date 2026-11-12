@@ -10,6 +10,7 @@ from django.utils import timezone
 from rest_framework.exceptions import NotAuthenticated
 
 from adminusers.models import AdminUser
+from audit.security import record_security_event
 from companies.models import Company, CompanyUser
 from platform_settings.service import get_setting
 
@@ -205,6 +206,7 @@ def refresh_session(token, kind):
                 session.save(update_fields=["status", "revoke_reason"])
     # Raised after the block so ending the session is saved, not rolled back with the error.
     if reuse_detected:
+        record_security_event("security.token_reuse", actor=session)
         logger.warning("Used refresh token presented again; the session was ended")
     raise NotAuthenticated()
 
