@@ -2,8 +2,9 @@
 
 The link in the email is a shared `LinkToken` (purpose team_invite). An invitation keeps its
 email encrypted. Seats are counted as the people of the company who have not been removed plus
-the invitations still open (pending and not expired); the limit is the platform setting
-`team.max_accounts_per_company`, which includes the owner.
+the invitations still open (pending and not expired); the limit is
+the plan's team size (or the company's own override), which includes the owner. A company
+with no plan yet keeps the platform setting `team.max_accounts_per_company`.
 """
 
 from django.db import IntegrityError, transaction
@@ -24,6 +25,7 @@ from emailing.links import build_link
 from emailing.models import LinkToken
 from emailing.rendering import duration_text
 from emailing.service import send_email
+from plans.limits import check_team_size
 from platform_settings.service import get_setting
 
 from .models import Company, CompanyUser, Invitation
@@ -34,16 +36,6 @@ HOURS_PER_DAY = 24
 ACCOUNT_EXISTS = "This email already has an account."
 ALREADY_INVITED = "This email already has a pending invitation. Resend it instead."
 COMPANY_SUSPENDED = "This company account is suspended. Please contact support."
-
-
-def _limit_reached(limit):
-    return AppError(
-        "team_limit_reached",
-        f"Your company can have at most {limit} accounts, including the owner. "
-        "Remove someone or revoke an invitation first.",
-        status_code=409,
-        details={"limit": limit},
-    )
 
 
 def _open_tokens():
@@ -101,9 +93,7 @@ def invite_member(owner, email):
             company=company, email_lookup=email, status=Invitation.Status.PENDING
         ).exists():
             raise AppError("already_invited", ALREADY_INVITED, status_code=409)
-        limit = get_setting("team.max_accounts_per_company")
-        if seats_in_use(company) >= limit:
-            raise _limit_reached(limit)
+        check_team_size(company.pk, seats_in_use(company)).raise_if_blocked()
         invitation = Invitation.objects.create(company=company, email=email, invited_by=owner)
         _send_invitation(invitation, owner.name, company.name)
         record("invite.sent", actor=owner, target=invitation)
@@ -124,9 +114,7 @@ def resend_invitation(invitation, inviter):
         raise AppError("invitation_closed", "This invitation is no longer open.", status_code=409)
     with transaction.atomic():
         company = Company.objects.select_for_update().get(pk=invitation.company_id)
-        limit = get_setting("team.max_accounts_per_company")
-        if seats_in_use(company, ignoring=invitation) >= limit:
-            raise _limit_reached(limit)
+        check_team_size(company.pk, seats_in_use(company, ignoring=invitation)).raise_if_blocked()
         _send_invitation(invitation, inviter.name, company.name)
         record("invite.resent", actor=inviter, target=invitation)
         activity.record(
@@ -197,9 +185,9 @@ def accept_invitation(token, name, password):
         raise AppError("company_suspended", COMPANY_SUSPENDED, status_code=403)
     if CompanyUser.objects.filter(email=invitation.email).exists():
         raise AppError("account_exists", ACCOUNT_EXISTS, status_code=409)
-    limit = get_setting("team.max_accounts_per_company")
-    if seats_in_use(invitation.company, ignoring=invitation) >= limit:
-        raise _limit_reached(limit)
+    check_team_size(
+        invitation.company_id, seats_in_use(invitation.company, ignoring=invitation)
+    ).raise_if_blocked()
 
     member = CompanyUser(
         company=invitation.company,

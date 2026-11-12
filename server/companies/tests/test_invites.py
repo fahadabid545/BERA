@@ -164,7 +164,7 @@ class TestTheLimit:
         response = invite(client, "c@example.test")
         assert (response.status_code, code(response)) == (409, "team_limit_reached")
         assert "at most 3 accounts" in response.json()["error"]["message"]
-        assert response.json()["error"]["details"] == {"limit": 3}
+        assert response.json()["error"]["details"] == {"limit": 3, "prompt": "upgrade"}
 
     def test_the_limit_is_the_platform_setting(self):
         setting("team.max_accounts_per_company", 2)

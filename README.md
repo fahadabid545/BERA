@@ -368,6 +368,28 @@ listed) above the pending invitations. API under `/api/company/team/`: `members/
   immediately, with the tokens they already have.
 - Both actions are written to the audit log and the company activity log.
 
+### Limit enforcement
+
+`plans/limits.py` answers whether one more thing fits the plan. Each check returns allowed or not,
+a stable `code`, a plain message, the `prompt` to show (`upgrade`, or `renewal` on the highest plan
+or when the subscription is expired) and how much room is left. `raise_if_blocked()` turns a
+refusal into the shared error with the limit and prompt in its details. The server answers; the
+Upgrade and renewal popups are built in their own ticket.
+
+- **Reading limits:** always through `limit_for(company_id, name)`: a company's own `LimitOverride`
+  (set later by the admin controls), else its plan's value, read fresh each time so a change applies
+  at once. A company with no plan has no allowance (0), except team size, which keeps the platform
+  setting `team.max_accounts_per_company` until a plan is chosen.
+- **Checks:** `check_cvs_this_month` (scored this period plus waiting; a failed CV gives its
+  allowance back), `check_cvs_per_project`, `check_projects`, `check_top_n`, `check_team_size`,
+  `check_ai_allowed` (tokens in and out against the monthly cap; AI is paused until the next period
+  or a limit increase). An expired subscription is refused by every check with the renewal prompt.
+- **Batches:** `split_batch` accepts files in order up to the room left in the month and the
+  project, and returns every other file with the code, message and prompt of the limit that ran out.
+- **Wired now:** the team invite (send, resend, accept). The project, scoring-settings, upload and
+  AI tickets call the other checks. A caller that accepts files must hold the company row lock while
+  checking and recording, so parallel uploads cannot pass a limit together.
+
 ### Usage counting
 
 `usage/service.py` counts what each company uses, per company, per project and per billing period.

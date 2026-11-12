@@ -93,3 +93,16 @@ class Subscription(CompanyOwnedModel):
                 name="subscription_state_is_known",
             ),
         ]
+
+
+class LimitOverride(CompanyOwnedModel):
+    """A limit set for one company, replacing its plan's value. Admin limit and subscription
+    controls creates and removes these; everything reads limits through `plans.limits`."""
+
+    name = models.CharField(max_length=40)
+    value = models.PositiveIntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["company", "name"], name="one_override_per_limit"),
+        ]
