@@ -1,9 +1,5 @@
-import { Button } from "@/components/ui";
+import { TeamInvites } from "@/components/company/TeamInvites";
 
 export default function TeamPage() {
-  return (
-    <div className="page-actions">
-      <Button>Invite member</Button>
-    </div>
-  );
+  return <TeamInvites />;
 }

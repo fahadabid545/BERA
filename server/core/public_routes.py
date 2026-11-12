@@ -69,6 +69,12 @@ PUBLIC_ROUTES = [
         "limited and pause the account.",
     ),
     PublicRoute(
+        route="api/auth/company/accept-invite/",
+        category="accept_invite",
+        reason="An invited colleague has no account yet. The single-use, expiring secret in "
+        "the emailed link is the credential, and the route is limited per address.",
+    ),
+    PublicRoute(
         route="api/auth/company/refresh/",
         category="login",
         reason="A company user whose short access token ended must renew it with the refresh "

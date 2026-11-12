@@ -252,6 +252,28 @@ The web menu only hides what a role cannot use. A member who types an owner-only
 page; their own Profile stays open. The panel learns who is signed in from
 `GET /api/auth/company/me/` and reads it again on every page change.
 
+### Inviting team members
+
+The owner invites colleagues from the Team page (`POST /api/company/team/invites/`; the same
+path lists pending invitations, `…/<id>/resend/` sends a new link and `DELETE …/<id>/` revokes).
+Only owners may use these routes (action `team.invite`). The link is a shared `LinkToken` with
+the purpose `team_invite`, valid `tokens.team_invite_days` (7) days, random, single-use and
+stored only as a hash; resending makes the older link stop working. The invitation itself
+(`companies.Invitation`) keeps the email encrypted and refers to its tokens by a random number.
+
+A company can have `team.max_accounts_per_company` (3) accounts including the owner. Seats are
+the people who have not been removed plus invitations still open (pending and not expired); the
+limit is checked again when an invitation is accepted. Inviting an address that already has an
+account (in any company) or a pending invitation, or going over the limit, gives a clear
+message (with the number allowed). Sending and resending share the limit of
+`rate_limits.invites_per_hour` (20) per company.
+
+The invitee opens `/accept-invite?token=…`, chooses a name and a password (the shared password
+rules) and becomes a **member** with the email already verified; accepting counts as agreeing
+to the Terms and Privacy Policy. Nobody is logged in by accepting; the page then offers to log
+in. A visitor who is logged in as someone else is asked to log out first. A refused attempt
+(weak password, address taken in the meantime, suspended company) does not use up the link.
+
 ### Company data isolation
 
 A company can only reach its own data: through `core/scoping.py`, lists, searches, single

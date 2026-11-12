@@ -1,9 +1,12 @@
+import secrets
+
 from django.db import models
 from django.db.models import Q
 
 from core.errors import AppError
-from core.models import PersonAccount
-from core.protected_fields import EncryptedTextField
+from core.field_protection import normalize_email
+from core.models import CompanyOwnedModel, PersonAccount
+from core.protected_fields import EncryptedTextField, LookupHashField
 
 from .countries import OTHER_COUNTRY
 
@@ -103,3 +106,46 @@ class CompanyUser(PersonAccount):
     def _would_leave_the_company_without_an_owner(self):
         was_owner = CompanyUser.objects.filter(pk=self.pk, role=self.Role.OWNER).exists()
         return was_owner and (self.role != self.Role.OWNER or self.status == self.Status.REMOVED)
+
+
+def new_token_subject():
+    """What the invitation's link tokens refer to. LinkToken keeps whole numbers, while an
+    invitation's own identifier is random text, so it also has a random number (62 bits, and
+    unique) that is never shown to anyone."""
+    return secrets.randbits(62)
+
+
+class Invitation(CompanyOwnedModel):
+    """An invitation to join a company, waiting to be accepted. The link in the email is a
+    shared `LinkToken` (purpose team_invite) that refers to the invitation by `token_subject`."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending"
+        ACCEPTED = "accepted"
+        REVOKED = "revoked"
+
+    # Encrypted, and found through the hash (see core/protected_fields.py).
+    email = EncryptedTextField(purpose="invitation.email")
+    email_lookup = LookupHashField(
+        of="email", purpose="invitation.email", normalize=normalize_email
+    )
+    invited_by = models.ForeignKey(
+        CompanyUser, on_delete=models.SET_NULL, null=True, related_name="+"
+    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    token_subject = models.BigIntegerField(unique=True, default=new_token_subject, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            # One open invitation per address in a company; invite again after it ended.
+            models.UniqueConstraint(
+                fields=["company", "email_lookup"],
+                condition=Q(status="pending"),
+                name="invitation_one_pending_per_email",
+            ),
+            models.CheckConstraint(
+                condition=Q(status__in=["pending", "accepted", "revoked"]),
+                name="invitation_status_is_known",
+            ),
+        ]

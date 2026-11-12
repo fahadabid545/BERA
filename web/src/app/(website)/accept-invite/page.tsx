@@ -1,18 +1,9 @@
-import { Button, Input } from "@/components/ui";
-import { NewPasswordFields } from "@/components/website/NewPasswordFields";
+import { AcceptInviteForm } from "@/components/website/AcceptInviteForm";
 
-export default function AcceptInvitePage() {
-  return (
-    <form className="page-form">
-      <Input label="Your name" name="name" autoComplete="name" />
-      <NewPasswordFields
-        passwordLabel="Password"
-        passwordName="password"
-        confirm={{ label: "Confirm password", name: "confirm-password" }}
-      />
-      <div className="page-actions">
-        <Button>Join team</Button>
-      </div>
-    </form>
-  );
+type Props = { searchParams: Promise<{ token?: string | string[] }> };
+
+export default async function AcceptInvitePage({ searchParams }: Props) {
+  const { token } = await searchParams;
+  const value = Array.isArray(token) ? token[0] : token;
+  return <AcceptInviteForm token={value ?? null} />;
 }

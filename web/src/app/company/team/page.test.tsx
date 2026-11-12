@@ -1,20 +1,19 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import TeamPage from "./page";
 
-describe("team page", () => {
-  it("shows the Invite member button and nothing else", () => {
-    const { container } = render(<TeamPage />);
-    expect(screen.getByRole("button", { name: "Invite member" })).toBeTruthy();
-    expect(container.querySelectorAll("button, a, input, select, textarea")).toHaveLength(1);
-  });
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response(JSON.stringify([]), { status: 200 })),
+  );
+});
+afterEach(() => vi.unstubAllGlobals());
 
-  it("does nothing when pressed", async () => {
-    const { container } = render(<TeamPage />);
-    const before = container.innerHTML;
-    await userEvent.click(screen.getByRole("button", { name: "Invite member" }));
-    expect(container.innerHTML).toBe(before);
+describe("team page", () => {
+  it("offers to invite a member", async () => {
+    render(<TeamPage />);
+    expect(await screen.findByRole("button", { name: "Invite member" })).toBeTruthy();
   });
 });

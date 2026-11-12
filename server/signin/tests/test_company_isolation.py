@@ -41,7 +41,8 @@ KINDS_NAMED_IN_THE_TICKET = {
 }
 # Real company data models that have their own isolation tests (add a name here, with the
 # tests, in the same change that adds the model).
-REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = set()
+# Invitation: companies/tests/test_invites.py (own company's list, resend and revoke only).
+REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {"Invitation"}
 
 
 @pytest.fixture(autouse=True)

@@ -25,6 +25,7 @@ AREAS = {
     ],
     "permissions per role": [
         "companies/tests/test_role_matrix.py",
+        "companies/tests/test_invites.py",
         "twostep/tests/test_company_requirement.py",
     ],
     "wrong-company access for every kind of object": [

@@ -75,10 +75,28 @@ export function postJson<T>(path: string, body: unknown) {
   });
 }
 
+export function deleteJson<T>(path: string) {
+  return request<T>(path, { method: "DELETE" });
+}
+
 export function putJson<T>(path: string, body: unknown) {
   return request<T>(path, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+}
+
+/** The name of the signed-in company user, or null when nobody is. Unlike other requests it
+ * never sends anyone to the login page: it is for pages that behave differently when someone
+ * is already logged in. */
+export async function whoIsSignedIn(): Promise<string | null> {
+  try {
+    const response = await send("/api/auth/company/me/", { method: "GET" });
+    if (!response.ok) return null;
+    const body = (await response.json()) as { name?: string };
+    return body.name ?? null;
+  } catch {
+    return null;
+  }
 }

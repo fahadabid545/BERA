@@ -1,7 +1,7 @@
 """One set of password rules wherever a person chooses a password.
 
 Every place that sets a password is listed here and must refuse the same passwords with the
-same reasons. When the team-invite acceptance exists it joins this list.
+same reasons.
 """
 
 import pytest
@@ -63,7 +63,29 @@ def change(password):
     )
 
 
-PLACES = {"sign up": sign_up, "reset": reset, "profile": change}
+def accept_invite(password):
+    from companies.models import Invitation
+    from core.tests.factories import make_company
+
+    invitation = Invitation.objects.create(company=make_company(), email="invitee@example.test")
+    token = issue_link_token("team_invite", invitation.token_subject, 1)
+    body = {
+        "token": token,
+        "name": "Fake Invitee",
+        "password": password,
+        "confirm_password": password,
+    }
+    return APIClient(REMOTE_ADDR="203.0.113.4").post(
+        "/api/auth/company/accept-invite/", body, format="json"
+    )
+
+
+PLACES = {
+    "sign up": sign_up,
+    "reset": reset,
+    "profile": change,
+    "accept invite": accept_invite,
+}
 
 
 @pytest.mark.parametrize("place", PLACES)
@@ -97,8 +119,9 @@ def test_the_limits_are_the_platform_settings_everywhere(place):
 
 def test_the_serializers_use_the_shared_rules():
     from companies.serializers import ResetPasswordSerializer, SignUpSerializer
+    from companies.team_serializers import AcceptInviteSerializer
 
-    for serializer in (SignUpSerializer, ResetPasswordSerializer):
+    for serializer in (SignUpSerializer, ResetPasswordSerializer, AcceptInviteSerializer):
         assert isinstance(serializer().fields["password"], PasswordField)
 
 
