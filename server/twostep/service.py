@@ -6,6 +6,7 @@ import time
 import pyotp
 from django.db.models import Q
 
+from adminusers.models import AdminUser
 from companies.models import CompanyUser
 from core.errors import AppError
 from platform_settings.service import get_setting
@@ -19,6 +20,9 @@ STEP_SECONDS = 30  # the standard authenticator step; apps assume it
 CODE_DIGITS = 6
 
 WRONG_CODE = "That code is not correct. Try again."
+ADMIN_WRONG_CODE = (
+    "That code is not correct. If you lost your device, another super admin must reset it."
+)
 LOST_DEVICE = (
     "Lost your device and your recovery codes? Contact support. "
     "We will check your identity before we can help."
@@ -29,13 +33,22 @@ REQUIRED_BY_COMPANY = "Your company requires two-step verification, so it cannot
 WRONG_PASSWORD = "Your password is incorrect."
 
 
-def _wrong_code():
-    return AppError("two_step_code_wrong", WRONG_CODE, status_code=400, fields={"code": WRONG_CODE})
+def _is_admin(person):
+    return isinstance(person, AdminUser)
+
+
+def code_scope(person):
+    return guess_limit.ADMIN_CODE_SCOPE if _is_admin(person) else guess_limit.CODE_SCOPE
+
+
+def _wrong_code(person):
+    message = ADMIN_WRONG_CODE if _is_admin(person) else WRONG_CODE
+    return AppError("two_step_code_wrong", message, status_code=400, fields={"code": message})
 
 
 def _refuse_wrong_code(person):
     """Counts the failure toward a pause of its own, apart from wrong passwords."""
-    guess_limit.record_failure(person.email, _wrong_code(), scope=guess_limit.CODE_SCOPE)
+    guess_limit.record_failure(person.email, _wrong_code(person), scope=code_scope(person))
 
 
 def _current_step():
@@ -61,7 +74,8 @@ def _matching_step(person, code):
 def _use_step(person, step):
     # Only moves forward, and only one of two simultaneous requests wins.
     claimed = (
-        CompanyUser.objects.filter(pk=person.pk)
+        type(person)
+        .objects.filter(pk=person.pk)
         .filter(Q(two_step_last_step__isnull=True) | Q(two_step_last_step__lt=step))
         .update(two_step_last_step=step)
     )
@@ -74,16 +88,17 @@ def _looks_like_app_code(code):
 
 def check_code(person, code):
     """Accepts an app code or an unused recovery code, or raises the wrong-code answer."""
-    guess_limit.refuse_if_paused(person.email, guess_limit.CODE_SCOPE)
+    guess_limit.refuse_if_paused(person.email, code_scope(person))
     code = code.strip().replace(" ", "")
     if _looks_like_app_code(code):
         step = _matching_step(person, code)
         accepted = step is not None and _use_step(person, step)
     else:
-        accepted = recovery_codes.use_code(person, code)
+        # Admins have no recovery codes; a lost device is reset by another super admin.
+        accepted = not _is_admin(person) and recovery_codes.use_code(person, code)
     if not accepted:
         _refuse_wrong_code(person)
-    guess_limit.forget_failures(person.email, guess_limit.CODE_SCOPE)
+    guess_limit.forget_failures(person.email, code_scope(person))
 
 
 def begin_setup(person):
@@ -102,16 +117,16 @@ def confirm_setup(person, code):
     are never shown again."""
     if person.two_step_enabled:
         raise AppError("two_step_already_on", ALREADY_ON, status_code=409)
-    guess_limit.refuse_if_paused(person.email, guess_limit.CODE_SCOPE)
+    guess_limit.refuse_if_paused(person.email, code_scope(person))
     code = code.strip().replace(" ", "")
     step = _matching_step(person, code) if person.two_step_secret else None
     if step is None or not _use_step(person, step):
         _refuse_wrong_code(person)
-    guess_limit.forget_failures(person.email, guess_limit.CODE_SCOPE)
+    guess_limit.forget_failures(person.email, code_scope(person))
     person.two_step_enabled = True
     person.two_step_last_step = step
     person.save(update_fields=["two_step_enabled", "two_step_last_step"])
-    return recovery_codes.replace_codes(person)
+    return [] if _is_admin(person) else recovery_codes.replace_codes(person)
 
 
 def turn_off(person, password, code):

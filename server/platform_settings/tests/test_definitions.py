@@ -10,6 +10,8 @@ EXPECTED_DEFAULTS = {
     "passwords.max_length": 128,
     "tokens.access_minutes": 15,
     "tokens.refresh_days": 7,
+    "tokens.admin_access_minutes": 10,
+    "tokens.admin_refresh_hours": 8,
     "tokens.clock_leeway_seconds": 30,
     "tokens.email_verification_hours": 24,
     "email.retry_waits_seconds": [60, 300, 1800],

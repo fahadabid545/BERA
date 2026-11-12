@@ -47,8 +47,12 @@ def test_refreshing_sets_new_protected_cookies_and_returns_no_tokens(kind):
         assert cookie["secure"] is True
     assert new_refresh["path"] == f"/api/auth/{kind}/"
     assert access["path"] == "/api/"
-    assert int(access["max-age"]) == 15 * 60
-    assert int(new_refresh["max-age"]) == 7 * 24 * 60 * 60
+    # Admin sessions are shorter: 10 minutes and 8 hours.
+    access_seconds, refresh_seconds = (
+        (10 * 60, 8 * 60 * 60) if kind == "admin" else (15 * 60, 7 * 24 * 60 * 60)
+    )
+    assert int(access["max-age"]) == access_seconds
+    assert int(new_refresh["max-age"]) == refresh_seconds
     assert response.cookies[CSRF_COOKIE]["httponly"] == ""  # scripts read this one on purpose
 
 

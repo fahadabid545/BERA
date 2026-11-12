@@ -14,6 +14,8 @@ AREAS = {
         "signin/tests/test_refresh_view.py",
         "signin/tests/test_change_password.py",
         "twostep/tests/test_setup_and_login.py",
+        "adminusers/tests/test_admin_login.py",
+        "adminusers/tests/test_first_super_admin.py",
         "companies/tests/test_password_reset.py",
     ],
     "tokens: tampered, expired, reused, wrong audience": [

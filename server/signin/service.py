@@ -20,6 +20,7 @@ from .tokens import ACCESS, REFRESH, create_token, hash_token, read_token
 logger = logging.getLogger(__name__)
 
 SECONDS_PER_MINUTE = 60
+SECONDS_PER_HOUR = 60 * 60
 SECONDS_PER_DAY = 24 * 60 * 60
 
 
@@ -93,11 +94,20 @@ def _check_who(kind, role, company_id):
         raise ValueError("Company sign-ins need a company id and admin sign-ins must not have one.")
 
 
-def _issue_pair(session, role, now):
-    lifetimes = {
+def _lifetimes(kind):
+    if kind == ADMIN:
+        return {
+            ACCESS: get_setting("tokens.admin_access_minutes") * SECONDS_PER_MINUTE,
+            REFRESH: get_setting("tokens.admin_refresh_hours") * SECONDS_PER_HOUR,
+        }
+    return {
         ACCESS: get_setting("tokens.access_minutes") * SECONDS_PER_MINUTE,
         REFRESH: get_setting("tokens.refresh_days") * SECONDS_PER_DAY,
     }
+
+
+def _issue_pair(session, role, now):
+    lifetimes = _lifetimes(session.kind)
     tokens = {
         token_type: create_token(
             kind=session.kind,

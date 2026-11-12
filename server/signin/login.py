@@ -32,7 +32,7 @@ def _stand_in_hash():
     return make_password("a password nobody has")
 
 
-def _password_matches(person, password):
+def password_matches(person, password):
     usable = person is not None and is_password_usable(person.password_hash)
     longest = get_setting("passwords.max_length")
     if usable and len(password) <= longest:
@@ -47,7 +47,7 @@ def check_login(email, password):
     guess_limit.refuse_if_paused(email)
 
     person = CompanyUser.objects.filter(email=email).select_related("company").first()
-    password_ok = _password_matches(person, password)
+    password_ok = password_matches(person, password)
     if not password_ok or person.status != CompanyUser.Status.ACTIVE:
         guess_limit.record_failure(email, _wrong_credentials())
 

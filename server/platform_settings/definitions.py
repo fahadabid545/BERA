@@ -64,6 +64,9 @@ SETTINGS = [
     # Tokens and links
     SettingDefinition("tokens.access_minutes", 15, whole_number(1, 1440)),
     SettingDefinition("tokens.refresh_days", 7, whole_number(1, 90)),
+    # Admin sessions are shorter than company ones: an admin can see every company.
+    SettingDefinition("tokens.admin_access_minutes", 10, whole_number(1, 1440)),
+    SettingDefinition("tokens.admin_refresh_hours", 8, whole_number(1, 168)),
     SettingDefinition("tokens.clock_leeway_seconds", 30, whole_number(0, 300)),
     SettingDefinition("tokens.email_verification_hours", 24, whole_number(1, 720)),
     SettingDefinition("tokens.password_reset_hours", 1, whole_number(1, 72)),

@@ -17,6 +17,9 @@ SECONDS_PER_MINUTE = 60
 # must not be able to reset the count for code guesses by logging in again.
 PASSWORD_SCOPE = "login"
 CODE_SCOPE = "two-step"
+# Admin logins are counted apart from company ones, even for the same address.
+ADMIN_PASSWORD_SCOPE = "admin-login"
+ADMIN_CODE_SCOPE = "admin-two-step"
 
 
 def _failure_counter(scope):

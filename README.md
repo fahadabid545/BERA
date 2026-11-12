@@ -274,6 +274,24 @@ to the Terms and Privacy Policy. Nobody is logged in by accepting; the page then
 in. A visitor who is logged in as someone else is asked to log out first. A refused attempt
 (weak password, address taken in the meantime, suspended company) does not use up the link.
 
+### Admin login
+
+Admins sign in at `/admin/login` (API `/api/auth/admin/login/`), apart from company users. Email,
+password **and** an authenticator code are always needed: a right password only hands out a
+short-lived signed step, and the session starts after the code. An admin with no authenticator
+yet sets one up at that point. There is no public admin sign up and no recovery codes.
+
+- **First super admin:** on the server run `python manage.py create_first_super_admin --name "…"
+  --email …`. The password is typed at a hidden prompt (never an option) and follows the normal
+  password rules. It works only while no admin exists at all; afterwards it refuses.
+- **Sessions:** access token 10 minutes (`tokens.admin_access_minutes`), refresh 8 hours
+  (`tokens.admin_refresh_hours`). Admin tokens use their own keys and are accepted only by admin
+  routes (see "Security test suite").
+- **Wrong guesses:** counted and paused like company logins (same limits), but separately from
+  company ones, for passwords and for codes.
+- **Lost device:** another super admin must reset the authenticator; the wrong-code message says
+  so. The reset action is built with admin controls (BERA-093/094), after the audit log exists.
+
 ### Company data isolation
 
 A company can only reach its own data: through `core/scoping.py`, lists, searches, single

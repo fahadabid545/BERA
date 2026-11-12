@@ -209,7 +209,7 @@ class TestAdminUser:
     def test_it_has_the_agreed_fields(self):
         admin = make_admin_user(role="support")
         assert admin.role == "support" and admin.status == "active"
-        assert admin.two_step_set is False
+        assert admin.two_step_enabled is False
         assert admin.password_hash == "" or admin.password_hash.startswith("argon2$")
 
     def test_the_password_is_only_kept_as_a_strong_hash(self):

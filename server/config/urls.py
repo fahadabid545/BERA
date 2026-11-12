@@ -5,6 +5,7 @@ urlpatterns = [
     path("api/auth/", include("signin.urls")),
     path("api/auth/", include("companies.urls")),
     path("api/auth/", include("twostep.urls")),
+    path("api/auth/", include("adminusers.urls")),
     path("api/company/team/", include("companies.team_urls")),
 ]
 

@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Q
 
 from core.models import PersonAccount
+from core.protected_fields import EncryptedTextField
 
 
 class AdminUser(PersonAccount):
@@ -18,7 +19,12 @@ class AdminUser(PersonAccount):
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.SUPPORT)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
-    two_step_set = models.BooleanField(default=False)
+    # Two-step verification is required for every admin. The secret is saved when setup starts
+    # and only counts once `two_step_enabled` is true. Admins get no recovery codes: another
+    # super admin resets a lost device.
+    two_step_secret = EncryptedTextField(purpose="adminuser.two_step_secret", default="")
+    two_step_enabled = models.BooleanField(default=False)
+    two_step_last_step = models.BigIntegerField(null=True)
 
     class Meta:
         constraints = [

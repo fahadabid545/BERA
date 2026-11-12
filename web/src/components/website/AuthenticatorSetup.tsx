@@ -48,8 +48,10 @@ export function AuthenticatorSetup({
     setError(null);
     const result = await confirm(code);
     setSending(false);
-    if (result.ok) setCodes(result.data.recovery_codes);
-    else setError(result.error);
+    if (!result.ok) return setError(result.error);
+    // Some accounts (admins) get no recovery codes, so there is nothing more to show.
+    if (result.data.recovery_codes.length === 0) return onFinished();
+    setCodes(result.data.recovery_codes);
   }
 
   if (codes) {

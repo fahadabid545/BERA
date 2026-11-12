@@ -8,6 +8,7 @@ from core.permissions import PublicAccess
 from core.scoping import require_role
 from core.throttles import LoginThrottle, limited
 from signin.authentication import CompanyAuthentication
+from signin.kinds import COMPANY
 from signin.login_session import finish_company_login
 
 from . import service
@@ -23,12 +24,12 @@ from .serializers import (
 # Routes during login: the signed challenge from the password step is the credential.
 
 
-def _person_of_login_step(request, serializer_class, purpose):
+def person_of_login_step(request, serializer_class, purpose, kind=COMPANY):
     serializer = serializer_class(data=request.data)
     serializer.is_valid(raise_exception=True)
     values = serializer.validated_data
-    person = person_of_challenge(values["challenge"], purpose)
-    request_context.bind_actor(person.pk, person.company_id)
+    person = person_of_challenge(values["challenge"], purpose, kind)
+    request_context.bind_actor(person.pk, getattr(person, "company_id", None))
     return person, values
 
 
@@ -37,7 +38,7 @@ def _person_of_login_step(request, serializer_class, purpose):
 @permission_classes_of([PublicAccess])  # the challenge from the password step is the credential
 @throttle_classes(limited(LoginThrottle))
 def verify_login_code(request):
-    person, values = _person_of_login_step(request, ChallengeCodeSerializer, VERIFY)
+    person, values = person_of_login_step(request, ChallengeCodeSerializer, VERIFY)
     service.check_code(person, values["code"])
     return finish_company_login(request, person)
 
@@ -47,7 +48,7 @@ def verify_login_code(request):
 @permission_classes_of([PublicAccess])  # the challenge from the password step is the credential
 @throttle_classes(limited(LoginThrottle))
 def start_login_setup(request):
-    person, _ = _person_of_login_step(request, ChallengeSerializer, SETUP)
+    person, _ = person_of_login_step(request, ChallengeSerializer, SETUP)
     return Response(service.begin_setup(person))
 
 
@@ -56,7 +57,7 @@ def start_login_setup(request):
 @permission_classes_of([PublicAccess])  # the challenge from the password step is the credential
 @throttle_classes(limited(LoginThrottle))
 def confirm_login_setup(request):
-    person, values = _person_of_login_step(request, ChallengeCodeSerializer, SETUP)
+    person, values = person_of_login_step(request, ChallengeCodeSerializer, SETUP)
     codes = service.confirm_setup(person, values["code"])
     return finish_company_login(request, person, {"recovery_codes": codes})
 

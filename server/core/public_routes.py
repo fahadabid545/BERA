@@ -128,6 +128,33 @@ PUBLIC_ROUTES = [
         "expiring secret in it is the credential.",
     ),
     PublicRoute(
+        route="api/auth/admin/login/",
+        category="login",
+        reason="An admin signs in with email and password before having a session, and it "
+        "only hands out a short-lived step: a session starts after the authenticator code. "
+        "Wrong guesses all look alike, are limited per address and pause the account.",
+    ),
+    PublicRoute(
+        route="api/auth/admin/login/two-step/",
+        category="login",
+        reason="After a right password an admin gives the authenticator code before a session "
+        "starts. The signed, short-lived step from the password check is the credential, and "
+        "wrong codes are limited and pause the account.",
+    ),
+    PublicRoute(
+        route="api/auth/admin/login/two-step/setup/",
+        category="login",
+        reason="An admin who has no authenticator yet must set one up before a session starts. "
+        "The signed, short-lived step from the password check is the credential.",
+    ),
+    PublicRoute(
+        route="api/auth/admin/login/two-step/setup/confirm/",
+        category="login",
+        reason="Finishes the admin's authenticator setup with a right code, and only then "
+        "starts the session. The signed, short-lived step from the password check is the "
+        "credential, and wrong codes are limited and pause the account.",
+    ),
+    PublicRoute(
         route="api/auth/admin/refresh/",
         category="login",
         reason="The same renewal for admin users, with the admin refresh token.",

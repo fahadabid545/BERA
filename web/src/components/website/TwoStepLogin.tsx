@@ -12,10 +12,13 @@ export function TwoStepLogin({
   challenge,
   onSignedIn,
   onStartOver,
+  forAdmin = false,
 }: {
   challenge: string;
   onSignedIn: () => void;
   onStartOver: () => void;
+  /** Admins have no recovery codes and no support contact; their wrong-code message says who resets a lost device. */
+  forAdmin?: boolean;
 }) {
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [sending, setSending] = useState(false);
@@ -26,7 +29,8 @@ export function TwoStepLogin({
     const code = String(new FormData(event.currentTarget).get("code") ?? "");
     setSending(true);
     setError(null);
-    const result = await postJson("/api/auth/company/login/two-step/", { challenge, code });
+    const kind = forAdmin ? "admin" : "company";
+    const result = await postJson(`/api/auth/${kind}/login/two-step/`, { challenge, code });
     if (result.ok) return onSignedIn();
     setSending(false);
     setError(result.error);
@@ -59,16 +63,20 @@ export function TwoStepLogin({
           </Button>
         )}
       </div>
-      <div className="page-links">
-        <Button variant="secondary" onClick={() => setUseRecoveryCode((current) => !current)}>
-          {useRecoveryCode ? "Use the code from my app" : "Use a recovery code"}
-        </Button>
-      </div>
-      <p className="two-step-note">
-        Lost your device and your recovery codes?{" "}
-        <TextLink href="/contact">Contact support</TextLink>. We will check your identity before we
-        can help.
-      </p>
+      {!forAdmin && (
+        <>
+          <div className="page-links">
+            <Button variant="secondary" onClick={() => setUseRecoveryCode((current) => !current)}>
+              {useRecoveryCode ? "Use the code from my app" : "Use a recovery code"}
+            </Button>
+          </div>
+          <p className="two-step-note">
+            Lost your device and your recovery codes?{" "}
+            <TextLink href="/contact">Contact support</TextLink>. We will check your identity before
+            we can help.
+          </p>
+        </>
+      )}
     </form>
   );
 }
