@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getJson, postJson } from "./api";
+import { getJson, postJson, uploadFiles } from "./api";
 import { startUpload } from "./session";
 
 const navigateTo = vi.fn();
@@ -137,5 +137,58 @@ describe("other failures", () => {
     });
     await getJson("/api/things/");
     expect(calledPaths(server)).toEqual(["/api/things/"]);
+  });
+});
+
+describe("uploadFiles", () => {
+  class FakeRequest {
+    static last: FakeRequest;
+    status = 200;
+    responseText = "{}";
+    headers: Record<string, string> = {};
+    upload: { onprogress?: (event: unknown) => void } = {};
+    onload?: () => void;
+    onerror?: () => void;
+    body?: FormData;
+    withCredentials = false;
+    constructor() {
+      FakeRequest.last = this;
+    }
+    open() {}
+    setRequestHeader(name: string, value: string) {
+      this.headers[name] = value;
+    }
+    send(body: FormData) {
+      this.body = body;
+    }
+  }
+
+  beforeEach(() => vi.stubGlobal("XMLHttpRequest", FakeRequest));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("sends the files, reports progress and returns the answer", async () => {
+    const progress = vi.fn();
+    const sent = uploadFiles("/api/x/", [new File(["a"], "a.pdf")], progress);
+    FakeRequest.last.upload.onprogress?.({ lengthComputable: true, loaded: 1, total: 4 });
+    FakeRequest.last.responseText = JSON.stringify({ results: [] });
+    FakeRequest.last.onload?.();
+    expect(await sent).toEqual({ ok: true, data: { results: [] } });
+    expect(progress).toHaveBeenCalledWith(0.25);
+    expect(FakeRequest.last.body?.getAll("files")).toHaveLength(1);
+    expect(FakeRequest.last.withCredentials).toBe(true);
+  });
+
+  it("answers in the shared error shape when the server refuses", async () => {
+    const sent = uploadFiles("/api/x/", [new File(["a"], "a.pdf")], () => {});
+    FakeRequest.last.status = 409;
+    FakeRequest.last.responseText = JSON.stringify({ error: { code: "c", message: "No." } });
+    FakeRequest.last.onload?.();
+    expect(await sent).toEqual({ ok: false, error: { code: "c", message: "No." } });
+  });
+
+  it("reports an unreachable server", async () => {
+    const sent = uploadFiles("/api/x/", [new File(["a"], "a.pdf")], () => {});
+    FakeRequest.last.onerror?.();
+    expect((await sent).ok).toBe(false);
   });
 });

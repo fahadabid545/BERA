@@ -10,10 +10,25 @@ let pathname = "/company/projects/p1";
 vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
 
 describe("project overview page", () => {
-  it("shows the Upload CVs button and nothing else", () => {
-    const { container } = render(<ProjectOverviewPage />);
+  it("shows the Upload CVs area for the project it was opened for", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          allowed_types: ["pdf"],
+          max_file_size_mb: 10,
+          max_files_per_batch: 50,
+        }),
+      }),
+    );
+    render(await ProjectOverviewPage({ params: Promise.resolve({ project: "p1" }) }));
     expect(screen.getByRole("button", { name: "Upload CVs" })).toBeTruthy();
-    expect(container.querySelectorAll("button, a, input")).toHaveLength(1);
+    await vi.waitFor(() =>
+      expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/company/projects/p1/cvs/"),
+    );
+    vi.unstubAllGlobals();
   });
 });
 

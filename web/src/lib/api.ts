@@ -101,6 +101,50 @@ export function putJson<T>(path: string, body: unknown) {
   });
 }
 
+/** Sends one multipart request with files and reports how much has gone. Uses the same shared
+ * error shape and renews a short-lived sign-in once, like every other request. */
+export function uploadFiles<T>(
+  path: string,
+  files: File[],
+  onProgress: (fraction: number) => void,
+  mayRenew = true,
+): Promise<ApiResult<T>> {
+  return new Promise((resolve) => {
+    const body = new FormData();
+    for (const file of files) body.append("files", file);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", path);
+    xhr.withCredentials = true;
+    for (const [name, value] of Object.entries(csrfHeader("POST")))
+      xhr.setRequestHeader(name, value);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(event.loaded / event.total);
+    };
+    xhr.onerror = () => resolve({ ok: false, error: UNREACHABLE });
+    xhr.onload = async () => {
+      let parsed: unknown = null;
+      try {
+        parsed = JSON.parse(xhr.responseText);
+      } catch {
+        parsed = null;
+      }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve({ ok: true, data: parsed as T });
+      const error = (parsed as { error?: ApiError } | null)?.error;
+      if (xhr.status === 401 && error?.code === NOT_SIGNED_IN) {
+        if (mayRenew && (await renewSession())) {
+          return resolve(await uploadFiles<T>(path, files, onProgress, false));
+        }
+        sessionEnded();
+      }
+      resolve({
+        ok: false,
+        error: error ?? { code: "internal_error", message: "Something went wrong." },
+      });
+    };
+    xhr.send(body);
+  });
+}
+
 /** The name of the signed-in company user, or null when nobody is. Unlike other requests it
  * never sends anyone to the login page: it is for pages that behave differently when someone
  * is already logged in. */

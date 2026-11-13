@@ -1,9 +1,10 @@
-import { Button } from "@/components/ui";
+import { CvUpload } from "@/components/company/CvUpload";
 
-export default function ProjectOverviewPage() {
-  return (
-    <div className="page-actions">
-      <Button>Upload CVs</Button>
-    </div>
-  );
+export default async function ProjectOverviewPage({
+  params,
+}: {
+  params: Promise<{ project: string }>;
+}) {
+  const { project } = await params;
+  return <CvUpload projectId={project} />;
 }

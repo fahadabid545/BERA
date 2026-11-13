@@ -686,6 +686,36 @@ default 70/30), `recommendation_threshold` (0 to 100; default 75) and `top_n` (d
   factors ticket.
 - Settings are removed with their project (registered in `projects/deletion.py`).
 
+## Bulk CV upload
+
+`POST /api/company/projects/<id>/cvs/` (multipart, field `files`; own company, owners and
+members) takes CVs for a project, and `GET` on the same address returns what the upload area
+checks first (`allowed_types`, `max_file_size_mb`, `max_files_per_batch`, all platform
+settings `uploads.*`). The answer has one result per file, in order: `accepted`, or `rejected`
+with a `code`, a plain `message` and, for a plan limit, the `prompt` (upgrade or renewal). Good
+files go through while bad ones get their own message. The upload area on the project's Overview
+tab sends each file in its own request, so it shows per-file progress and, after a dropped
+connection, "Try again" re-sends only the failed file.
+
+- **Order of checks per file:** too many files in the request (`too_many_files`), type
+  (`wrong_type`), empty, size (`too_large`), then the content (`damaged`, `password_protected`).
+  Then, with the company row locked, `plans.limits.split_batch` applies the monthly and
+  per-project CV limits (`monthly_cv_limit_reached`, `project_cv_limit_reached`, or
+  `subscription_expired`), and each accepted file goes through `usage.accept_cv`. The upload
+  rate limit (`rate_limits.upload_files_per_10_minutes`, 100) counts every file. An archived
+  project takes no uploads (409 `project_archived`).
+- **Stand-ins that later tickets replace:** `cvs/file_checks.py::check_cv_file` is the minimal
+  check (signatures, a Word file must contain its main part, a PDF must end properly, encrypted
+  files are recognised; nothing is unpacked). File checks (BERA-112) replaces it with the real
+  check, including the scanned image-only PDF message, which is **not** checked here.
+  `cvs/storage.py` (`save_file`, `read_file`, `delete_file`) keeps files in the private local
+  folder `PRIVATE_FILES_ROOT` (default `local_storage/`, never served); Private file storage
+  replaces its body. Keys are built from server-made ids only.
+- Accepted files are `CvFile` records with status `waiting`; Background processing takes them from
+  there. The cost estimate is shown once Cost estimate before processing exists.
+- Deleting a project removes its files from storage and their records (registered in
+  `projects/deletion.py`); the usage history stays.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

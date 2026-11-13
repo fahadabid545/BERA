@@ -1,3 +1,5 @@
+import re
+
 from django.http import JsonResponse
 
 from platform_settings.service import get_setting
@@ -25,13 +27,21 @@ class RequestContextMiddleware:
 # Routes that accept file uploads (path prefixes). The ticket that adds an upload route
 # lists it here; every other route only accepts small form-sized requests.
 UPLOAD_ROUTE_PREFIXES = ()
+# Upload routes with an identifier in the middle of the path.
+UPLOAD_ROUTE_PATTERNS = (re.compile(r"^/api/company/projects/[^/]+/cvs/$"),)
 METHODS_WITH_BODY = {"POST", "PUT", "PATCH", "DELETE"}
 BYTES_PER_KILOBYTE = 1024
 BYTES_PER_MEGABYTE = 1024 * 1024
 
 
+def is_upload_route(path):
+    return path.startswith(UPLOAD_ROUTE_PREFIXES) or any(
+        pattern.match(path) for pattern in UPLOAD_ROUTE_PATTERNS
+    )
+
+
 def largest_allowed_request_bytes(path):
-    if path.startswith(UPLOAD_ROUTE_PREFIXES):
+    if is_upload_route(path):
         files = get_setting("uploads.max_files_per_batch")
         return get_setting("uploads.max_file_size_mb") * files * BYTES_PER_MEGABYTE
     return get_setting("requests.max_form_kilobytes") * BYTES_PER_KILOBYTE

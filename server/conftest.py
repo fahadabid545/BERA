@@ -41,3 +41,9 @@ def pytest_collection_modifyitems(items):
             path.relative_to(SERVER_ROOT).as_posix() in SECURITY_TEST_FILES
         ):
             item.add_marker(pytest.mark.security)
+
+
+@pytest.fixture(autouse=True)
+def private_files_folder(settings, tmp_path):
+    """Uploaded files in tests go to a throw-away folder, never into the project."""
+    settings.PRIVATE_FILES_ROOT = tmp_path / "private-files"
