@@ -704,17 +704,43 @@ connection, "Try again" re-sends only the failed file.
   `subscription_expired`), and each accepted file goes through `usage.accept_cv`. The upload
   rate limit (`rate_limits.upload_files_per_10_minutes`, 100) counts every file. An archived
   project takes no uploads (409 `project_archived`).
-- **Stand-ins that later tickets replace:** `cvs/file_checks.py::check_cv_file` is the minimal
-  check (signatures, a Word file must contain its main part, a PDF must end properly, encrypted
-  files are recognised; nothing is unpacked). File checks (BERA-112) replaces it with the real
-  check, including the scanned image-only PDF message, which is **not** checked here.
-  `cvs/storage.py` (`save_file`, `read_file`, `delete_file`) keeps files in the private local
-  folder `PRIVATE_FILES_ROOT` (default `local_storage/`, never served); Private file storage
-  replaces its body. Keys are built from server-made ids only.
+- **Stand-in that a later ticket replaces:** `cvs/storage.py` (`save_file`, `read_file`,
+  `delete_file`) keeps files in the private local folder `PRIVATE_FILES_ROOT` (default
+  `local_storage/`, never served); Private file storage replaces its body. Keys are built from
+  server-made ids only. The file check is `cvs/file_checks.py::check_cv_file` (see File checks).
 - Accepted files are `CvFile` records with status `waiting`; Background processing takes them from
   there. The cost estimate is shown once Cost estimate before processing exists.
 - Deleting a project removes its files from storage and their records (registered in
   `projects/deletion.py`); the usage history stays.
+
+## File checks
+
+`cvs/file_checks.py::check_cv_file(name, data)` is the one check every uploaded CV goes through
+(the upload calls it and nothing else; no route, no page). It returns a `FileCheck`: a `problem`
+(`code` and plain `message`) or, for an accepted file, its `file_type`, `page_count` and a
+`notice`.
+
+- **Real type from content.** The type is decided from the bytes, not the name: a PDF must
+  carry the PDF signature, a Word file must be a zip with its main part. A renamed file, or one
+  that is not a PDF or Word file at all, is refused as `type_mismatch`; an old `.doc` is not
+  accepted. Name, empty and size (`uploads.max_file_size_mb`) are checked before the file is read.
+- **Unreadable and protected.** `damaged` (cut off, garbage, missing parts), `password_protected`
+  (encrypted PDF; encrypted Word file) and `scanned_image` (a PDF with no text on the pages
+  read: "This looks like a scanned image. Please upload a text-based PDF or a Word file.").
+- **Macros, scripts and embedded content** are refused as `active_content`: Word macros and
+  macro-enabled types, embedded objects and ActiveX; PDF JavaScript, launch and form-submit
+  actions, document or page actions, XFA forms, attached files and media. Files are only read as
+  data (pypdf for PDFs, the standard zip reader for Word); nothing is run, and a test fails if
+  the checks ever call a program or `eval`.
+- **Unpacking is limited.** A Word archive is measured from its headers first and refused unopened
+  above `uploads.max_unpacked_mb` (100) or `uploads.max_archive_entries` (2000); a PDF's
+  compressed parts are held to the same size while it is read.
+- **Pages.** The first `uploads.cv_pages_read` (15) pages are read; a longer CV is accepted with a
+  `notice` ("This CV has 22 pages. Only the first 15 are read."), shown beside the file in the
+  upload area. The page count is kept on the `CvFile`. A Word file's count is the one its
+  properties state (none if it states none).
+- **File names** are cleaned for display (`core.validation.safe_file_name`) and are never part
+  of a storage path (keys are made from ids).
 
 ## Library checks and updates
 

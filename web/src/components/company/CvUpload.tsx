@@ -13,6 +13,7 @@ type FileResult = {
   code: string;
   message: string;
   prompt: "upgrade" | "renewal" | null;
+  notice: string;
 };
 type Entry = {
   id: number;
@@ -75,8 +76,9 @@ export function CvUpload({ projectId }: { projectId: string }) {
       return update(entry.id, { state: "failed", message: result.error.message });
     }
     const outcome = result.data.results[0];
-    if (outcome.status === "accepted")
-      return update(entry.id, { state: "added", progress: PERCENT });
+    if (outcome.status === "accepted") {
+      return update(entry.id, { state: "added", progress: PERCENT, message: outcome.notice });
+    }
     if (outcome.prompt) setPrompt(outcome.prompt);
     update(entry.id, { state: "refused", message: outcome.message });
   }
@@ -164,7 +166,7 @@ export function CvUpload({ projectId }: { projectId: string }) {
               <span>
                 {entry.state === "queued" && "Waiting to upload"}
                 {entry.state === "uploading" && `Uploading ${entry.progress}%`}
-                {entry.state === "added" && "Added"}
+                {entry.state === "added" && (entry.message ? `Added. ${entry.message}` : "Added")}
                 {(entry.state === "refused" || entry.state === "failed") && entry.message}
               </span>
               {entry.state === "failed" && (

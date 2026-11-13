@@ -1,36 +1,58 @@
-"""The minimal check of an uploaded CV: type, size, and whether it looks like a readable,
-unprotected file of that type. Nothing is unpacked or decoded here.
+"""The one check every uploaded CV goes through: `check_cv_file`.
 
-File checks (BERA-112) replaces `check_cv_file` with the one real check, including the check
-for scanned image-only PDFs; callers only use that name."""
+It decides the real type of the file from its content (a renamed file is refused), then checks
+that the file is readable, not protected, free of macros, scripts and embedded content, and
+reports its page count. Nothing is ever run or opened as a program: files are only read as
+data, and archives are measured from their headers before anything is unpacked.
 
-import zipfile
-from dataclasses import dataclass
-from io import BytesIO
+`cvs/service.py` calls `check_cv_file` and nothing else here, so the rules live in one place."""
+
+from dataclasses import dataclass, field
 
 from platform_settings.service import get_setting
 
-PDF_SIGNATURE = b"%PDF-"
-OLE_SIGNATURE = bytes.fromhex("D0CF11E0A1B11AE1")  # an encrypted Word file is wrapped in this
 BYTES_PER_MEGABYTE = 1024 * 1024
-END_OF_PDF_WINDOW = 2048
-DOCX_MAIN_PART = "word/document.xml"
 
 WRONG_TYPE = "wrong_type"
+TYPE_MISMATCH = "type_mismatch"
 EMPTY = "empty"
 TOO_LARGE = "too_large"
 DAMAGED = "damaged"
 PASSWORD_PROTECTED = "password_protected"
+SCANNED_IMAGE = "scanned_image"
+ACTIVE_CONTENT = "active_content"
 TOO_MANY_FILES = "too_many_files"
+MORE_PAGES_THAN_READ = "more_pages_than_read"
 
 DAMAGED_MESSAGE = "This file looks damaged and could not be read."
 PASSWORD_MESSAGE = "This file is password protected. Remove the password and upload it again."
+MISMATCH_MESSAGE = (
+    "This file is not really a {kind} file, whatever its name says. "
+    "Upload the original PDF or Word file."
+)
+SCANNED_MESSAGE = "This looks like a scanned image. Please upload a text-based PDF or a Word file."
+ACTIVE_CONTENT_MESSAGE = (
+    "This file contains macros, scripts or embedded content, which are not accepted. "
+    "Save a plain copy and upload that."
+)
 
 
 @dataclass(frozen=True)
 class FileProblem:
     code: str
     message: str
+
+
+@dataclass(frozen=True)
+class FileCheck:
+    """`problem` is None for a file that is accepted. `notice` is something to tell the person
+    about an accepted file (more pages than are read); `page_count` is None when unknown."""
+
+    problem: FileProblem | None = None
+    file_type: str | None = None
+    page_count: int | None = None
+    notice: str = ""
+    flags: list = field(default_factory=list)
 
 
 def file_type_of(name):
@@ -54,28 +76,24 @@ def check_name_and_size(name, size):
     return None
 
 
-def _check_pdf(data):
-    if not data.startswith(PDF_SIGNATURE) or b"%%EOF" not in data[-END_OF_PDF_WINDOW:]:
-        return FileProblem(DAMAGED, DAMAGED_MESSAGE)
-    if b"/Encrypt" in data:
-        return FileProblem(PASSWORD_PROTECTED, PASSWORD_MESSAGE)
-    return None
-
-
-def _check_docx(data):
-    if data.startswith(OLE_SIGNATURE):
-        return FileProblem(PASSWORD_PROTECTED, PASSWORD_MESSAGE)
-    try:
-        with zipfile.ZipFile(BytesIO(data)) as archive:
-            if DOCX_MAIN_PART in archive.namelist():
-                return None
-    except zipfile.BadZipFile:
-        pass
-    return FileProblem(DAMAGED, DAMAGED_MESSAGE)
+def pages_notice(page_count):
+    read = get_setting("uploads.cv_pages_read")
+    if page_count is not None and page_count > read:
+        return f"This CV has {page_count} pages. Only the first {read} are read."
+    return ""
 
 
 def check_cv_file(name, data):
-    """None when the file is acceptable, otherwise why not, in words for the person."""
+    """Everything about one file: refused with a reason, or accepted with its page count and
+    any notice."""
+    from . import docx_checks, pdf_checks
+
     if problem := check_name_and_size(name, len(data)):
-        return problem
-    return _check_pdf(data) if file_type_of(name) == "pdf" else _check_docx(data)
+        return FileCheck(problem=problem)
+    claimed = file_type_of(name)
+    kind = docx_checks.sniff(data) or pdf_checks.sniff(data)
+    if kind != claimed:
+        return FileCheck(
+            problem=FileProblem(TYPE_MISMATCH, MISMATCH_MESSAGE.format(kind=claimed.upper()))
+        )
+    return (pdf_checks if kind == "pdf" else docx_checks).check(data)

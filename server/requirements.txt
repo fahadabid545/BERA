@@ -10,3 +10,4 @@ argon2-cffi>=23.1,<26
 pyotp>=2.9,<3
 pycountry>=24,<27
 openai>=1.50,<3
+pypdf>=6.21,<7

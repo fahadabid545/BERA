@@ -134,6 +134,9 @@ SETTINGS = [
     SettingDefinition("uploads.max_file_size_mb", 10, whole_number(1, 100)),
     SettingDefinition("uploads.max_files_per_batch", 50, whole_number(1, 500)),
     SettingDefinition("uploads.cv_pages_read", 15, whole_number(1, 200)),
+    # A file that would unpack to more than this (or hold more parts) is refused unopened.
+    SettingDefinition("uploads.max_unpacked_mb", 100, whole_number(1, 2000)),
+    SettingDefinition("uploads.max_archive_entries", 2000, whole_number(1, 100000)),
     # Request limits: forms stay small, only uploads may be large (see uploads.* above)
     SettingDefinition("requests.max_form_kilobytes", 256, whole_number(1, 4096)),
     SettingDefinition("requests.max_file_name_characters", 150, whole_number(10, 255)),

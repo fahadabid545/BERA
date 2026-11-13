@@ -21,7 +21,7 @@ from projects.service import require_editable
 from usage import service as usage
 
 from . import storage
-from .file_checks import TOO_MANY_FILES, check_cv_file, check_name_and_size, file_type_of
+from .file_checks import TOO_MANY_FILES, FileCheck, check_cv_file, check_name_and_size
 from .models import CvFile
 
 ACCEPTED = "accepted"
@@ -33,10 +33,18 @@ class _Candidate:
     index: int
     name: str
     data: bytes
+    check: FileCheck
 
 
-def _result(name, status, code="", message="", prompt=None):
-    return {"name": name, "status": status, "code": code, "message": message, "prompt": prompt}
+def _result(name, status, code="", message="", prompt=None, notice=""):
+    return {
+        "name": name,
+        "status": status,
+        "code": code,
+        "message": message,
+        "prompt": prompt,
+        "notice": notice,
+    }
 
 
 def upload_rules():
@@ -62,10 +70,15 @@ def upload_cvs(uploader, project, files):
             )
         elif problem := check_name_and_size(name, size):
             results[index] = _result(name, REJECTED, problem.code, problem.message)
-        elif problem := check_cv_file(name, (data := read())):
-            results[index] = _result(name, REJECTED, problem.code, problem.message)
         else:
-            candidates.append(_Candidate(index, name, data))
+            data = read()
+            checked = check_cv_file(name, data)
+            if checked.problem:
+                results[index] = _result(
+                    name, REJECTED, checked.problem.code, checked.problem.message
+                )
+            else:
+                candidates.append(_Candidate(index, name, data, checked))
     if candidates:
         _accept(uploader, project, candidates, results)
     return results
@@ -93,13 +106,16 @@ def _accept(uploader, project, candidates, results):
                     company_id=project.company_id,
                     project=project,
                     original_name=safe_file_name(candidate.name),
-                    file_type=file_type_of(candidate.name),
+                    file_type=candidate.check.file_type,
+                    page_count=candidate.check.page_count,
                     size_bytes=len(candidate.data),
                     storage_key=key,
                     uploaded_by=uploader,
                 )
                 usage.accept_cv(project.company_id, cv_id, project.pk)
-                results[candidate.index] = _result(candidate.name, ACCEPTED)
+                results[candidate.index] = _result(
+                    candidate.name, ACCEPTED, notice=candidate.check.notice
+                )
     except Exception:
         for key in saved_keys:  # nothing was recorded, so no file may stay behind
             storage.delete_file(key)

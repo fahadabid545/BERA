@@ -15,11 +15,13 @@ const RULES = { allowed_types: ["pdf", "docx"], max_file_size_mb: 10, max_files_
 const pdf = (name = "a.pdf", size = 5) => new File([new Uint8Array(size)], name);
 const accepted = (name: string) => ({
   ok: true,
-  data: { results: [{ name, status: "accepted", code: "", message: "", prompt: null }] },
+  data: {
+    results: [{ name, status: "accepted", code: "", message: "", prompt: null, notice: "" }],
+  },
 });
 const refused = (name: string, message: string, prompt: string | null = null) => ({
   ok: true,
-  data: { results: [{ name, status: "rejected", code: "x", message, prompt }] },
+  data: { results: [{ name, status: "rejected", code: "x", message, prompt, notice: "" }] },
 });
 
 async function ready() {
@@ -71,6 +73,29 @@ describe("CV upload", () => {
     expect(await screen.findByText("Uploading 40%")).toBeTruthy();
     finish(accepted("a.pdf"));
     expect(await screen.findByText("Added")).toBeTruthy();
+  });
+
+  it("shows the notice for a CV with more pages than are read", async () => {
+    uploadFiles.mockResolvedValue({
+      ok: true,
+      data: {
+        results: [
+          {
+            name: "long.pdf",
+            status: "accepted",
+            code: "",
+            message: "",
+            prompt: null,
+            notice: "This CV has 22 pages. Only the first 15 are read.",
+          },
+        ],
+      },
+    });
+    await ready();
+    await choose(pdf("long.pdf"));
+    expect(
+      await screen.findByText("Added. This CV has 22 pages. Only the first 15 are read."),
+    ).toBeTruthy();
   });
 
   it("explains a wrong, empty or oversized file at once and still sends the good one", async () => {

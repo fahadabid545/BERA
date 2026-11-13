@@ -10,8 +10,8 @@ from rest_framework.test import APIClient
 from core import middleware
 from core.tests.factories import make_company, make_company_user, start_session_for
 from cvs import storage
-from cvs.file_checks import OLE_SIGNATURE
 from cvs.models import CvFile
+from cvs.tests.files import make_docx, make_encrypted_docx, make_pdf
 from plans import subscriptions as subs
 from plans.models import Plan
 from platform_settings.models import PlatformSetting
@@ -21,15 +21,11 @@ from usage import service as usage
 
 pytestmark = pytest.mark.django_db
 
-PDF = b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n"
+PDF = make_pdf()
 
 
 def docx_bytes():
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w") as archive:
-        archive.writestr("word/document.xml", "<w:document/>")
-        archive.writestr("[Content_Types].xml", "<Types/>")
-    return buffer.getvalue()
+    return make_docx()
 
 
 def sign_in(company, role="owner"):
@@ -193,45 +189,85 @@ class TestEachProblemHasItsOwnMessageWhileGoodFilesContinue:
 
     def test_exactly_the_size_limit_is_allowed(self, client, project):
         set_setting("uploads.max_file_size_mb", 1)
-        data = PDF + b"0" * (1024 * 1024 - len(PDF) - 5) + b"%%EOF"
+        data = PDF + b"0" * (1024 * 1024 - len(PDF))
         assert len(data) == 1024 * 1024
         assert results(upload(client, project, ("edge.pdf", data)))[0][1] == "accepted"
 
     def test_damaged_pdf(self, client, project):
-        row = self.run(client, project, ("broken.pdf", b"not really a pdf"))
+        row = self.run(client, project, ("broken.pdf", b"%PDF-1.7\n" + b"\xff garbage" * 100))
         assert (row["code"], row["message"]) == (
             "damaged",
             "This file looks damaged and could not be read.",
         )
 
     def test_a_cut_off_pdf_is_damaged(self, client, project):
-        assert self.run(client, project, ("cut.pdf", PDF[:30]))["code"] == "damaged"
+        assert self.run(client, project, ("cut.pdf", PDF[:200]))["code"] == "damaged"
+
+    def test_a_renamed_file_is_refused(self, client, project):
+        row = self.run(client, project, ("not-a-pdf.pdf", b"just some text"))
+        assert row["code"] == "type_mismatch"
+
+    def test_a_scanned_pdf_gets_its_own_message(self, client, project):
+        from pypdf import PdfWriter
+
+        writer = PdfWriter()
+        writer.add_blank_page(612, 792)
+        buffer = io.BytesIO()
+        writer.write(buffer)
+        row = self.run(client, project, ("scan.pdf", buffer.getvalue()))
+        assert (row["code"], row["message"]) == (
+            "scanned_image",
+            "This looks like a scanned image. Please upload a text-based PDF or a Word file.",
+        )
+
+    def test_a_word_file_with_macros_is_refused(self, client, project):
+        data = make_docx(extra_parts={"word/vbaProject.bin": b"x"})
+        assert self.run(client, project, ("macro.docx", data))["code"] == "active_content"
 
     def test_damaged_docx(self, client, project):
-        assert self.run(client, project, ("broken.docx", b"not a zip"))["code"] == "damaged"
+        assert self.run(client, project, ("broken.docx", docx_bytes()[:60]))["code"] == "damaged"
 
-    def test_a_zip_that_is_not_a_word_file_is_damaged(self, client, project):
+    def test_a_zip_that_is_not_a_word_file_is_refused(self, client, project):
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w") as archive:
             archive.writestr("other.txt", "x")
-        assert self.run(client, project, ("odd.docx", buffer.getvalue()))["code"] == "damaged"
+        assert self.run(client, project, ("odd.docx", buffer.getvalue()))["code"] == "type_mismatch"
 
     def test_password_protected_pdf(self, client, project):
-        data = PDF.replace(b"/Root 1 0 R", b"/Root 1 0 R /Encrypt 5 0 R")
-        row = self.run(client, project, ("locked.pdf", data))
+        from pypdf import PdfWriter
+
+        writer = PdfWriter()
+        writer.add_blank_page(612, 792)
+        writer.encrypt("secret")
+        buffer = io.BytesIO()
+        writer.write(buffer)
+        row = self.run(client, project, ("locked.pdf", buffer.getvalue()))
         assert (row["code"], row["message"]) == (
             "password_protected",
             "This file is password protected. Remove the password and upload it again.",
         )
 
     def test_password_protected_docx(self, client, project):
-        row = self.run(client, project, ("locked.docx", OLE_SIGNATURE + b"\x00" * 100))
+        row = self.run(client, project, ("locked.docx", make_encrypted_docx()))
         assert row["code"] == "password_protected"
 
     def test_a_refused_file_leaves_nothing_behind(self, client, project, settings):
         upload(client, project, ("notes.txt", b"hello"), ("empty.pdf", b""))
         assert not CvFile.objects.exists()
         assert stored_files(settings.PRIVATE_FILES_ROOT) == []
+
+
+class TestPageNotice:
+    def test_a_long_cv_is_accepted_with_a_notice_and_its_page_count_is_kept(self, client, project):
+        row = upload(client, project, ("long.pdf", make_pdf(pages=16))).json()["results"][0]
+        assert row["status"] == "accepted"
+        assert row["notice"] == "This CV has 16 pages. Only the first 15 are read."
+        assert CvFile.objects.get(project=project).page_count == 16
+
+    def test_a_short_cv_has_no_notice(self, client, project):
+        row = upload(client, project, ("a.pdf", PDF)).json()["results"][0]
+        assert row["notice"] == ""
+        assert CvFile.objects.get(project=project).page_count == 1
 
 
 class TestTooManyFiles:

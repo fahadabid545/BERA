@@ -16,6 +16,7 @@ class CvFile(CompanyOwnedModel):
     original_name = models.TextField()
     file_type = models.CharField(max_length=20)
     size_bytes = models.PositiveBigIntegerField()
+    page_count = models.PositiveIntegerField(null=True)  # None when the file does not say
     storage_key = models.TextField(unique=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.WAITING)
     uploaded_by = models.ForeignKey(
