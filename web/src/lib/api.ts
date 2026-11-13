@@ -6,6 +6,7 @@ export type ApiError = {
   code: string;
   message: string;
   fields?: Record<string, string>;
+  details?: Record<string, unknown>;
 };
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: ApiError };

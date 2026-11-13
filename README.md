@@ -547,6 +547,27 @@ production use `python manage.py provision_database_roles`. See
 encrypted and still find it by a hash. If you have a local database from before this change, run
 `python scripts/dev.py reset-db` once (with Docker also `docker compose down -v` first).
 
+## Create project
+
+`POST /api/company/projects/` (`server/projects/`) creates a project for the signed-in user's own
+company; the company is never read from the request. Owners and members may both create.
+
+- Fields: `title` (required, up to 120 characters) and `job_description` (required, up to 15,000,
+  pasted text), plus `acknowledge_warnings`. The limits are the platform settings
+  `projects.title_max_length` and `projects.description_max_length`. The optional PDF/DOCX file
+  comes with the Text reading from files ticket; this one takes pasted text only.
+- The project limit uses `plans.limits.check_projects` while the company row is locked, so two
+  creations at once cannot pass it together. A reached limit answers 409 `project_limit_reached`
+  with `details.prompt` (`upgrade` or `renewal`), and the form opens the matching popup.
+- Warnings never refuse a project: a description under `projects.short_description_length` (300)
+  characters, and a title the company already uses (case ignored). Without
+  `acknowledge_warnings: true` the server answers 409 `project_warnings` with the list in
+  `details.warnings`; the form shows them in a popup and "Create anyway" sends it again confirmed.
+- The reading model and prompt version (`ai.reading_model`, `ai.prompt_version`, seeded stand-in
+  values until Model settings and Prompt versions exist) are copied onto the project when it is
+  created and never change after. Showing them to admins comes with the Companies detail ticket.
+- The plan meter's project count now counts real projects.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

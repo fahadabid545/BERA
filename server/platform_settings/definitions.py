@@ -46,6 +46,13 @@ def list_of_file_types(value):
     )
 
 
+def short_text(maximum):
+    def is_valid(value):
+        return isinstance(value, str) and 0 < len(value.strip()) <= maximum
+
+    return is_valid
+
+
 @dataclass(frozen=True)
 class SettingDefinition:
     key: str
@@ -145,6 +152,14 @@ SETTINGS = [
     SettingDefinition("scoring.grade_d_min", 40, percent),
     SettingDefinition("scoring.strong_match_min", 75, percent),
     SettingDefinition("scoring.possible_match_min", 55, percent),
+    # Projects. The reading model and prompt version are pinned to each new project; the
+    # stand-in values are replaced from the admin panel once Model settings and Prompt
+    # versions exist.
+    SettingDefinition("projects.title_max_length", 120, whole_number(10, 500)),
+    SettingDefinition("projects.description_max_length", 15000, whole_number(500, 100000)),
+    SettingDefinition("projects.short_description_length", 300, whole_number(1, 5000)),
+    SettingDefinition("ai.reading_model", "standin-reading-model", short_text(100)),
+    SettingDefinition("ai.prompt_version", "standin-prompt-v1", short_text(100)),
     # Live screen updates
     SettingDefinition("live_updates.max_delay_seconds", 3, whole_number(1, 60)),
 ]

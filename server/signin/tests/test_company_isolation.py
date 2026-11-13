@@ -45,6 +45,7 @@ KINDS_NAMED_IN_THE_TICKET = {
 # ActivityEntry: activity/tests/test_activity_log.py (the list holds only the own company's).
 # Subscription: plans/tests/test_subscription_states.py (companies are kept apart).
 # LimitOverride: plans/tests/test_limits.py (read for one company only).
+# Project: projects/tests/test_create_project.py (TestAnotherCompany).
 # UsagePeriod, UsageCounter, CvUsage: usage/tests/test_usage_counting.py (kept apart per company).
 REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Invitation",
@@ -54,6 +55,7 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "UsagePeriod",
     "UsageCounter",
     "CvUsage",
+    "Project",
 }
 
 

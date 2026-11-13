@@ -12,6 +12,7 @@ urlpatterns = [
     path("api/admin/plans/", include("plans.urls")),
     path("api/admin/", include("adminusers.control_urls")),
     path("api/plans/", include("plans.public_urls")),
+    path("api/company/projects/", include("projects.urls")),
 ]
 
 handler404 = "core.views.not_found"

@@ -2,17 +2,16 @@
 limit checks use, so what is shown always matches what is enforced."""
 
 from platform_settings.service import get_setting
+from projects.models import Project
 from usage import service as usage
 
 from . import limits
 from .subscriptions import State, effective_state, get_subscription, grace_ends_at
 
-NO_PROJECTS_YET = 0
-
 
 def projects_in_use(company_id):
-    """How many projects the company has. The one place to change when projects exist."""
-    return NO_PROJECTS_YET
+    """How many projects the company has."""
+    return Project.objects.filter(company_id=company_id).count()
 
 
 def warning_level(used, limit):
