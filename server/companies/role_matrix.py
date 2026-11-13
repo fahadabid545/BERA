@@ -15,6 +15,7 @@ EVERYONE = frozenset({OWNER, MEMBER})
 OWNER_ONLY = frozenset({OWNER})
 
 ROLES_ALLOWED = {
+    "project.view": EVERYONE,
     "project.create": EVERYONE,
     "project.edit": EVERYONE,
     "project.archive": EVERYONE,

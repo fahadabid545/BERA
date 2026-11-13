@@ -568,6 +568,25 @@ company; the company is never read from the request. Owners and members may both
   created and never change after. Showing them to admins comes with the Companies detail ticket.
 - The plan meter's project count now counts real projects.
 
+## Projects list
+
+`GET /api/company/projects/` returns the signed-in user's own company's projects (owners and
+members), one page at a time. The company is never read from the request.
+
+- Query: `search` (part of the title, case ignored), `status` (`active` default, `archived`,
+  `all`), `sort` (`updated` newest first default, `title`, `best_score` highest first, projects
+  without a score last) and `page` (from 1). Unknown fields or values answer 400; a page past
+  the end is an empty list.
+- Page size is the platform setting `projects.page_size` (20). The answer has `results`, `page`,
+  `page_size`, `total` and `pages`.
+- Each row: `id`, `title`, `cv_count`, `best_score`, `status`, `updated_at`. CV count (0) and
+  best score (empty) come from `projects/listing.py::with_figures`, the one place to change when
+  the Candidate record ticket adds candidates.
+- Projects now have a `status` (`active` or `archived`; archiving itself is a later ticket) and
+  an `updated_at` that moves on every save.
+- The Projects page shows the list with search, sort and filter controls, and Previous / Next
+  when there is more than one page.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

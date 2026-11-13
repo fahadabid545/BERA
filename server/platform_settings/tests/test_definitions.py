@@ -64,6 +64,7 @@ EXPECTED_DEFAULTS = {
     "scoring.grade_d_min": 40,
     "scoring.strong_match_min": 75,
     "scoring.possible_match_min": 55,
+    "projects.page_size": 20,
     "projects.title_max_length": 120,
     "projects.description_max_length": 15000,
     "projects.short_description_length": 300,

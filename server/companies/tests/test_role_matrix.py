@@ -11,6 +11,7 @@ pytestmark = [pytest.mark.urls("companies.tests.urls_for_roles"), pytest.mark.dj
 # The matrix as the ticket states it, written out again here on purpose: changing a rule in
 # role_matrix.py must also change this list, so a rule never changes by accident.
 MEMBER_MAY = [
+    "project.view",
     "project.create",
     "project.edit",
     "project.archive",

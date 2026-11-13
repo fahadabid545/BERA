@@ -155,6 +155,7 @@ SETTINGS = [
     # Projects. The reading model and prompt version are pinned to each new project; the
     # stand-in values are replaced from the admin panel once Model settings and Prompt
     # versions exist.
+    SettingDefinition("projects.page_size", 20, whole_number(1, 200)),
     SettingDefinition("projects.title_max_length", 120, whole_number(10, 500)),
     SettingDefinition("projects.description_max_length", 15000, whole_number(500, 100000)),
     SettingDefinition("projects.short_description_length", 300, whole_number(1, 5000)),

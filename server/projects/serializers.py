@@ -3,6 +3,8 @@ from rest_framework import serializers
 from core.validation import SafeTextField, StrictSerializer
 from platform_settings.service import get_setting
 
+from .listing import DEFAULT_SORT, DEFAULT_STATUS, SORTS, STATUS_FILTERS
+
 
 class CreateProjectSerializer(StrictSerializer):
     """Limits are read when the serializer is made, so a changed setting applies at once."""
@@ -17,3 +19,12 @@ class CreateProjectSerializer(StrictSerializer):
         self.fields["job_description"] = SafeTextField(
             max_length=get_setting("projects.description_max_length"), multiline=True
         )
+
+
+class ListProjectsSerializer(StrictSerializer):
+    """The query string of the list. Unknown or invalid values are refused, not ignored."""
+
+    search = SafeTextField(max_length=200, required=False, allow_blank=True, default="")
+    status = serializers.ChoiceField(choices=STATUS_FILTERS, default=DEFAULT_STATUS)
+    sort = serializers.ChoiceField(choices=list(SORTS), default=DEFAULT_SORT)
+    page = serializers.IntegerField(min_value=1, max_value=1_000_000, default=1)
