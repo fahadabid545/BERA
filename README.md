@@ -368,6 +368,28 @@ listed) above the pending invitations. API under `/api/company/team/`: `members/
   immediately, with the tokens they already have.
 - Both actions are written to the audit log and the company activity log.
 
+### Admin limit and subscription controls
+
+API only, under `/api/admin/` (`adminusers/control_urls.py`); the Companies pages come later. Every
+route is super admin only (support gets 403), needs a written `reason` and is audited. A refused
+request changes nothing and writes no entry.
+
+- `POST companies/<id>/suspend/` and `unsuspend/`: suspending ends every session of the company (the
+  shared revoke function); the company sees the suspended message at sign-in; the owner is emailed.
+- `PUT companies/<id>/limits/<name>/` (`value`) and `DELETE` (clear): a company's own limit, any valid
+  value, higher or lower; clearing returns to the plan's value. It applies at once. A value below
+  current use blocks new work only; nothing is deleted.
+- `POST companies/<id>/subscription/grant-free/` (`plan_id`, `period_end`), `end-free/` and
+  `terminate/`: use the subscription state functions. Terminating ends access only; data is kept
+  until the retention period ends. The owner is emailed by the state change.
+- `POST admin-users/<id>/two-step/reset/`: another super admin clears an admin's authenticator and
+  ends all their sessions; they enrol again at the next login. Never your own.
+- `POST company-users/<id>/two-step/off/` (`identity_checked: true`, and a reason saying what was
+  checked): turns it off, ends all their sessions, emails them.
+
+New email `account_notice` (suspension, restore, two-step off); limits and subscription changes use
+`usage_notice`.
+
 ### Plan and usage display
 
 `GET /api/company/usage/` (owner only, `billing.view`; members get 403) returns the company's plan

@@ -116,6 +116,13 @@ CATALOG = {
         button_label="View billing",
         variables=("name", "title", "message", "link"),
     ),
+    "account_notice": EmailTemplate(
+        subject="Bera: {title}",
+        heading="{title}",
+        paragraphs=(GREETING, "{message}"),
+        button_label="Open Bera",
+        variables=("name", "title", "message", "link"),
+    ),
     "payment_problem": EmailTemplate(
         subject="There is a problem with your Bera payment",
         heading="Payment problem",

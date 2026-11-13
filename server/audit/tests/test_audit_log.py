@@ -76,6 +76,10 @@ class TestTheWrittenReason:
             "admin.free_subscription_granted",
             "admin.limit_changed",
             "admin.two_step_reset",
+            "admin.company_two_step_off",
+            "admin.company_suspended",
+            "admin.company_unsuspended",
+            "admin.subscription_terminated",
         }
 
     def test_logins_and_company_actions_need_none(self):

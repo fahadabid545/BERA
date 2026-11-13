@@ -114,12 +114,14 @@ def _notice_text(subscription):
     }[subscription.state]
 
 
-def _email_the_owner(subscription):
-    owner = CompanyUser.objects.filter(
-        company_id=subscription.company_id,
-        role=CompanyUser.Role.OWNER,
-        status=CompanyUser.Status.ACTIVE,
+def owner_of(company_id):
+    return CompanyUser.objects.filter(
+        company_id=company_id, role=CompanyUser.Role.OWNER, status=CompanyUser.Status.ACTIVE
     ).first()
+
+
+def _email_the_owner(subscription):
+    owner = owner_of(subscription.company_id)
     if owner is None:
         return
     send_email(
@@ -209,7 +211,7 @@ def cancel(company_id):
     return _change(company_id, State.CANCELLED, {State.ACTIVE}, source=PAYMENT, renewal=False)
 
 
-def expire(company_id, *, source=SYSTEM, by=None, reason=""):
+def expire(company_id, *, source=SYSTEM, by=None, reason="", kind=None):
     return _change(
         company_id,
         State.EXPIRED,
@@ -217,6 +219,7 @@ def expire(company_id, *, source=SYSTEM, by=None, reason=""):
         source=source,
         by=by,
         reason=reason,
+        kind=kind,
         renewal=False,
     )
 
@@ -266,3 +269,11 @@ def expire_lapsed_subscriptions():
     for company_id in lapsed:
         expire(company_id)
     return len(lapsed)
+
+
+def terminate(company_id, *, by, reason):
+    """An admin ends the subscription now. Only access ends: the company's data stays until the
+    retention period runs out (nothing here deletes anything)."""
+    return expire(
+        company_id, source=ADMIN, by=by, reason=reason, kind="admin.subscription_terminated"
+    )

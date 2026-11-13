@@ -34,6 +34,7 @@ class RevokeReason:
     BLOCKED = "blocked"
     COMPANY_SUSPENDED = "company_suspended"
     REFRESH_REUSE = "refresh_reuse"
+    TWO_STEP_RESET = "two_step_reset"
 
 
 @dataclass(frozen=True)

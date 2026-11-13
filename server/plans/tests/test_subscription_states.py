@@ -367,4 +367,5 @@ class TestCompaniesCannotChangeTheirState:
         from core.tests.test_route_protection import all_routes
 
         names = [route for route, _ in all_routes(get_resolver().url_patterns)]
-        assert not [r for r in names if "subscription" in r]
+        # Only the admin controls (super admin, with a reason) can reach a subscription.
+        assert all(r.startswith("api/admin/") for r in names if "subscription" in r)

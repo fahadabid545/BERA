@@ -40,6 +40,9 @@ ROLES_ALLOWED = {
     "settings.change": SUPER_ONLY,
     "limit.change": SUPER_ONLY,
     "subscription.grant_free": SUPER_ONLY,
+    "subscription.terminate": SUPER_ONLY,
+    "company.suspend": SUPER_ONLY,  # suspend or unsuspend
+    "company_user.two_step_off": SUPER_ONLY,
     "admin_user.manage": SUPER_ONLY,
 }
 

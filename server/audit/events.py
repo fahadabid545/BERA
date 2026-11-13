@@ -53,5 +53,9 @@ KINDS = _kinds(
     EventKind("admin.free_subscription_granted", reason_required=True),
     EventKind("admin.free_subscription_ended", reason_required=True),
     EventKind("admin.limit_changed", reason_required=True),  # not built yet
-    EventKind("admin.two_step_reset", reason_required=True),  # not built yet
+    EventKind("admin.two_step_reset", reason_required=True),
+    EventKind("admin.company_two_step_off", reason_required=True),
+    EventKind("admin.company_suspended", reason_required=True),
+    EventKind("admin.company_unsuspended", reason_required=True),
+    EventKind("admin.subscription_terminated", reason_required=True),  # not built yet
 )

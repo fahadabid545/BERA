@@ -49,6 +49,7 @@ def test_the_catalog_holds_exactly_the_agreed_emails():
         "usage_notice",
         "payment_problem",
         "security_alert",
+        "account_notice",
     }
 
 

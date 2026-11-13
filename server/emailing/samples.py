@@ -25,6 +25,11 @@ def sample_values(template_name):
             "title": "You have used 80% of your plan",
             "message": "Your company has used 80% of its included analyses this month.",
         },
+        "account_notice": {
+            **shared,
+            "title": "Your company account was suspended",
+            "message": "Your company account was suspended. Please contact support.",
+        },
         "security_alert": {
             **shared,
             "what": "A sign-in token that had already been used was presented again.",
