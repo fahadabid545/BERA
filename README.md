@@ -662,6 +662,30 @@ An archived project is read-only (409 `project_archived`).
   suggestions from the AI can be added to the editor with "Add to requirements" and are saved
   only when the person saves.
 
+## Project scoring settings
+
+`GET` and `PUT /api/company/projects/<id>/scoring/` (own company; owners and members). `PUT`
+sends every value: `must_weight_percent` and `nice_weight_percent` (always totalling 100;
+default 70/30), `recommendation_threshold` (0 to 100; default 75) and `top_n` (default 10).
+`GET` also returns `top_n_cap`, the plan's limit. The panel is on the project's Settings tab.
+
+- **Defaults.** A project with no saved row follows `projects/scoring_settings.py::
+  scoring_defaults()`, today the platform settings `scoring.must_have_weight_percent`,
+  `scoring.nice_to_have_weight_percent`, `scoring.strong_match_min` and `scoring.top_n`; the
+  company's own scoring defaults plug in there. Saving stores the project's own values.
+- **Plan cap.** `top_n` is checked with `plans.limits.check_top_n` (409 `top_n_limit_exceeded`
+  with the Upgrade prompt, Renewal when the subscription has ended) and shown never above the
+  cap, even if the plan was lowered after saving.
+- **Impossible combinations** answer 400 with a message per field: weights not adding to 100 or
+  outside 0 to 100, a threshold outside 0 to 100, a top list under 1. The database refuses
+  weights that do not total 100 as well.
+- **Recalculation.** Saving a change calls `projects/recalculation.py::recalculate_scores`, which
+  never uses the AI (the per-requirement results are kept and only recombined). The Score
+  calculation ticket fills it in; today it has nothing to recalculate and reports 0. An archived
+  project's settings cannot be changed. The extra-factors choice comes with the Extra scoring
+  factors ticket.
+- Settings are removed with their project (registered in `projects/deletion.py`).
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

@@ -23,7 +23,7 @@ CV_ID = uuid.uuid4()
 pytestmark = pytest.mark.django_db
 
 # Names of everything registered with register_project_data, one per kind of project data.
-EXPECTED_REGISTRATIONS = {"Requirement"}
+EXPECTED_REGISTRATIONS = {"Requirement", "ProjectScoringSettings"}
 # Work stoppers registered with register_work_stopper.
 EXPECTED_STOPPERS = set()
 # Models that mention a project on purpose and are kept: the usage ledger is history.
@@ -228,3 +228,23 @@ def test_deleting_a_project_removes_its_requirements(company):
     client.delete(url(project), {"confirm_title": project.title}, format="json")
     assert not Requirement.objects.filter(project_id=project.pk).exists()
     assert Requirement.objects.filter(project_id=other.pk).count() == 1
+
+
+def test_deleting_a_project_removes_its_scoring_settings(company):
+    from projects.models import ProjectScoringSettings
+
+    owner, client = sign_in(company)
+    project = make_project(company, owner)
+    other = make_project(company, owner, "Other")
+    for target in (project, other):
+        ProjectScoringSettings.objects.create(
+            company=company,
+            project=target,
+            must_weight_percent=70,
+            nice_weight_percent=30,
+            recommendation_threshold=75,
+            top_n=10,
+        )
+    client.delete(url(project), {"confirm_title": project.title}, format="json")
+    assert not ProjectScoringSettings.objects.filter(project_id=project.pk).exists()
+    assert ProjectScoringSettings.objects.filter(project_id=other.pk).count() == 1

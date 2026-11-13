@@ -11,12 +11,15 @@ from .extraction import suggest_requirements
 from .listing import list_projects
 from .models import Project
 from .requirements import list_requirements, near_duplicates, save_requirements
+from .scoring_settings import describe as describe_scoring
+from .scoring_settings import save_scoring_settings
 from .serializers import (
     CreateProjectSerializer,
     DeleteProjectSerializer,
     EditProjectSerializer,
     ListProjectsSerializer,
     SaveRequirementsSerializer,
+    ScoringSettingsSerializer,
 )
 from .service import archive_project, create_project, restore_project, update_project
 
@@ -146,3 +149,21 @@ class ProjectRequirements(ProjectView):
             acknowledge_rescoring=values["acknowledge_rescoring"],
         )
         return Response({"requirements": items, "warnings": warnings})
+
+
+class ProjectScoringSettingsView(ProjectView):
+    """The project's scoring settings, read and saved as a whole."""
+
+    def permitted_roles(self):
+        return roles_allowed("project.view" if self.request.method == "GET" else "project.edit")
+
+    def get(self, request, id):
+        return Response(describe_scoring(self.get_object()))
+
+    def put(self, request, id):
+        project = self.get_object()
+        serializer = ScoringSettingsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            save_scoring_settings(project.pk, project.company_id, serializer.validated_data)
+        )

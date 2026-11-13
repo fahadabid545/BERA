@@ -1,4 +1,5 @@
 import { ProjectSettings } from "@/components/company/ProjectSettings";
+import { ScoringSettings } from "@/components/company/ScoringSettings";
 
 export default async function ProjectSettingsPage({
   params,
@@ -6,5 +7,10 @@ export default async function ProjectSettingsPage({
   params: Promise<{ project: string }>;
 }) {
   const { project } = await params;
-  return <ProjectSettings projectId={project} />;
+  return (
+    <div className="page-stack">
+      <ProjectSettings projectId={project} />
+      <ScoringSettings projectId={project} />
+    </div>
+  );
 }

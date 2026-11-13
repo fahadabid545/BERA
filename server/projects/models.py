@@ -58,3 +58,30 @@ class Requirement(CompanyOwnedModel):
             ),
             models.CheckConstraint(condition=Q(weight__gte=1), name="requirement_weight_positive"),
         ]
+
+
+class ProjectScoringSettings(CompanyOwnedModel):
+    """How one project's scores are calculated. A project with no row follows the scoring
+    defaults (platform settings today, the company's own later). The weights always total 100;
+    the percent limits and the plan's top-N cap are checked in `scoring_settings.py`."""
+
+    project = models.OneToOneField(Project, on_delete=models.PROTECT, related_name="scoring")
+    must_weight_percent = models.PositiveSmallIntegerField()
+    nice_weight_percent = models.PositiveSmallIntegerField()
+    recommendation_threshold = models.PositiveSmallIntegerField()
+    top_n = models.PositiveIntegerField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(must_weight_percent__lte=100, nice_weight_percent__lte=100)
+                & Q(must_weight_percent=100 - models.F("nice_weight_percent")),
+                name="scoring_weights_total_100",
+            ),
+            models.CheckConstraint(
+                condition=Q(recommendation_threshold__lte=100),
+                name="scoring_threshold_is_a_percent",
+            ),
+            models.CheckConstraint(condition=Q(top_n__gte=1), name="scoring_top_n_is_positive"),
+        ]

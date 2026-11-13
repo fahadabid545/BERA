@@ -42,6 +42,7 @@ AREAS = {
         "projects/tests/test_project_deletion.py",
         "projects/tests/test_requirement_extraction.py",
         "projects/tests/test_requirement_editor.py",
+        "projects/tests/test_scoring_settings.py",
         "ai/tests/test_ai_client.py",
         "adminusers/tests/test_admin_controls.py",
         "adminusers/tests/test_block_member.py",

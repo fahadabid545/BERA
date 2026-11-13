@@ -80,3 +80,13 @@ class SaveRequirementsSerializer(StrictSerializer):
                 raise serializers.ValidationError(f"Requirement {number}, {field}: {messages[0]}")
             checked.append(single.validated_data)
         return checked
+
+
+class ScoringSettingsSerializer(StrictSerializer):
+    """Every value is sent every time. Whether the combination is possible, and the plan's
+    top-N cap, are checked when saving, with one clear message each."""
+
+    must_weight_percent = serializers.IntegerField()
+    nice_weight_percent = serializers.IntegerField()
+    recommendation_threshold = serializers.IntegerField()
+    top_n = serializers.IntegerField(max_value=1_000_000)

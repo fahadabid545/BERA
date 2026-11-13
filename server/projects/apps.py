@@ -6,4 +6,4 @@ class ProjectsConfig(AppConfig):
 
     def ready(self):
         # Registers what the project's deletion must remove (see deletion.py).
-        from . import requirements  # noqa: F401
+        from . import requirements, scoring_settings  # noqa: F401
