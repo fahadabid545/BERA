@@ -7,6 +7,7 @@ from core.errors import form_error
 from signin.company_views import CompanyObjectView
 
 from .deletion import delete_project
+from .extraction import suggest_requirements
 from .listing import list_projects
 from .models import Project
 from .serializers import (
@@ -109,3 +110,13 @@ class ProjectRestore(ProjectView):
     def post(self, request, id):
         project = self.get_object()
         return Response(describe(restore_project(project.pk, project.company_id), request.user))
+
+
+class ProjectRequirementSuggestions(ProjectView):
+    """Asks the AI to propose requirements. Nothing is saved: the person edits and confirms."""
+
+    def permitted_roles(self):
+        return roles_allowed("project.edit")
+
+    def post(self, request, id):
+        return Response(suggest_requirements(self.get_object()))

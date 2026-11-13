@@ -610,6 +610,35 @@ archive and restore. The Settings tab of the project page has these actions.
 - Deletion is logged in the company's activity log as `project_deleted` with the project's
   identifier only: no title and no names.
 
+## Requirement extraction and the shared AI call
+
+**The one AI call.** `ai/client.py::call_ai(company_id, model=, instructions=, text=, project_id=,
+cv_id=, estimated_cost=)` is the only way the app reaches the AI provider (a test fails if another
+file imports it). It uses the official `openai` library, the key `OPENAI_API_KEY` (required in
+staging and production, held by the app only; without it every call reports "unavailable" and
+screens fall back to manual entry), the platform timeout `ai.request_timeout_seconds` and output
+size `ai.default_max_output_tokens`, and records the answer's tokens with
+`usage.add_tokens`, so they count toward the company's token usage and never as a CV. Cost is
+passed in by the AI usage tracking ticket (zero until then). Nothing sent or received is logged.
+Model settings, Prompt versions and AI usage tracking extend this function; do not add another.
+
+**Suggesting requirements.** `POST /api/company/projects/<id>/requirements/suggest/` (own
+company; archived projects are refused) asks the AI for must-have and nice-to-have requirements
+using the project's pinned model and the stand-in prompt `ai.requirement_extraction_prompt`
+(Prompt versions will supply prompts by the pinned version). Nothing is saved: the Requirement
+editor lets the person edit and confirm. Before the call `check_ai_allowed` applies the monthly
+token cap (409 with the Upgrade prompt).
+
+- The answer is untrusted: entries with an unknown kind, no text, more than
+  `requirements.max_length` (120) characters or repeating another are dropped, and at most
+  `requirements.max_total` (30) are kept, with a `trimmed` warning when more were given.
+- AI unavailable or nothing usable: HTTP 200 with `fallback: true` and a friendly `message`
+  inviting manual entry; tokens already spent are still counted.
+- Warnings: `short_description` (under `projects.short_description_length`, few requirements
+  expected) and `other_language` (the AI reports a language other than English; the requirements
+  are written in the description's language).
+- The Requirements tab has a "Suggest requirements" button showing the proposal read-only.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

@@ -1,6 +1,11 @@
 import pytest
 
-from platform_settings.definitions import SETTINGS, list_of_file_types, whole_number
+from platform_settings.definitions import (
+    REQUIREMENT_EXTRACTION_PROMPT,
+    SETTINGS,
+    list_of_file_types,
+    whole_number,
+)
 
 # The values the platform ships with. If a default changes on purpose, this
 # list is the specification that must be updated with it.
@@ -64,6 +69,11 @@ EXPECTED_DEFAULTS = {
     "scoring.grade_d_min": 40,
     "scoring.strong_match_min": 75,
     "scoring.possible_match_min": 55,
+    "ai.request_timeout_seconds": 60,
+    "ai.requirement_extraction_prompt": REQUIREMENT_EXTRACTION_PROMPT,
+    "ai.default_max_output_tokens": 2000,
+    "requirements.max_total": 30,
+    "requirements.max_length": 120,
     "projects.page_size": 20,
     "projects.title_max_length": 120,
     "projects.description_max_length": 15000,

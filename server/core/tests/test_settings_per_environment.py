@@ -21,6 +21,7 @@ FAKE_VALUES = {
     "EMAIL_HOST_USER": "smtp-user-test",
     "EMAIL_HOST_PASSWORD": "test-only-smtp-key-9d3b1f7a52c4",
     "EMAIL_FROM_ADDRESS": "bera@example.com",
+    "OPENAI_API_KEY": "test-only-ai-key-6e0c4a8d21f7b359",
     "WEB_BASE_URL": "https://app.example.com",
     "ALLOWED_HOSTS": "staging.example.com, www.example.com",
     "TRUSTED_PROXY_COUNT": "1",
@@ -78,6 +79,7 @@ def test_staging_and_production_turn_debug_off_and_read_hosts(app_env):
         "EMAIL_HOST_USER",
         "EMAIL_HOST_PASSWORD",
         "EMAIL_FROM_ADDRESS",
+        "OPENAI_API_KEY",
         "WEB_BASE_URL",
     ],
 )

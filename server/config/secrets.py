@@ -37,6 +37,7 @@ REQUIRED_SETTINGS = [
     RequiredSetting("EMAIL_HOST_USER", secret=False),
     RequiredSetting("EMAIL_HOST_PASSWORD"),
     RequiredSetting("EMAIL_FROM_ADDRESS", secret=False),
+    RequiredSetting("OPENAI_API_KEY", roles=("app",)),
     RequiredSetting("WEB_BASE_URL", secret=False),
     RequiredSetting("JWT_COMPANY_SECRET"),
     RequiredSetting("JWT_ADMIN_SECRET"),

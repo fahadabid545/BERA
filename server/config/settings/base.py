@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "plans",
     "usage",
     "projects",
+    "ai",
 ]
 
 # Development only (see development.py): the country the sign-up form pretends the visitor is in.
@@ -51,6 +52,9 @@ EMAIL_BACKEND = "emailing.backends.DevInboxBackend"
 EMAIL_FILE_PATH = BASE_DIR.parent / ".dev-inbox"
 EMAIL_FROM_ADDRESS = os.environ.get("EMAIL_FROM_ADDRESS", "").strip() or "bera@example.test"
 DEFAULT_FROM_EMAIL = f"Bera <{EMAIL_FROM_ADDRESS}>"
+# The AI provider key. Without one every AI call reports "unavailable" and the screens fall
+# back to manual entry.
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
 WEB_BASE_URL = os.environ.get("WEB_BASE_URL", "").strip().rstrip("/") or "http://localhost:3000"
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.Argon2PasswordHasher"]

@@ -14,6 +14,7 @@ REAL = {
     "EMAIL_HOST_USER": "smtp-user-test",
     "EMAIL_HOST_PASSWORD": "test-only-smtp-key-9d3b1f7a52c4",
     "EMAIL_FROM_ADDRESS": "bera@example.com",
+    "OPENAI_API_KEY": "test-only-ai-key-6e0c4a8d21f7b359",
     "WEB_BASE_URL": "https://app.example.com",
     "JWT_COMPANY_SECRET": "test-only-company-signing-key-3a9f1c7e5b",
     "JWT_ADMIN_SECRET": "test-only-admin-signing-key-8d2e6b4f0a",
@@ -22,7 +23,7 @@ REAL = {
 ENVIRONMENTS = ["staging", "production"]
 # The migrator's address is held only by the process that changes the structure.
 APP_SETTINGS = [name for name in REAL if name != "MIGRATION_DATABASE_URL"]
-MIGRATION_SETTINGS = [name for name in REAL if name != "DATABASE_URL"]
+MIGRATION_SETTINGS = [s.name for s in REQUIRED_SETTINGS if "migrations" in s.roles]
 
 
 def refusal(environ, app_env, role="app"):
@@ -88,6 +89,7 @@ def test_a_placeholder_password_in_the_migrator_address_is_refused():
         "FIELD_ENCRYPTION_KEY",
         "FIELD_HASH_KEY",
         "EMAIL_HOST_PASSWORD",
+        "OPENAI_API_KEY",
     ],
 )
 @pytest.mark.parametrize(
