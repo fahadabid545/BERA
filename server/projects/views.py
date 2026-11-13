@@ -10,11 +10,13 @@ from .deletion import delete_project
 from .extraction import suggest_requirements
 from .listing import list_projects
 from .models import Project
+from .requirements import list_requirements, near_duplicates, save_requirements
 from .serializers import (
     CreateProjectSerializer,
     DeleteProjectSerializer,
     EditProjectSerializer,
     ListProjectsSerializer,
+    SaveRequirementsSerializer,
 )
 from .service import archive_project, create_project, restore_project, update_project
 
@@ -120,3 +122,27 @@ class ProjectRequirementSuggestions(ProjectView):
 
     def post(self, request, id):
         return Response(suggest_requirements(self.get_object()))
+
+
+class ProjectRequirements(ProjectView):
+    """The project's requirements, read and saved as one list."""
+
+    def permitted_roles(self):
+        return roles_allowed("project.view" if self.request.method == "GET" else "project.edit")
+
+    def get(self, request, id):
+        items = list_requirements(self.get_object())
+        return Response({"requirements": items, "warnings": near_duplicates(items)})
+
+    def put(self, request, id):
+        project = self.get_object()
+        serializer = SaveRequirementsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        values = serializer.validated_data
+        items, warnings = save_requirements(
+            project.pk,
+            project.company_id,
+            values["requirements"],
+            acknowledge_rescoring=values["acknowledge_rescoring"],
+        )
+        return Response({"requirements": items, "warnings": warnings})

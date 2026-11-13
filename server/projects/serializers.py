@@ -47,3 +47,36 @@ class EditProjectSerializer(StrictSerializer):
 
 class DeleteProjectSerializer(StrictSerializer):
     confirm_title = SafeTextField(max_length=1000)
+
+
+class RequirementSerializer(StrictSerializer):
+    id = serializers.UUIDField(required=False)
+    kind = serializers.ChoiceField(choices=["must", "nice"])
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["text"] = SafeTextField(max_length=get_setting("requirements.max_length"))
+        self.fields["weight"] = serializers.IntegerField(
+            required=False, min_value=1, max_value=get_setting("requirements.weight_max")
+        )
+
+    def to_internal_value(self, data):
+        value = super().to_internal_value(data)
+        if "id" in value:
+            value["id"] = str(value["id"])
+        return value
+
+
+class SaveRequirementsSerializer(StrictSerializer):
+    requirements = serializers.ListField(child=serializers.DictField(), max_length=1000)
+    acknowledge_rescoring = serializers.BooleanField(default=False)
+
+    def validate_requirements(self, items):
+        checked = []
+        for number, item in enumerate(items, start=1):
+            single = RequirementSerializer(data=item)
+            if not single.is_valid():
+                field, messages = next(iter(single.errors.items()))
+                raise serializers.ValidationError(f"Requirement {number}, {field}: {messages[0]}")
+            checked.append(single.validated_data)
+        return checked

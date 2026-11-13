@@ -182,6 +182,10 @@ SETTINGS = [
     ),
     SettingDefinition("requirements.max_total", 30, whole_number(1, 200)),
     SettingDefinition("requirements.max_length", 120, whole_number(20, 500)),
+    SettingDefinition("requirements.weight_default", 3, whole_number(1, 10)),
+    SettingDefinition("requirements.weight_max", 5, whole_number(1, 10)),
+    # Two requirements at least this similar (percent of matching text) are flagged.
+    SettingDefinition("requirements.near_duplicate_percent", 85, whole_number(50, 100)),
     # Live screen updates
     SettingDefinition("live_updates.max_delay_seconds", 3, whole_number(1, 60)),
 ]

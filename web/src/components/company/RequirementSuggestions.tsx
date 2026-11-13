@@ -6,16 +6,24 @@ import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt
 import { Button, Table, Tag } from "@/components/ui";
 import { postJson, type ApiError } from "@/lib/api";
 
+export type SuggestedRequirement = { kind: "must" | "nice"; text: string };
+
 type Suggestion = {
-  requirements: { kind: "must" | "nice"; text: string }[];
+  requirements: SuggestedRequirement[];
   warnings: { code: string; message: string }[];
   fallback: boolean;
   message: string;
 };
 
-/** Asks the AI to propose requirements. Nothing is saved: the editor, where the person edits
- * and confirms them, comes with the Requirement editor ticket. */
-export function RequirementSuggestions({ projectId }: { projectId: string }) {
+/** Asks the AI to propose requirements. Nothing is saved: "Add to requirements" puts them in
+ * the editor, where the person edits and confirms them. */
+export function RequirementSuggestions({
+  projectId,
+  onUse,
+}: {
+  projectId: string;
+  onUse?: (requirements: SuggestedRequirement[]) => void;
+}) {
   const [asking, setAsking] = useState(false);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
@@ -74,6 +82,18 @@ export function RequirementSuggestions({ projectId }: { projectId: string }) {
             ))}
           </tbody>
         </Table>
+      )}
+      {onUse && suggestion && suggestion.requirements.length > 0 && (
+        <div className="page-actions">
+          <Button
+            onClick={() => {
+              onUse(suggestion.requirements);
+              setSuggestion(null);
+            }}
+          >
+            Add to requirements
+          </Button>
+        </div>
       )}
       <UpgradePrompt
         open={prompt === "upgrade"}

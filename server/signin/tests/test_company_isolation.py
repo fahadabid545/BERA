@@ -46,6 +46,7 @@ KINDS_NAMED_IN_THE_TICKET = {
 # Subscription: plans/tests/test_subscription_states.py (companies are kept apart).
 # LimitOverride: plans/tests/test_limits.py (read for one company only).
 # Project: projects/tests/test_create_project.py (TestAnotherCompany).
+# Requirement: projects/tests/test_requirement_editor.py (TestAnotherCompany).
 # UsagePeriod, UsageCounter, CvUsage: usage/tests/test_usage_counting.py (kept apart per company).
 REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Invitation",
@@ -56,6 +57,7 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "UsageCounter",
     "CvUsage",
     "Project",
+    "Requirement",
 }
 
 

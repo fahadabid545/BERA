@@ -639,6 +639,29 @@ token cap (409 with the Upgrade prompt).
   are written in the description's language).
 - The Requirements tab has a "Suggest requirements" button showing the proposal read-only.
 
+## Requirement editor
+
+`GET` and `PUT /api/company/projects/<id>/requirements/` (own company; owners and members). The
+whole list is sent and replaces the stored one, so order, weights and removals can never
+disagree. Each requirement has a `kind` (`must` or `nice`), `text` (up to `requirements.max_length`,
+120) and a `weight` from 1 to `requirements.weight_max` (5, default `requirements.weight_default`,
+3); at most `requirements.max_total` (30) per project. Sending an `id` keeps an existing one.
+An archived project is read-only (409 `project_archived`).
+
+- **Near-duplicates** (same words, or at least `requirements.near_duplicate_percent` similar)
+  come back as `near_duplicate` warnings on read and save; they never block saving.
+- **Re-scoring notice.** A change that affects scoring (kind, wording or weight, not order) when
+  CVs were already scored answers 409 `rescoring_needed` with `details.cvs` and
+  `details.estimated_cost`; the editor shows them in a popup and "Save changes" sends the list
+  again with `acknowledge_rescoring: true`. The numbers come from
+  `projects/rescoring.py::rescoring_estimate`, which the Re-scoring ticket fills in (nothing is
+  scored yet, so it reports zero).
+- **Before scoring.** Scoring tickets call `requirements.require_requirements_for_scoring(project)`:
+  409 `requirements_needed` when the project has none.
+- Requirements are removed with their project (registered in `projects/deletion.py`). The
+  suggestions from the AI can be added to the editor with "Add to requirements" and are saved
+  only when the person saves.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

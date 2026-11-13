@@ -32,3 +32,29 @@ class Project(CompanyOwnedModel):
                 condition=Q(status__in=["active", "archived"]), name="project_status_is_known"
             ),
         ]
+
+
+class Requirement(CompanyOwnedModel):
+    """One thing a project asks for. The order is the order the person arranged them in.
+    Lengths and the weight range are limited by platform settings when written."""
+
+    class Kind(models.TextChoices):
+        MUST = "must"
+        NICE = "nice"
+
+    project = models.ForeignKey(Project, on_delete=models.PROTECT, related_name="requirements")
+    position = models.PositiveIntegerField()
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    text = models.TextField()
+    weight = models.PositiveSmallIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["position", "created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(kind__in=["must", "nice"]), name="requirement_kind_is_known"
+            ),
+            models.CheckConstraint(condition=Q(weight__gte=1), name="requirement_weight_positive"),
+        ]
