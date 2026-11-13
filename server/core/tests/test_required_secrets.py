@@ -15,6 +15,10 @@ REAL = {
     "EMAIL_HOST_PASSWORD": "test-only-smtp-key-9d3b1f7a52c4",
     "EMAIL_FROM_ADDRESS": "bera@example.com",
     "OPENAI_API_KEY": "test-only-ai-key-6e0c4a8d21f7b359",
+    "R2_ACCOUNT_ID": "0123456789abcdef0123456789abcdef",
+    "R2_ACCESS_KEY_ID": "test-only-r2-key-id-5d8a3c1f7e92",
+    "R2_SECRET_ACCESS_KEY": "test-only-r2-secret-b41e7c0a9d3f6528",
+    "R2_BUCKET": "bera-test-bucket",
     "WEB_BASE_URL": "https://app.example.com",
     "JWT_COMPANY_SECRET": "test-only-company-signing-key-3a9f1c7e5b",
     "JWT_ADMIN_SECRET": "test-only-admin-signing-key-8d2e6b4f0a",
@@ -90,6 +94,8 @@ def test_a_placeholder_password_in_the_migrator_address_is_refused():
         "FIELD_HASH_KEY",
         "EMAIL_HOST_PASSWORD",
         "OPENAI_API_KEY",
+        "R2_ACCESS_KEY_ID",
+        "R2_SECRET_ACCESS_KEY",
     ],
 )
 @pytest.mark.parametrize(

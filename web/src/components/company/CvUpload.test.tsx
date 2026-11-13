@@ -162,6 +162,32 @@ describe("CV upload", () => {
     expect(((uploadFiles.mock.calls[2][1] as File[])[0] as File).name).toBe("flaky.pdf");
   });
 
+  it("a file the server could not save can be tried again on its own", async () => {
+    uploadFiles
+      .mockResolvedValueOnce({
+        ok: true,
+        data: {
+          results: [
+            {
+              name: "a.pdf",
+              status: "failed",
+              code: "storage_failed",
+              message: "This file could not be saved. Please try again.",
+              prompt: null,
+              notice: "",
+            },
+          ],
+        },
+      })
+      .mockResolvedValueOnce(accepted("a.pdf"));
+    await ready();
+    await choose(pdf("a.pdf"));
+    expect(await screen.findByText("This file could not be saved. Please try again.")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Try a.pdf again" }));
+    expect(await screen.findByText("Added")).toBeTruthy();
+    expect(uploadFiles).toHaveBeenCalledTimes(2);
+  });
+
   it("files can be dropped", async () => {
     uploadFiles.mockImplementation(async (_path, files: File[]) => accepted(files[0].name));
     await ready();

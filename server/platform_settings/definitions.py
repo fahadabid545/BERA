@@ -153,6 +153,10 @@ SETTINGS = [
     ),
     SettingDefinition("sharing.report_link_default_days", 7, whole_number(1, 365)),
     SettingDefinition("sharing.download_package_link_hours", 24, whole_number(1, 720)),
+    # Private file storage: how long to wait before each new attempt when the store fails (the
+    # number of entries is the number of retries) and how long a download link works.
+    SettingDefinition("storage.retry_waits_seconds", [1, 3], list_of_whole_numbers(1, 60)),
+    SettingDefinition("storage.download_link_hours", 24, whole_number(1, 168)),
     # Usage and account lifecycle
     SettingDefinition("usage.warning_percents", [80, 100], list_of_whole_numbers(1, 100)),
     SettingDefinition("billing.past_due_grace_days", 7, whole_number(0, 90)),

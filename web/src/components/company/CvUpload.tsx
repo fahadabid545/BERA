@@ -9,7 +9,7 @@ import { getJson, uploadFiles } from "@/lib/api";
 type Rules = { allowed_types: string[]; max_file_size_mb: number; max_files_per_batch: number };
 type FileResult = {
   name: string;
-  status: "accepted" | "rejected";
+  status: "accepted" | "rejected" | "failed";
   code: string;
   message: string;
   prompt: "upgrade" | "renewal" | null;
@@ -78,6 +78,9 @@ export function CvUpload({ projectId }: { projectId: string }) {
     const outcome = result.data.results[0];
     if (outcome.status === "accepted") {
       return update(entry.id, { state: "added", progress: PERCENT, message: outcome.notice });
+    }
+    if (outcome.status === "failed") {
+      return update(entry.id, { state: "failed", message: outcome.message });
     }
     if (outcome.prompt) setPrompt(outcome.prompt);
     update(entry.id, { state: "refused", message: outcome.message });

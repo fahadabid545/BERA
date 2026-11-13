@@ -11,3 +11,4 @@ pyotp>=2.9,<3
 pycountry>=24,<27
 openai>=1.50,<3
 pypdf>=6.21,<7
+boto3>=1.35,<2

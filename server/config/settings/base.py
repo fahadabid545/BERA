@@ -51,7 +51,9 @@ TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "APP
 EMAIL_TIMEOUT = 10
 EMAIL_BACKEND = "emailing.backends.DevInboxBackend"
 EMAIL_FILE_PATH = BASE_DIR.parent / ".dev-inbox"
-# Where uploaded files are kept until Private file storage replaces it. Never served directly.
+# Where uploaded files are kept in development ("local"); staging and production use R2.
+FILE_STORAGE_BACKEND = "local"
+# Never served directly.
 PRIVATE_FILES_ROOT = Path(os.environ.get("PRIVATE_FILES_ROOT") or BASE_DIR.parent / "local_storage")
 EMAIL_FROM_ADDRESS = os.environ.get("EMAIL_FROM_ADDRESS", "").strip() or "bera@example.test"
 DEFAULT_FROM_EMAIL = f"Bera <{EMAIL_FROM_ADDRESS}>"

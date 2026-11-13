@@ -7,9 +7,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+import privatefiles as storage
 from core import middleware
 from core.tests.factories import make_company, make_company_user, start_session_for
-from cvs import storage
 from cvs.models import CvFile
 from cvs.tests.files import make_docx, make_encrypted_docx, make_pdf
 from plans import subscriptions as subs
@@ -428,27 +428,89 @@ class TestAnotherCompany:
         assert results(upload(client, project, ("b.pdf", PDF)))[0][1] == "accepted"
 
 
-class TestFailureCleanup:
-    def test_if_saving_fails_part_way_nothing_stays_recorded_or_stored(
-        self, company, client, project, settings, monkeypatch
-    ):
-        real_save = storage.save_file
-        calls = []
+class TestStorageFailures:
+    @pytest.fixture(autouse=True)
+    def no_waiting(self, monkeypatch):
+        monkeypatch.setattr("privatefiles.service.time.sleep", lambda seconds: None)
+
+    def break_storage_for(self, monkeypatch, bad_key_part=None):
+        """Every attempt to save fails (or only for keys holding `bad_key_part`)."""
+        from privatefiles import local
+        from privatefiles.errors import StorageError
+
+        real = local.save
 
         def flaky(key, data):
-            calls.append(key)
-            if len(calls) == 2:
-                raise OSError("disk full")
-            real_save(key, data)
+            if bad_key_part is None or bad_key_part in key:
+                raise StorageError
+            real(key, data)
 
-        monkeypatch.setattr(storage, "save_file", flaky)
+        monkeypatch.setattr(local, "save", flaky)
+
+    def test_a_file_the_store_cannot_take_is_shown_as_failed_and_others_go_on(
+        self, company, client, project, settings, monkeypatch
+    ):
+        from privatefiles import local
+        from privatefiles.errors import StorageError
+
+        real, calls = local.save, []
+
+        def second_file_fails(key, data):
+            calls.append(key)
+            if len(calls) in (2, 3, 4):  # the second file, on every attempt
+                raise StorageError
+            real(key, data)
+
+        monkeypatch.setattr(local, "save", second_file_fails)
+        response = upload(client, project, ("a.pdf", PDF), ("b.pdf", PDF), ("c.pdf", PDF))
+        rows = response.json()["results"]
+        assert [r["status"] for r in rows] == ["accepted", "failed", "accepted"]
+        assert rows[1]["code"] == "storage_failed"
+        assert rows[1]["message"] == "This file could not be saved. Please try again."
+        assert CvFile.objects.count() == 2
+        assert usage.waiting_cvs(company.pk) == 2
+        assert len(stored_files(settings.PRIVATE_FILES_ROOT)) == 2
+
+    def test_the_store_is_tried_again_before_giving_up(self, client, project, monkeypatch):
+        from privatefiles import local
+        from privatefiles.errors import StorageError
+
+        real, attempts = local.save, []
+
+        def works_on_the_third_try(key, data):
+            attempts.append(key)
+            if len(attempts) < 3:
+                raise StorageError
+            real(key, data)
+
+        monkeypatch.setattr(local, "save", works_on_the_third_try)
+        assert results(upload(client, project, ("a.pdf", PDF)))[0][1] == "accepted"
+        assert len(attempts) == 3
+
+    def test_a_failed_file_counts_for_nothing(self, company, client, project, monkeypatch):
+        self.break_storage_for(monkeypatch)
+        upload(client, project, ("a.pdf", PDF))
+        assert not CvFile.objects.exists()
+        assert usage.waiting_cvs(company.pk) == 0
+
+    def test_if_recording_fails_part_way_no_file_stays_behind(
+        self, company, client, project, settings, monkeypatch
+    ):
+        def explode(*args, **kwargs):
+            raise RuntimeError("database trouble")
+
+        monkeypatch.setattr(usage, "accept_cv", explode)
         client.raise_request_exception = False
         response = upload(client, project, ("a.pdf", PDF), ("b.pdf", PDF))
         assert response.status_code == 500
-        assert "disk" not in response.content.decode()
+        assert "database" not in response.content.decode()
         assert not CvFile.objects.exists()
         assert stored_files(settings.PRIVATE_FILES_ROOT) == []
-        assert usage.waiting_cvs(company.pk) == 0
+
+    def test_files_over_a_limit_are_not_left_in_storage(self, client, project, settings):
+        Plan.objects.update(cvs_per_month=1)
+        upload(client, project, ("a.pdf", PDF), ("b.pdf", PDF))
+        assert len(stored_files(settings.PRIVATE_FILES_ROOT)) == 1
 
 
 class TestDeletingTheProject:
@@ -483,12 +545,3 @@ class TestRequestSize:
         assert upload_size > form
         assert middleware.largest_allowed_request_bytes("/api/company/projects/abc/") == form
         assert middleware.largest_allowed_request_bytes("/api/company/projects/abc/cvs/x/") == form
-
-
-class TestStorage:
-    def test_a_key_cannot_leave_the_storage_folder(self):
-        with pytest.raises(ValueError):
-            storage.save_file("../outside", b"x")
-
-    def test_removing_a_missing_file_is_fine(self):
-        storage.delete_file("cvs/none/none")

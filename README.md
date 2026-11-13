@@ -704,10 +704,8 @@ connection, "Try again" re-sends only the failed file.
   `subscription_expired`), and each accepted file goes through `usage.accept_cv`. The upload
   rate limit (`rate_limits.upload_files_per_10_minutes`, 100) counts every file. An archived
   project takes no uploads (409 `project_archived`).
-- **Stand-in that a later ticket replaces:** `cvs/storage.py` (`save_file`, `read_file`,
-  `delete_file`) keeps files in the private local folder `PRIVATE_FILES_ROOT` (default
-  `local_storage/`, never served); Private file storage replaces its body. Keys are built from
-  server-made ids only. The file check is `cvs/file_checks.py::check_cv_file` (see File checks).
+- Files are kept by the private file storage (see Private file storage). The file check is
+  `cvs/file_checks.py::check_cv_file` (see File checks).
 - Accepted files are `CvFile` records with status `waiting`; Background processing takes them from
   there. The cost estimate is shown once Cost estimate before processing exists.
 - Deleting a project removes its files from storage and their records (registered in
@@ -741,6 +739,39 @@ connection, "Try again" re-sends only the failed file.
   properties state (none if it states none).
 - **File names** are cleaned for display (`core.validation.safe_file_name`) and are never part
   of a storage path (keys are made from ids).
+
+## Private file storage
+
+`privatefiles/` is the one place files are saved, read, removed and linked (`save_file`,
+`read_file`, `delete_file`, `download_link`); nothing else knows which store is behind it. Keys
+are built from server-made ids only (`cvs/<company>/<cv>`), never from a file name.
+
+- **Where.** Development and tests: a private folder (`PRIVATE_FILES_ROOT`, default
+  `local_storage/`; folders `0700`, files `0600`; no route serves it). Staging and production:
+  a private Cloudflare R2 bucket through its S3-compatible interface (`boto3`), no public
+  address. R2 encrypts every object at rest, so nothing extra is asked of it. Production needs
+  `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_BUCKET` (app only; the
+  app refuses to start without them; see `.env.example`).
+- **Short-lived links.** `download_link(key, file_name)` returns `{url, expires_at}`: a signed R2
+  address, or in development a signed `/api/files/<token>/` link that `read_for_link(token)`
+  reads back (refusing a changed or expired one with 403 `link_invalid`). Links last
+  `storage.download_link_hours` (24). **A link is made only after a permission check:**
+  `cvs/downloads.py::download_link_for_cv(user, cv_id)` requires a company user whose role may
+  download and whose company owns the CV (anything else is "not found" or "not allowed");
+  archived projects can still be downloaded from. The download route and buttons come with the
+  Downloads ticket, which must call that function (and `audit.security.watch_cv_downloads`).
+- **Storage failures.** A failed attempt is tried again after the waits in
+  `storage.retry_waits_seconds` (1 and 3 seconds); then `StorageUnavailable` (503
+  `storage_unavailable`) is raised. In an upload that file is reported `failed` (`storage_failed`:
+  "This file could not be saved. Please try again."), the rest go on, and the upload area offers
+  "Try again" for that file. Files are saved before the company lock is taken, and files that
+  turn out not to be kept (over a limit, or an error) are removed again.
+- **Deletion.** `cvs/service.py::remove_cv_file(cv_file)` removes the stored file and then the
+  record; deleting a project does this for all its CVs, and **the candidate-deletion ticket must
+  call it for the candidate's CV**. If the store cannot delete, nothing is deleted and the person
+  is told to try again.
+- Connects to Retention settings (which will call `remove_cv_file` when files expire) and Daily
+  backups (the bucket and the database are backed up together).
 
 ## Library checks and updates
 

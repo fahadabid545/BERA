@@ -7,25 +7,32 @@ accepted through `usage.accept_cv` after the limit check, with the company row l
 uploads at once cannot pass a limit together. Accepted files stay Waiting; Background
 processing takes them from there."""
 
+import logging
 import uuid
 from dataclasses import dataclass
 
 from django.db import transaction
 
+import privatefiles as storage
 from companies.models import Company
 from core.validation import safe_file_name
 from plans.limits import split_batch
 from platform_settings.service import get_setting
+from privatefiles.errors import StorageUnavailable
 from projects.deletion import register_project_data
 from projects.service import require_editable
 from usage import service as usage
 
-from . import storage
 from .file_checks import TOO_MANY_FILES, FileCheck, check_cv_file, check_name_and_size
 from .models import CvFile
 
+logger = logging.getLogger(__name__)
+
 ACCEPTED = "accepted"
 REJECTED = "rejected"
+FAILED = "failed"  # not the file's fault: sending it again may work
+STORAGE_FAILED = "storage_failed"
+STORAGE_FAILED_MESSAGE = "This file could not be saved. Please try again."
 
 
 @dataclass
@@ -34,6 +41,8 @@ class _Candidate:
     name: str
     data: bytes
     check: FileCheck
+    cv_id: uuid.UUID | None = None
+    key: str = ""
 
 
 def _result(name, status, code="", message="", prompt=None, notice=""):
@@ -84,52 +93,81 @@ def upload_cvs(uploader, project, files):
     return results
 
 
+def _store(candidates, results, project):
+    """Saves each file before any limit is checked, so the store's retries never hold the
+    company lock. A file the store cannot take (even after trying again) is a failed file;
+    the others go on. Returns the candidates that were saved."""
+    saved = []
+    for candidate in candidates:
+        candidate.cv_id = uuid.uuid4()
+        candidate.key = storage.key_for_cv(project.company_id, candidate.cv_id)
+        try:
+            storage.save_file(candidate.key, candidate.data)
+        except StorageUnavailable:
+            results[candidate.index] = _result(
+                candidate.name, FAILED, STORAGE_FAILED, STORAGE_FAILED_MESSAGE
+            )
+        else:
+            saved.append(candidate)
+    return saved
+
+
+def _discard(keys):
+    """Removes files that were saved but not kept. If even that fails the file is left for
+    clean-up and the key (an identifier, no personal data) is logged."""
+    for key in keys:
+        try:
+            storage.delete_file(key)
+        except StorageUnavailable:
+            logger.error("An unused file could not be removed: %s", key)
+
+
 def _accept(uploader, project, candidates, results):
-    saved_keys = []
+    saved = _store(candidates, results, project)
+    kept_keys = []
     try:
         with transaction.atomic():
             # One upload at a time per company, so the limits below cannot be passed together.
             Company.objects.select_for_update().get(pk=project.company_id)
             in_project = CvFile.objects.filter(project=project).count()
-            split = split_batch(project.company_id, candidates, in_project)
+            split = split_batch(project.company_id, saved, in_project)
             for skipped in split.skipped:
                 results[skipped.file.index] = _result(
                     skipped.file.name, REJECTED, skipped.code, skipped.message, skipped.prompt
                 )
             for candidate in split.accepted:
-                cv_id = uuid.uuid4()
-                key = storage.key_for_cv(project.company_id, cv_id)
-                storage.save_file(key, candidate.data)
-                saved_keys.append(key)
                 CvFile.objects.create(
-                    id=cv_id,
+                    id=candidate.cv_id,
                     company_id=project.company_id,
                     project=project,
                     original_name=safe_file_name(candidate.name),
                     file_type=candidate.check.file_type,
                     page_count=candidate.check.page_count,
                     size_bytes=len(candidate.data),
-                    storage_key=key,
+                    storage_key=candidate.key,
                     uploaded_by=uploader,
                 )
-                usage.accept_cv(project.company_id, cv_id, project.pk)
+                usage.accept_cv(project.company_id, candidate.cv_id, project.pk)
+                kept_keys.append(candidate.key)
                 results[candidate.index] = _result(
                     candidate.name, ACCEPTED, notice=candidate.check.notice
                 )
     except Exception:
-        for key in saved_keys:  # nothing was recorded, so no file may stay behind
-            storage.delete_file(key)
+        _discard(candidate.key for candidate in saved)  # nothing was recorded
         raise
+    _discard(candidate.key for candidate in saved if candidate.key not in kept_keys)
+
+
+def remove_cv_file(cv_file):
+    """Removes one CV: its file from storage, then its record. Deleting a candidate calls this
+    for the candidate's CV; the usage ledger keeps its history."""
+    storage.delete_file(cv_file.storage_key)
+    cv_file.delete()
 
 
 def _remove_for_project(company_id, project_id):
-    """Deletes the project's files from storage and their records. The usage ledger keeps
-    its history."""
-    for key in CvFile.objects.filter(company_id=company_id, project_id=project_id).values_list(
-        "storage_key", flat=True
-    ):
-        storage.delete_file(key)
-    CvFile.objects.filter(company_id=company_id, project_id=project_id).delete()
+    for cv_file in CvFile.objects.filter(company_id=company_id, project_id=project_id):
+        remove_cv_file(cv_file)
 
 
 register_project_data("CvFile", _remove_for_project)
