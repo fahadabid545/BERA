@@ -1,29 +1,34 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { render } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ProjectSettingsPage from "./page";
 
-describe("ProjectSettingsPage", () => {
-  it("shows its buttons and nothing else", () => {
-    const { container } = render(<ProjectSettingsPage />);
-    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Archive project" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Delete project" })).toBeTruthy();
-    expect(container.querySelectorAll("button, a, input, select, textarea")).toHaveLength(3);
-  });
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
-  it("does nothing when a button is pressed", async () => {
-    const { container } = render(<ProjectSettingsPage />);
-    const before = container.innerHTML;
-    for (const button of screen.getAllByRole("button")) await userEvent.click(button);
-    expect(container.innerHTML).toBe(before);
-  });
-});
-
-it("gives Delete project the danger style", () => {
-  render(<ProjectSettingsPage />);
-  expect(screen.getByRole("button", { name: "Delete project" }).className).toContain(
-    "ui-button--danger",
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        id: "p1",
+        title: "T",
+        job_description: "D",
+        status: "active",
+        may_delete: true,
+      }),
+    }),
   );
+});
+afterEach(() => vi.unstubAllGlobals());
+
+describe("ProjectSettingsPage", () => {
+  it("loads the project it was opened for", async () => {
+    const page = await ProjectSettingsPage({ params: Promise.resolve({ project: "p1" }) });
+    render(page);
+    await vi.waitFor(() =>
+      expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/company/projects/p1/"),
+    );
+  });
 });

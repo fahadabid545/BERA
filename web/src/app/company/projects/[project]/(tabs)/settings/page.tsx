@@ -1,11 +1,10 @@
-import { Button } from "@/components/ui";
+import { ProjectSettings } from "@/components/company/ProjectSettings";
 
-export default function ProjectSettingsPage() {
-  return (
-    <div className="page-actions">
-      <Button>Save</Button>
-      <Button variant="secondary">Archive project</Button>
-      <Button variant="danger">Delete project</Button>
-    </div>
-  );
+export default async function ProjectSettingsPage({
+  params,
+}: {
+  params: Promise<{ project: string }>;
+}) {
+  const { project } = await params;
+  return <ProjectSettings projectId={project} />;
 }

@@ -11,6 +11,7 @@ KINDS = frozenset(
         "invite_resent",
         "invite_revoked",
         "invite_accepted",
+        "project_deleted",
         "member_removed",
         "ownership_transferred",
         "setting_changed",  # not built yet

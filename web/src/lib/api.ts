@@ -76,8 +76,21 @@ export function postJson<T>(path: string, body: unknown) {
   });
 }
 
-export function deleteJson<T>(path: string) {
-  return request<T>(path, { method: "DELETE" });
+export function deleteJson<T>(path: string, body?: unknown) {
+  if (body === undefined) return request<T>(path, { method: "DELETE" });
+  return request<T>(path, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function patchJson<T>(path: string, body: unknown) {
+  return request<T>(path, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 export function putJson<T>(path: string, body: unknown) {

@@ -587,6 +587,29 @@ members), one page at a time. The company is never read from the request.
 - The Projects page shows the list with search, sort and filter controls, and Previous / Next
   when there is more than one page.
 
+## Edit, archive and delete project
+
+Routes under `/api/company/projects/<id>/` (own company only; another company's project is
+"not found"): `GET` (reading), `PATCH` (edit title and/or job description, same limits as
+creating; the pinned model and prompt version never change), `POST archive/`, `POST restore/` and
+`DELETE` (owner only, body `{"confirm_title": "<exact title>"}`). Owners and members may edit,
+archive and restore. The Settings tab of the project page has these actions.
+
+- **Archived** is read-only and reversible. `projects.service.require_editable(project)` refuses
+  with 409 `project_archived`; every later ticket that edits a project or accepts uploads must
+  call it first (downloads do not). Archived projects do not count toward the project limit
+  (`active_project_count`), so restoring one is checked against the limit again and can answer
+  `project_limit_reached` with the Upgrade prompt. Past usage stays in the usage history.
+- **Delete** goes through `projects/deletion.py::delete_project` in one transaction: running work
+  is stopped first (`register_work_stopper`), then each kind of project data is removed
+  (`register_project_data`, which also removes files from storage), then the project. If any step
+  fails nothing is deleted. **Every ticket that stores project data (files, candidates, scores)
+  must register it there and add its name to `EXPECTED_REGISTRATIONS` in
+  `projects/tests/test_project_deletion.py`**; a guard test fails for any model that points at a
+  project and is neither registered nor kept on purpose (the usage ledger).
+- Deletion is logged in the company's activity log as `project_deleted` with the project's
+  identifier only: no title and no names.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

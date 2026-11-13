@@ -28,3 +28,22 @@ class ListProjectsSerializer(StrictSerializer):
     status = serializers.ChoiceField(choices=STATUS_FILTERS, default=DEFAULT_STATUS)
     sort = serializers.ChoiceField(choices=list(SORTS), default=DEFAULT_SORT)
     page = serializers.IntegerField(min_value=1, max_value=1_000_000, default=1)
+
+
+class EditProjectSerializer(StrictSerializer):
+    """Only what is sent changes; the limits are the same as when creating."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["title"] = SafeTextField(
+            max_length=get_setting("projects.title_max_length"), required=False
+        )
+        self.fields["job_description"] = SafeTextField(
+            max_length=get_setting("projects.description_max_length"),
+            multiline=True,
+            required=False,
+        )
+
+
+class DeleteProjectSerializer(StrictSerializer):
+    confirm_title = SafeTextField(max_length=1000)

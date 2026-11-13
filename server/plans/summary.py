@@ -2,7 +2,7 @@
 limit checks use, so what is shown always matches what is enforced."""
 
 from platform_settings.service import get_setting
-from projects.models import Project
+from projects.service import active_project_count
 from usage import service as usage
 
 from . import limits
@@ -10,8 +10,8 @@ from .subscriptions import State, effective_state, get_subscription, grace_ends_
 
 
 def projects_in_use(company_id):
-    """How many projects the company has."""
-    return Project.objects.filter(company_id=company_id).count()
+    """How many projects count toward the limit: archived ones do not."""
+    return active_project_count(company_id)
 
 
 def warning_level(used, limit):
