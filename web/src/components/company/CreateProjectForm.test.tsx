@@ -4,6 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CreateProjectForm } from "./CreateProjectForm";
 
+const uploadFiles = vi.fn();
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
+  uploadFiles: (...args: unknown[]) => uploadFiles(...args),
+}));
+
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
@@ -28,6 +34,7 @@ async function fillAndSubmit() {
 }
 
 beforeEach(() => {
+  uploadFiles.mockReset();
   push.mockReset();
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
@@ -49,9 +56,80 @@ describe("create project form", () => {
     );
   });
 
-  it("has no file picker: the pasted text is the only input", () => {
+  it("has an optional job description file that takes PDF and Word files", () => {
     const { container } = render(<CreateProjectForm />);
-    expect(container.querySelector("input[type=file]")).toBeNull();
+    const picker = container.querySelector("input[type=file]") as HTMLInputElement;
+    expect(picker.getAttribute("accept")).toBe(".pdf,.docx");
+    expect(screen.getByLabelText("Job description file (optional)")).toBe(picker);
+  });
+
+  it("reads the chosen file on the server and puts its text in the description box", async () => {
+    uploadFiles.mockResolvedValue({
+      ok: true,
+      data: { text: "Senior backend engineer needed", trimmed: false, notice: "" },
+    });
+    render(<CreateProjectForm />);
+    const file = new File(["x"], "job.docx");
+    await userEvent.upload(screen.getByLabelText("Job description file (optional)"), file);
+    await waitFor(() =>
+      expect((screen.getByLabelText("Job description") as HTMLTextAreaElement).value).toBe(
+        "Senior backend engineer needed",
+      ),
+    );
+    expect(uploadFiles.mock.calls[0][0]).toBe("/api/company/projects/read-description/");
+    expect((uploadFiles.mock.calls[0][1] as File[])[0].name).toBe("job.docx");
+  });
+
+  it("the text from the file is what is sent when the project is created", async () => {
+    uploadFiles.mockResolvedValue({
+      ok: true,
+      data: { text: "From the file", trimmed: false, notice: "" },
+    });
+    reply(201, { id: "abc" });
+    render(<CreateProjectForm />);
+    await userEvent.upload(
+      screen.getByLabelText("Job description file (optional)"),
+      new File(["x"], "job.pdf"),
+    );
+    await screen.findByDisplayValue("From the file");
+    await userEvent.type(screen.getByLabelText("Project title"), "Backend engineer");
+    await userEvent.click(screen.getByRole("button", { name: "Create project" }));
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    expect(sentBodies()[0].job_description).toBe("From the file");
+  });
+
+  it("a file the server cannot read shows its message next to the file and leaves the box alone", async () => {
+    uploadFiles.mockResolvedValue({
+      ok: false,
+      error: {
+        code: "validation_error",
+        message: "Check.",
+        fields: { file: "We could not read this file." },
+      },
+    });
+    render(<CreateProjectForm />);
+    await userEvent.type(screen.getByLabelText("Job description"), "typed by hand");
+    await userEvent.upload(
+      screen.getByLabelText("Job description file (optional)"),
+      new File(["x"], "job.pdf"),
+    );
+    expect(await screen.findByText("We could not read this file.")).toBeTruthy();
+    expect((screen.getByLabelText("Job description") as HTMLTextAreaElement).value).toBe(
+      "typed by hand",
+    );
+  });
+
+  it("says when the text was shortened to fit", async () => {
+    uploadFiles.mockResolvedValue({
+      ok: true,
+      data: { text: "Long text", trimmed: true, notice: "" },
+    });
+    render(<CreateProjectForm />);
+    await userEvent.upload(
+      screen.getByLabelText("Job description file (optional)"),
+      new File(["x"], "job.pdf"),
+    );
+    expect(await screen.findByText("The text was shortened to fit.")).toBeTruthy();
   });
 
   it("sends the text and goes to the projects list when created", async () => {

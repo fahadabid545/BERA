@@ -153,6 +153,12 @@ SETTINGS = [
     ),
     SettingDefinition("sharing.report_link_default_days", 7, whole_number(1, 365)),
     SettingDefinition("sharing.download_package_link_hours", 24, whole_number(1, 720)),
+    # Reading text out of files: the most text kept (more is trimmed and flagged), the least a
+    # readable file must hold, and the limits of the separate process that reads PDFs.
+    SettingDefinition("reading.max_characters", 40000, whole_number(1000, 1000000)),
+    SettingDefinition("reading.min_characters", 30, whole_number(1, 1000)),
+    SettingDefinition("reading.worker_timeout_seconds", 60, whole_number(1, 600)),
+    SettingDefinition("reading.worker_memory_mb", 1024, whole_number(128, 16384)),
     # Duplicate detection: two CVs with a phone number ending in the same digits (at least
     # this many) are likely the same person.
     SettingDefinition("duplicates.phone_digits", 9, whole_number(6, 15)),

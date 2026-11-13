@@ -798,6 +798,36 @@ Candidate detail and the Ranked candidate list).
   pipeline (Background processing) must call `usage.mark_scored` only when it is true, and count
   a scored CV when it is kept.** Until then a flagged CV waits like any other.
 
+## Text reading from files
+
+`cvs/text_reading.py::read_text(file_type, data, max_characters=None)` is the one function that
+turns a PDF or Word file into text; Background processing calls it after File checks accepted the
+file (no route and no page for CVs). It returns `CvText(text, trimmed)`.
+
+- **Reading order.** PDFs are read with pdfminer.six's layout analysis, so a two-column page
+  reads one column after the other, for the first `uploads.cv_pages_read` (15) pages. The PDF
+  reader runs in its own limited process (`cvs/pdf_worker.py`: memory limit
+  `reading.worker_memory_mb`, time limit `reading.worker_timeout_seconds`, empty environment), so
+  a hostile PDF can at worst kill that process and the file is reported as unreadable. Word files
+  are read with python-docx in document order: headings as their own lines, list items as
+  `- item`, tables row by row (`a | b`, merged cells once), the page header (contact details are
+  often there) first, and text boxes last (their fallback copy skipped).
+- **Cleaning.** One form for every language and script: composed characters (NFKC, so ligatures
+  and fullwidth forms become ordinary), no invisible, bidirectional or control characters, odd
+  spaces made ordinary, `(cid:N)` placeholders from fonts without a text map removed, tidy blank
+  lines.
+- **Trimming.** Text over `reading.max_characters` (40,000) is cut at a word boundary where it
+  can (never between a letter and its accent) and `trimmed` is true so the caller can flag it.
+- **Failures.** Text with fewer than `reading.min_characters` (30) letters and digits, or a file
+  the readers cannot open, raises `CvTextUnreadable` (HTTP 422 `cv_unreadable`: "We could not
+  read this file."). **The caller must not count that CV: processing calls
+  `usage.mark_failed(company_id, cv_id)`.**
+- **Job description file.** `POST /api/company/projects/read-description/` (multipart `files`,
+  one file; the Create project form's optional file) runs File checks, then `read_text` (cut to
+  `projects.description_max_length`), and returns `{text, trimmed, notice}` for the description
+  box. The file is never stored and nothing is counted; it uses the upload allowance. Problems
+  come back as a `file` field message.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

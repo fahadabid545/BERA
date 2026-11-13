@@ -6,9 +6,10 @@ import { useState, type FormEvent } from "react";
 import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
 import { PROJECTS_HREF } from "@/components/company/links";
 import { Button, ButtonLink, Dialog, Input, Textarea } from "@/components/ui";
-import { postJson, type ApiError } from "@/lib/api";
+import { postJson, uploadFiles, type ApiError } from "@/lib/api";
 
 const CREATE_URL = "/api/company/projects/";
+const READ_FILE_URL = "/api/company/projects/read-description/";
 
 type Warning = { code: string; message: string };
 type Draft = { title: string; job_description: string };
@@ -28,6 +29,27 @@ export function CreateProjectForm() {
   const [warnings, setWarnings] = useState<Warning[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [prompt, setPrompt] = useState<"upgrade" | "renewal" | null>(null);
+  const [description, setDescription] = useState("");
+  const [fileError, setFileError] = useState<string | undefined>();
+  const [fileNotice, setFileNotice] = useState("");
+  const [reading, setReading] = useState(false);
+
+  /** The file is read on the server and thrown away; only its text comes back, into the box. */
+  async function readFile(file: File | undefined) {
+    setFileError(undefined);
+    setFileNotice("");
+    if (!file) return;
+    setReading(true);
+    const result = await uploadFiles<{ text: string; trimmed: boolean; notice: string }>(
+      READ_FILE_URL,
+      [file],
+      () => {},
+    );
+    setReading(false);
+    if (!result.ok) return setFileError(result.error.fields?.file ?? result.error.message);
+    setDescription(result.data.text);
+    setFileNotice(result.data.trimmed ? "The text was shortened to fit." : result.data.notice);
+  }
 
   async function create(values: Draft, acknowledgeWarnings: boolean) {
     setSaving(true);
@@ -69,8 +91,22 @@ export function CreateProjectForm() {
         label="Job description"
         name="job_description"
         rows={12}
+        value={description}
+        onChange={(event) => setDescription(event.target.value)}
         error={fields.job_description}
       />
+      <Input
+        label="Job description file (optional)"
+        type="file"
+        accept=".pdf,.docx"
+        disabled={reading}
+        onChange={(event) => {
+          void readFile(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+        error={fileError}
+      />
+      {fileNotice && <p role="status">{fileNotice}</p>}
       {generalError && (
         <p className="ui-error" role="alert">
           {generalError}

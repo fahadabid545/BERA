@@ -28,7 +28,10 @@ class RequestContextMiddleware:
 # lists it here; every other route only accepts small form-sized requests.
 UPLOAD_ROUTE_PREFIXES = ()
 # Upload routes with an identifier in the middle of the path.
-UPLOAD_ROUTE_PATTERNS = (re.compile(r"^/api/company/projects/[^/]+/cvs/$"),)
+UPLOAD_ROUTE_PATTERNS = (
+    re.compile(r"^/api/company/projects/[^/]+/cvs/$"),
+    re.compile(r"^/api/company/projects/read-description/$"),
+)
 METHODS_WITH_BODY = {"POST", "PUT", "PATCH", "DELETE"}
 BYTES_PER_KILOBYTE = 1024
 BYTES_PER_MEGABYTE = 1024 * 1024

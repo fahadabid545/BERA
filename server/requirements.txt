@@ -12,3 +12,5 @@ pycountry>=24,<27
 openai>=1.50,<3
 pypdf>=6.21,<7
 boto3>=1.35,<2
+pdfminer.six>=20250506
+python-docx>=1.1,<2

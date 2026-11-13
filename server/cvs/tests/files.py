@@ -7,11 +7,19 @@ import zlib
 
 
 def make_pdf(
-    pages=1, text="Experienced backend engineer", root_extra="", page_extra="", content=None
+    pages=1,
+    text="Experienced backend engineer",
+    root_extra="",
+    page_extra="",
+    content=None,
+    commands=None,
+    page_texts=None,
 ):
     """A valid PDF whose pages each draw `text`. `root_extra` and `page_extra` add entries to
     the catalog and to every page (for the scripts and actions the checker must refuse).
-    `content` replaces the drawing commands of every page with a compressed stream."""
+    `content` replaces the drawing commands of every page with a compressed stream.
+    `commands` is a string of drawing commands (Latin-1) used on every page, and `page_texts`
+    gives each page its own text."""
     objects = []
 
     def add(body):
@@ -20,11 +28,15 @@ def make_pdf(
 
     catalog = add(b"")  # filled in below, once the pages exist
     pages_object = add(b"")
-    font = add(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+    font = add(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
     page_numbers = []
-    for _ in range(pages):
+    for number in range(pages):
         if content is None:
-            stream = f"BT /F1 12 Tf 72 720 Td ({text}) Tj ET".encode()
+            if commands is not None:
+                stream = commands.encode("latin-1")
+            else:
+                shown = page_texts[number] if page_texts else text
+                stream = f"BT /F1 12 Tf 72 720 Td ({shown}) Tj ET".encode("latin-1")
             header = b"<< /Length %d >>" % len(stream)
         else:
             stream = zlib.compress(content)
