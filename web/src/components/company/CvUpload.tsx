@@ -9,7 +9,7 @@ import { getJson, uploadFiles } from "@/lib/api";
 type Rules = { allowed_types: string[]; max_file_size_mb: number; max_files_per_batch: number };
 type FileResult = {
   name: string;
-  status: "accepted" | "rejected" | "failed";
+  status: "accepted" | "rejected" | "failed" | "skipped";
   code: string;
   message: string;
   prompt: "upgrade" | "renewal" | null;
@@ -18,7 +18,7 @@ type FileResult = {
 type Entry = {
   id: number;
   file: File;
-  state: "queued" | "uploading" | "added" | "refused" | "failed";
+  state: "queued" | "uploading" | "added" | "skipped" | "refused" | "failed";
   progress: number;
   message: string;
 };
@@ -78,6 +78,9 @@ export function CvUpload({ projectId }: { projectId: string }) {
     const outcome = result.data.results[0];
     if (outcome.status === "accepted") {
       return update(entry.id, { state: "added", progress: PERCENT, message: outcome.notice });
+    }
+    if (outcome.status === "skipped") {
+      return update(entry.id, { state: "skipped", message: outcome.message });
     }
     if (outcome.status === "failed") {
       return update(entry.id, { state: "failed", message: outcome.message });
@@ -170,7 +173,10 @@ export function CvUpload({ projectId }: { projectId: string }) {
                 {entry.state === "queued" && "Waiting to upload"}
                 {entry.state === "uploading" && `Uploading ${entry.progress}%`}
                 {entry.state === "added" && (entry.message ? `Added. ${entry.message}` : "Added")}
-                {(entry.state === "refused" || entry.state === "failed") && entry.message}
+                {(entry.state === "refused" ||
+                  entry.state === "failed" ||
+                  entry.state === "skipped") &&
+                  entry.message}
               </span>
               {entry.state === "failed" && (
                 <Button

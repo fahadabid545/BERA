@@ -47,6 +47,7 @@ EXPECTED_DEFAULTS = {
     "uploads.allowed_file_types": ["pdf", "docx"],
     "uploads.max_file_size_mb": 10,
     "uploads.max_files_per_batch": 50,
+    "duplicates.phone_digits": 9,
     "storage.retry_waits_seconds": [1, 3],
     "storage.download_link_hours": 24,
     "uploads.cv_pages_read": 15,

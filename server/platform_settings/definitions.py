@@ -153,6 +153,9 @@ SETTINGS = [
     ),
     SettingDefinition("sharing.report_link_default_days", 7, whole_number(1, 365)),
     SettingDefinition("sharing.download_package_link_hours", 24, whole_number(1, 720)),
+    # Duplicate detection: two CVs with a phone number ending in the same digits (at least
+    # this many) are likely the same person.
+    SettingDefinition("duplicates.phone_digits", 9, whole_number(6, 15)),
     # Private file storage: how long to wait before each new attempt when the store fails (the
     # number of entries is the number of retries) and how long a download link works.
     SettingDefinition("storage.retry_waits_seconds", [1, 3], list_of_whole_numbers(1, 60)),

@@ -773,6 +773,31 @@ are built from server-made ids only (`cvs/<company>/<cv>`), never from a file na
 - Connects to Retention settings (which will call `remove_cv_file` when files expire) and Daily
   backups (the bucket and the database are backed up together).
 
+## Duplicate detection
+
+Two checks in `cvs/duplicates.py`; no route and no page (the review flag is shown later in
+Candidate detail and the Ranked candidate list).
+
+- **Identical file, at upload.** `split_identical` compares a SHA-256 of the file's bytes with the
+  project's other CVs and with earlier files of the same upload, under the company lock. A repeat
+  gets the result `skipped` (`duplicate_file`: "This file is already in the project, so it was
+  skipped."), is not stored and never counted, and does not use the monthly or project limit.
+  The name does not matter; another project or company is never compared. The database allows
+  one copy of a file per project.
+- **Likely same person, after reading.** `review_likely_duplicate(cv_file, text)` is called by
+  processing with the CV's text. It finds emails and phone numbers (`contact_hashes_in`; phones
+  compare their last `duplicates.phone_digits`, 9, digits, so `+44 7700 900123` equals
+  `07700-900-123`) and keeps only keyed hashes of them (`CvFile.contact_hashes`), never the
+  values. When another CV of the project shares one, this CV is marked `review = flagged`
+  with `duplicate_of`.
+- **Deciding.** A flagged CV stays marked until the person decides: `keep_flagged_cv` (it stays
+  and counts) or `discard_flagged_cv` (the file and record are removed and its allowance is
+  given back with `usage.mark_failed`). A CV already kept is never flagged again. Both refuse a
+  CV that is not flagged and an archived project.
+- **Counting.** `counts_toward_limits(cv_file)` is false while a CV is flagged. **The scoring
+  pipeline (Background processing) must call `usage.mark_scored` only when it is true, and count
+  a scored CV when it is kept.** Until then a flagged CV waits like any other.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

@@ -24,6 +24,11 @@ pytestmark = pytest.mark.django_db
 PDF = make_pdf()
 
 
+def different(name):
+    """A valid PDF that differs from every other one, so it is not taken for a repeat."""
+    return make_pdf(text=f"Experienced engineer {name}")
+
+
 def docx_bytes():
     return make_docx()
 
@@ -113,7 +118,7 @@ class TestRules:
 
 class TestAccepting:
     def test_pdf_and_docx_are_accepted_and_stay_waiting(self, company, client, project, settings):
-        response = upload(client, project, ("a.pdf", PDF), ("b.docx", docx_bytes()))
+        response = upload(client, project, ("a.pdf", different("a.pdf")), ("b.docx", docx_bytes()))
         assert response.status_code == 200
         assert results(response) == [("a.pdf", "accepted", ""), ("b.docx", "accepted", "")]
         rows = CvFile.objects.filter(project=project)
@@ -128,23 +133,25 @@ class TestAccepting:
         assert row.size_bytes == len(PDF)
 
     def test_each_accepted_file_is_counted_as_waiting_not_scored(self, company, client, project):
-        upload(client, project, ("a.pdf", PDF), ("b.pdf", PDF))
+        upload(client, project, ("a.pdf", different("a.pdf")), ("b.pdf", different("b.pdf")))
         assert usage.waiting_cvs(company.pk) == 2
         assert usage.current_usage(company.pk)["cvs_scored"] == 0
 
     def test_the_file_belongs_to_the_projects_company_and_the_uploader(
         self, company, signed_in, client, project
     ):
-        upload(client, project, ("a.pdf", PDF))
+        upload(client, project, ("a.pdf", different("a.pdf")))
         row = CvFile.objects.get(project=project)
         assert (row.company_id, row.uploaded_by_id) == (company.pk, signed_in[0].pk)
 
     def test_a_member_may_upload(self, company, project):
         _, member = sign_in(company, role="member")
-        assert results(upload(member, project, ("a.pdf", PDF))) == [("a.pdf", "accepted", "")]
+        assert results(upload(member, project, ("a.pdf", different("a.pdf")))) == [
+            ("a.pdf", "accepted", "")
+        ]
 
     def test_a_file_name_can_never_choose_where_it_is_saved(self, client, project, settings):
-        upload(client, project, ("../../evil.pdf", PDF))
+        upload(client, project, ("../../evil.pdf", different("../../evil.pdf")))
         row = CvFile.objects.get(project=project)
         assert row.original_name == "evil.pdf"
         root = Path(settings.PRIVATE_FILES_ROOT).resolve()
@@ -162,7 +169,13 @@ class TestAccepting:
 
 class TestEachProblemHasItsOwnMessageWhileGoodFilesContinue:
     def run(self, client, project, bad):
-        response = upload(client, project, ("good.pdf", PDF), bad, ("also-good.docx", docx_bytes()))
+        response = upload(
+            client,
+            project,
+            ("good.pdf", different("good.pdf")),
+            bad,
+            ("also-good.docx", docx_bytes()),
+        )
         rows = response.json()["results"]
         assert [r["status"] for r in rows] == ["accepted", "rejected", "accepted"]
         assert CvFile.objects.filter(project=project).count() == 2
@@ -265,7 +278,7 @@ class TestPageNotice:
         assert CvFile.objects.get(project=project).page_count == 16
 
     def test_a_short_cv_has_no_notice(self, client, project):
-        row = upload(client, project, ("a.pdf", PDF)).json()["results"][0]
+        row = upload(client, project, ("a.pdf", different("a.pdf"))).json()["results"][0]
         assert row["notice"] == ""
         assert CvFile.objects.get(project=project).page_count == 1
 
@@ -273,7 +286,7 @@ class TestPageNotice:
 class TestTooManyFiles:
     def test_files_past_the_batch_size_are_refused_and_the_rest_continue(self, client, project):
         set_setting("uploads.max_files_per_batch", 3)
-        response = upload(client, project, *[(f"{n}.pdf", PDF) for n in range(5)])
+        response = upload(client, project, *[(f"{n}.pdf", different(f"{n}.pdf")) for n in range(5)])
         assert [r["status"] for r in response.json()["results"]] == ["accepted"] * 3 + [
             "rejected"
         ] * 2
@@ -288,7 +301,7 @@ class TestPlanLimits:
     ):
         Plan.objects.update(cvs_per_month=2)
         make_plan(cvs_per_month=500, name="Bigger", price=99)
-        response = upload(client, project, *[(f"{n}.pdf", PDF) for n in range(3)])
+        response = upload(client, project, *[(f"{n}.pdf", different(f"{n}.pdf")) for n in range(3)])
         rows = response.json()["results"]
         assert [r["status"] for r in rows] == ["accepted", "accepted", "rejected"]
         assert rows[2]["code"] == "monthly_cv_limit_reached"
@@ -297,8 +310,10 @@ class TestPlanLimits:
 
     def test_the_per_project_limit_applies_to_what_is_already_there(self, client, project):
         Plan.objects.update(cvs_per_project=3)
-        upload(client, project, ("a.pdf", PDF), ("b.pdf", PDF))
-        rows = upload(client, project, ("c.pdf", PDF), ("d.pdf", PDF)).json()["results"]
+        upload(client, project, ("a.pdf", different("a.pdf")), ("b.pdf", different("b.pdf")))
+        rows = upload(
+            client, project, ("c.pdf", different("c.pdf")), ("d.pdf", different("d.pdf"))
+        ).json()["results"]
         assert [r["status"] for r in rows] == ["accepted", "rejected"]
         assert rows[1]["code"] == "project_cv_limit_reached"
 
@@ -312,12 +327,12 @@ class TestPlanLimits:
             prompt_version="p",
             created_by=signed_in[0],
         )
-        upload(client, project, ("a.pdf", PDF))
-        assert results(upload(client, other, ("b.pdf", PDF)))[0][1] == "accepted"
+        upload(client, project, ("a.pdf", different("a.pdf")))
+        assert results(upload(client, other, ("b.pdf", different("b.pdf"))))[0][1] == "accepted"
 
     def test_an_ended_subscription_shows_the_renewal_prompt(self, company, client, project):
         subs.expire(company.pk)
-        row = upload(client, project, ("a.pdf", PDF)).json()["results"][0]
+        row = upload(client, project, ("a.pdf", different("a.pdf"))).json()["results"][0]
         assert (row["status"], row["prompt"]) == ("rejected", "renewal")
         assert not CvFile.objects.exists()
 
@@ -325,21 +340,28 @@ class TestPlanLimits:
         Plan.objects.update(cvs_per_month=1)
         upload(client, project, ("notes.txt", b"x"), ("empty.pdf", b""))
         assert usage.waiting_cvs(company.pk) == 0
-        assert results(upload(client, project, ("a.pdf", PDF)))[0][1] == "accepted"
+        assert results(upload(client, project, ("a.pdf", different("a.pdf"))))[0][1] == "accepted"
 
 
 class TestUploadRateLimit:
     def test_files_are_counted_one_by_one_against_the_allowance(self, client, project):
         set_setting("rate_limits.upload_files_per_10_minutes", 3)
-        assert upload(client, project, ("a.pdf", PDF), ("b.pdf", PDF)).status_code == 200
-        response = upload(client, project, ("c.pdf", PDF), ("d.pdf", PDF))
+        assert (
+            upload(
+                client, project, ("a.pdf", different("a.pdf")), ("b.pdf", different("b.pdf"))
+            ).status_code
+            == 200
+        )
+        response = upload(
+            client, project, ("c.pdf", different("c.pdf")), ("d.pdf", different("d.pdf"))
+        )
         assert response.status_code == 429
         assert response.json()["error"]["code"] == "too_many_requests"
         assert CvFile.objects.count() == 2
 
     def test_the_allowance_belongs_to_the_company(self, company, client, project):
         set_setting("rate_limits.upload_files_per_10_minutes", 1)
-        upload(client, project, ("a.pdf", PDF))
+        upload(client, project, ("a.pdf", different("a.pdf")))
         other = make_company()
         now = timezone.now()
         subs.activate(
@@ -357,7 +379,7 @@ class TestUploadRateLimit:
             prompt_version="p",
             created_by=stranger,
         )
-        assert upload(theirs, their_project, ("a.pdf", PDF)).status_code == 200
+        assert upload(theirs, their_project, ("a.pdf", different("a.pdf"))).status_code == 200
 
     def test_the_default_is_100_files_per_10_minutes(self):
         from core.rate_limits import UPLOADS
@@ -369,7 +391,7 @@ class TestUploadRateLimit:
 class TestAccess:
     def test_an_archived_project_takes_no_uploads(self, client, project):
         Project.objects.filter(pk=project.pk).update(status="archived")
-        response = upload(client, project, ("a.pdf", PDF))
+        response = upload(client, project, ("a.pdf", different("a.pdf")))
         assert response.status_code == 409
         assert response.json()["error"]["code"] == "project_archived"
         assert not CvFile.objects.exists()
@@ -388,21 +410,21 @@ class TestAccess:
             prompt_version="p",
             created_by=make_company_user(stranger),
         )
-        assert upload(client, theirs, ("a.pdf", PDF)).status_code == 404
+        assert upload(client, theirs, ("a.pdf", different("a.pdf"))).status_code == 404
         assert client.get(url(theirs)).status_code == 404
         assert not CvFile.objects.exists()
         assert stored_files(settings.PRIVATE_FILES_ROOT) == []
 
     def test_the_company_cannot_be_chosen_in_the_request(self, company, client, project):
         other = make_company()
-        sent = SimpleUploadedFile("a.pdf", PDF)
+        sent = SimpleUploadedFile("a.pdf", different("a.pdf"))
         client.post(url(project), {"files": [sent], "company": str(other.pk)}, format="multipart")
         assert CvFile.objects.get().company_id == company.pk
 
 
 class TestAnotherCompany:
     def test_a_file_always_belongs_to_the_projects_company(self, company, client, project):
-        upload(client, project, ("a.pdf", PDF))
+        upload(client, project, ("a.pdf", different("a.pdf")))
         assert CvFile.objects.get().company_id == company.pk
 
     def test_the_limit_counts_only_the_own_company(self, company, client, project):
@@ -424,8 +446,8 @@ class TestAnotherCompany:
             prompt_version="p",
             created_by=stranger,
         )
-        upload(theirs, their_project, ("a.pdf", PDF))
-        assert results(upload(client, project, ("b.pdf", PDF)))[0][1] == "accepted"
+        upload(theirs, their_project, ("a.pdf", different("a.pdf")))
+        assert results(upload(client, project, ("b.pdf", different("b.pdf"))))[0][1] == "accepted"
 
 
 class TestStorageFailures:
@@ -462,7 +484,13 @@ class TestStorageFailures:
             real(key, data)
 
         monkeypatch.setattr(local, "save", second_file_fails)
-        response = upload(client, project, ("a.pdf", PDF), ("b.pdf", PDF), ("c.pdf", PDF))
+        response = upload(
+            client,
+            project,
+            ("a.pdf", different("a.pdf")),
+            ("b.pdf", different("b.pdf")),
+            ("c.pdf", different("c.pdf")),
+        )
         rows = response.json()["results"]
         assert [r["status"] for r in rows] == ["accepted", "failed", "accepted"]
         assert rows[1]["code"] == "storage_failed"
@@ -484,12 +512,12 @@ class TestStorageFailures:
             real(key, data)
 
         monkeypatch.setattr(local, "save", works_on_the_third_try)
-        assert results(upload(client, project, ("a.pdf", PDF)))[0][1] == "accepted"
+        assert results(upload(client, project, ("a.pdf", different("a.pdf"))))[0][1] == "accepted"
         assert len(attempts) == 3
 
     def test_a_failed_file_counts_for_nothing(self, company, client, project, monkeypatch):
         self.break_storage_for(monkeypatch)
-        upload(client, project, ("a.pdf", PDF))
+        upload(client, project, ("a.pdf", different("a.pdf")))
         assert not CvFile.objects.exists()
         assert usage.waiting_cvs(company.pk) == 0
 
@@ -501,7 +529,9 @@ class TestStorageFailures:
 
         monkeypatch.setattr(usage, "accept_cv", explode)
         client.raise_request_exception = False
-        response = upload(client, project, ("a.pdf", PDF), ("b.pdf", PDF))
+        response = upload(
+            client, project, ("a.pdf", different("a.pdf")), ("b.pdf", different("b.pdf"))
+        )
         assert response.status_code == 500
         assert "database" not in response.content.decode()
         assert not CvFile.objects.exists()
@@ -509,7 +539,7 @@ class TestStorageFailures:
 
     def test_files_over_a_limit_are_not_left_in_storage(self, client, project, settings):
         Plan.objects.update(cvs_per_month=1)
-        upload(client, project, ("a.pdf", PDF), ("b.pdf", PDF))
+        upload(client, project, ("a.pdf", different("a.pdf")), ("b.pdf", different("b.pdf")))
         assert len(stored_files(settings.PRIVATE_FILES_ROOT)) == 1
 
 
@@ -525,8 +555,8 @@ class TestDeletingTheProject:
             prompt_version="p",
             created_by=signed_in[0],
         )
-        upload(client, project, ("a.pdf", PDF), ("b.pdf", PDF))
-        upload(client, other, ("c.pdf", PDF))
+        upload(client, project, ("a.pdf", different("a.pdf")), ("b.pdf", different("b.pdf")))
+        upload(client, other, ("c.pdf", different("c.pdf")))
         response = client.delete(
             f"/api/company/projects/{project.pk}/", {"confirm_title": project.title}, format="json"
         )

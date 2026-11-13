@@ -23,12 +23,14 @@ from projects.deletion import register_project_data
 from projects.service import require_editable
 from usage import service as usage
 
+from .duplicates import DUPLICATE_FILE, DUPLICATE_FILE_MESSAGE, split_identical
 from .file_checks import TOO_MANY_FILES, FileCheck, check_cv_file, check_name_and_size
 from .models import CvFile
 
 logger = logging.getLogger(__name__)
 
 ACCEPTED = "accepted"
+SKIPPED = "skipped"  # already in the project: not an error, and never counted
 REJECTED = "rejected"
 FAILED = "failed"  # not the file's fault: sending it again may work
 STORAGE_FAILED = "storage_failed"
@@ -43,6 +45,7 @@ class _Candidate:
     check: FileCheck
     cv_id: uuid.UUID | None = None
     key: str = ""
+    content_hash: str = ""
 
 
 def _result(name, status, code="", message="", prompt=None, notice=""):
@@ -129,8 +132,13 @@ def _accept(uploader, project, candidates, results):
         with transaction.atomic():
             # One upload at a time per company, so the limits below cannot be passed together.
             Company.objects.select_for_update().get(pk=project.company_id)
+            fresh, repeated = split_identical(project, saved)
+            for candidate in repeated:
+                results[candidate.index] = _result(
+                    candidate.name, SKIPPED, DUPLICATE_FILE, DUPLICATE_FILE_MESSAGE
+                )
             in_project = CvFile.objects.filter(project=project).count()
-            split = split_batch(project.company_id, saved, in_project)
+            split = split_batch(project.company_id, fresh, in_project)
             for skipped in split.skipped:
                 results[skipped.file.index] = _result(
                     skipped.file.name, REJECTED, skipped.code, skipped.message, skipped.prompt
@@ -145,6 +153,7 @@ def _accept(uploader, project, candidates, results):
                     page_count=candidate.check.page_count,
                     size_bytes=len(candidate.data),
                     storage_key=candidate.key,
+                    content_hash=candidate.content_hash,
                     uploaded_by=uploader,
                 )
                 usage.accept_cv(project.company_id, candidate.cv_id, project.pk)

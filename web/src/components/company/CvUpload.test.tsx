@@ -188,6 +188,30 @@ describe("CV upload", () => {
     expect(uploadFiles).toHaveBeenCalledTimes(2);
   });
 
+  it("a file already in the project is shown as skipped with the notice", async () => {
+    uploadFiles.mockResolvedValue({
+      ok: true,
+      data: {
+        results: [
+          {
+            name: "a.pdf",
+            status: "skipped",
+            code: "duplicate_file",
+            message: "This file is already in the project, so it was skipped.",
+            prompt: null,
+            notice: "",
+          },
+        ],
+      },
+    });
+    await ready();
+    await choose(pdf("a.pdf"));
+    expect(
+      await screen.findByText("This file is already in the project, so it was skipped."),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Try a.pdf again" })).toBeNull();
+  });
+
   it("files can be dropped", async () => {
     uploadFiles.mockImplementation(async (_path, files: File[]) => accepted(files[0].name));
     await ready();

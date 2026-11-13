@@ -45,6 +45,7 @@ AREAS = {
         "projects/tests/test_scoring_settings.py",
         "cvs/tests/test_cv_upload.py",
         "cvs/tests/test_cv_downloads.py",
+        "cvs/tests/test_duplicate_detection.py",
         "privatefiles/tests/test_private_storage.py",
         "ai/tests/test_ai_client.py",
         "adminusers/tests/test_admin_controls.py",
