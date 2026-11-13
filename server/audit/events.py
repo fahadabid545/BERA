@@ -45,17 +45,17 @@ KINDS = _kinds(
     EventKind("admin.first_super_admin_created"),
     EventKind("admin.role_changed", reason_required=True),
     EventKind("admin.status_changed", reason_required=True),
-    EventKind("admin.member_blocked", reason_required=True),  # not built yet
-    EventKind("admin.member_unblocked", reason_required=True),  # not built yet
+    EventKind("admin.member_blocked", reason_required=True),
+    EventKind("admin.member_unblocked", reason_required=True),
     EventKind("admin.plan_created"),
     EventKind("admin.plan_changed", reason_required=True),
     EventKind("admin.plan_deleted", reason_required=True),
     EventKind("admin.free_subscription_granted", reason_required=True),
     EventKind("admin.free_subscription_ended", reason_required=True),
-    EventKind("admin.limit_changed", reason_required=True),  # not built yet
+    EventKind("admin.limit_changed", reason_required=True),
     EventKind("admin.two_step_reset", reason_required=True),
     EventKind("admin.company_two_step_off", reason_required=True),
     EventKind("admin.company_suspended", reason_required=True),
     EventKind("admin.company_unsuspended", reason_required=True),
-    EventKind("admin.subscription_terminated", reason_required=True),  # not built yet
+    EventKind("admin.subscription_terminated", reason_required=True),
 )

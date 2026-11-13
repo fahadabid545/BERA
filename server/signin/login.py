@@ -1,9 +1,9 @@
 """Checking an email and password, and pausing an account that is being guessed at.
 
 Everything a wrong guess can tell an attacker is kept the same: an email that does not exist,
-a wrong password, a blocked person and a removed one all get one message, take the same
+a wrong password and a removed person all get one message, take the same
 time (a password is always hashed and compared) and count the same toward the pause.
-Only someone who has the right password is told more (unverified email, suspended company).
+Only someone who has the right password is told more (blocked, unverified email, suspended company).
 """
 
 import functools
@@ -21,6 +21,7 @@ from . import guess_limit
 WRONG_CREDENTIALS = "Email or password is incorrect."
 VERIFY_EMAIL_FIRST = "Please verify your email"
 COMPANY_SUSPENDED = "Your company account is suspended. Please contact support."
+ACCESS_BLOCKED = "Your access has been blocked. Please contact your company owner or support."
 
 
 def _wrong_credentials():
@@ -49,13 +50,18 @@ def check_login(email, password):
 
     person = CompanyUser.objects.filter(email=email).select_related("company").first()
     password_ok = password_matches(person, password)
-    if not password_ok or person.status != CompanyUser.Status.ACTIVE:
+    if not password_ok or person.status not in (
+        CompanyUser.Status.ACTIVE,
+        CompanyUser.Status.BLOCKED,
+    ):
         # Nobody is signed in, so the entry names the account tried, never the typed address.
         record("auth.login_failed", target=person)
         guess_limit.record_failure(email, _wrong_credentials())
 
     # From here the password was right, so saying more is no help to a guesser.
     guess_limit.forget_failures(email)
+    if person.status == CompanyUser.Status.BLOCKED:
+        raise AppError("access_blocked", ACCESS_BLOCKED, status_code=403)
     if person.company.status == Company.Status.SUSPENDED:
         raise AppError("company_suspended", COMPANY_SUSPENDED, status_code=403)
     if not person.email_verified:

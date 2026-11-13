@@ -128,13 +128,27 @@ class TestWrongDetails:
         log_in(password="not-the-password-1")
         assert not Session.objects.exists()
 
-    @pytest.mark.parametrize("status", ["blocked", "removed"])
-    def test_a_blocked_or_removed_person_cannot_sign_in_and_is_told_no_more(self, status):
-        person(status=status, role="member")
+    def test_a_removed_person_cannot_sign_in_and_is_told_no_more(self):
+        person(status="removed", role="member")
         wrong = log_in("nobody@example.test", "not-the-password-1")
         response = log_in()
         assert response.status_code == 400 and response.content == wrong.content
         assert not Session.objects.exists()
+
+    def test_a_blocked_person_with_the_right_password_is_told_they_are_blocked(self):
+        person(status="blocked", role="member")
+        response = log_in()
+        assert (response.status_code, code_of(response)) == (403, "access_blocked")
+        assert response.json()["error"]["message"] == (
+            "Your access has been blocked. Please contact your company owner or support."
+        )
+        assert not Session.objects.exists()
+
+    def test_a_blocked_person_with_a_wrong_password_gets_the_neutral_failure(self):
+        person(status="blocked", role="member")
+        wrong = log_in("nobody@example.test", "not-the-password-1")
+        response = log_in(password="not-the-password-1")
+        assert response.status_code == 400 and response.content == wrong.content
 
     def test_a_person_without_a_password_yet_cannot_sign_in(self):
         account = person()

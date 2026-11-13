@@ -387,6 +387,13 @@ request changes nothing and writes no entry.
 - `POST company-users/<id>/two-step/off/` (`identity_checked: true`, and a reason saying what was
   checked): turns it off, ends all their sessions, emails them.
 
+- `POST company-users/<id>/block/` and `unblock/` (super admin and support, with a reason): blocking
+  ends every session of that person at once, the owner is emailed and it is audited. The company
+  owner can never be blocked (suspend the company instead). A blocked person's old tokens answer the
+  same 401 as anyone not signed in; signing in with the right password shows "Your access has been
+  blocked. Please contact your company owner or support." and a wrong password still gets the
+  neutral failure. Unblocking restores access but not old sessions.
+
 New email `account_notice` (suspension, restore, two-step off); limits and subscription changes use
 `usage_notice`.
 

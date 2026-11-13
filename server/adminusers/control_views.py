@@ -1,6 +1,6 @@
-"""Super-admin controls over a company's access. Every route names its action in the role
-matrix, so a support admin is refused even when the address is typed in; every change needs a
-written reason and is audited."""
+"""Admin controls over a company's access. Every route names its action in the role matrix, so
+an admin whose role may not do it is refused even when the address is typed in; every change
+needs a written reason and is audited."""
 
 from django.http import Http404
 from rest_framework import status
@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 
 from adminusers.models import AdminUser
 from adminusers.role_matrix import require_action
-from companies import admin_controls
+from companies import admin_controls, member_blocking
 from companies.models import Company, CompanyUser
 from plans import limit_overrides, subscriptions
 from plans.models import Plan
@@ -152,3 +152,23 @@ class TurnOffCompanyUserTwoStep(ControlView):
             identity_checked=values["identity_checked"],
         )
         return Response({"status": "off"})
+
+
+class BlockMember(ControlView):
+    action = "team_member.block"
+
+    def post(self, request, id):
+        values = self.checked(ReasonSerializer)
+        target = _found(CompanyUser, id)
+        member_blocking.block_member(target.pk, by=self.admin(), reason=values["reason"])
+        return Response({"status": CompanyUser.Status.BLOCKED})
+
+
+class UnblockMember(ControlView):
+    action = "team_member.block"
+
+    def post(self, request, id):
+        values = self.checked(ReasonSerializer)
+        target = _found(CompanyUser, id)
+        member_blocking.unblock_member(target.pk, by=self.admin(), reason=values["reason"])
+        return Response({"status": CompanyUser.Status.ACTIVE})
