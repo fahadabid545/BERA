@@ -90,6 +90,7 @@ class ScoringSettingsSerializer(StrictSerializer):
     nice_weight_percent = serializers.IntegerField()
     recommendation_threshold = serializers.IntegerField()
     top_n = serializers.IntegerField(max_value=1_000_000)
+    cap_on_missing_must_have = serializers.BooleanField()
 
 
 class TypedWholeNumber(serializers.IntegerField):

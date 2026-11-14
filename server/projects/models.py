@@ -81,6 +81,7 @@ class ProjectScoringSettings(CompanyOwnedModel):
     nice_weight_percent = models.PositiveSmallIntegerField()
     recommendation_threshold = models.PositiveSmallIntegerField()
     top_n = models.PositiveIntegerField()
+    cap_on_missing_must_have = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

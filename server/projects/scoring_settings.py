@@ -11,7 +11,13 @@ from .models import Project, ProjectScoringSettings
 from .recalculation import recalculate_scores
 from .service import require_editable
 
-FIELDS = ("must_weight_percent", "nice_weight_percent", "recommendation_threshold", "top_n")
+FIELDS = (
+    "must_weight_percent",
+    "nice_weight_percent",
+    "recommendation_threshold",
+    "top_n",
+    "cap_on_missing_must_have",
+)
 
 
 def scoring_defaults():
@@ -21,6 +27,7 @@ def scoring_defaults():
         "nice_weight_percent": get_setting("scoring.nice_to_have_weight_percent"),
         "recommendation_threshold": get_setting("scoring.strong_match_min"),
         "top_n": get_setting("scoring.top_n"),
+        "cap_on_missing_must_have": get_setting("scoring.cap_on_missing_must_have"),
     }
 
 

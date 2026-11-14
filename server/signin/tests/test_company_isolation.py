@@ -75,6 +75,7 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Candidate",
     "RequirementResult",
     "AtsScore",
+    "CandidateScore",
     "ExtraFactorValues",
     "ProjectFactorSettings",
 }

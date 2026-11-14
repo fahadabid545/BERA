@@ -1086,6 +1086,29 @@ optional and entered by the user; a factor whose job field is empty is "Not foun
   seniority, the penalties, the gap and short-job limits, how fast recency fades and the confidence
   values.
 
+## Score calculation
+
+The final score is worked out by the system's own rules (`cvs/scoring.py`), never by the AI.
+
+- Each requirement counts by its verdict: met 100, partly met 50, missing 0 points
+  (`scoring.points_*`), weighted by the requirement's weight. Inside a group (must-have,
+  nice-to-have) the result is the weighted average; the two groups are combined by the project's
+  split (default 70/30).
+- A project with only one group is scored by that group alone, so a perfect CV can still reach 100.
+- The result is 0 to 100, rounded half up to one decimal, with a grade from the rounded number:
+  A 85 and up, B 70 to 84, C 55 to 69, D 40 to 54, E below 40 (`scoring.grade_*_min`).
+- Optional per project (Settings, scoring): a missing must-have caps the score at 60
+  (`scoring.cap_on_missing_must_have` is the default for a project, `scoring.missing_must_have_cap`
+  the value).
+- Only the requirements count. The ATS score and the extra factors stay separate values.
+- The same results and settings always give the same score. Changing requirement weights, the split
+  or the cap recombines the stored results at once with no AI call (`recalculate_project`). A
+  candidate with a requirement not judged yet (new or edited wording) keeps its score until judged.
+- The score is stored per candidate (`CandidateScore`: score, grade, the two group scores and
+  whether the cap applied) by the pipeline's `scoring` slot.
+- The pipeline now loads every step at start-up (the ATS, extra-factor and scoring steps had been
+  loaded only by tests).
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

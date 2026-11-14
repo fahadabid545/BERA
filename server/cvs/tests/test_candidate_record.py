@@ -125,6 +125,7 @@ class TestPipeline:
         processing.STEPS.pop("requirement_evaluation")  # judged in test_requirement_evaluation.py
         processing.STEPS.pop("ats_score")  # in test_ats_score.py
         processing.STEPS.pop("extra_factors")  # in test_extra_factors.py
+        processing.STEPS.pop("scoring")  # in test_score_calculation.py
         yield sent
         processing.STEPS.clear()
         processing.STEPS.update(real)

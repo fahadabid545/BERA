@@ -282,6 +282,12 @@ SETTINGS = [
     SettingDefinition("scoring.grade_d_min", 40, percent),
     SettingDefinition("scoring.strong_match_min", 75, percent),
     SettingDefinition("scoring.possible_match_min", 55, percent),
+    # How a requirement result counts towards the score, and the optional cap (see cvs/scoring.py).
+    SettingDefinition("scoring.points_met", 100, percent),
+    SettingDefinition("scoring.points_partly_met", 50, percent),
+    SettingDefinition("scoring.points_missing", 0, percent),
+    SettingDefinition("scoring.cap_on_missing_must_have", False, yes_or_no),
+    SettingDefinition("scoring.missing_must_have_cap", 60, percent),
     # Projects. The reading model and prompt version are pinned to each new project; the
     # stand-in values are replaced from the admin panel once Model settings and Prompt
     # versions exist.

@@ -18,6 +18,7 @@ DEFAULTS = {
     "nice_weight_percent": 30,
     "recommendation_threshold": 75,
     "top_n": 10,
+    "cap_on_missing_must_have": False,
 }
 
 
@@ -128,10 +129,18 @@ class TestSaving:
             "nice_weight_percent": 40,
             "recommendation_threshold": 80,
             "top_n": 5,
+            "cap_on_missing_must_have": False,
             "top_n_cap": 20,
         }
         assert {k: v for k, v in response.json().items() if k != "recalculated"} == expected
         assert client.get(url(project)).json() == expected
+
+    def test_the_cap_switch_is_saved_and_read_back(self, client, project):
+        assert put(client, project, cap_on_missing_must_have=True).status_code == 200
+        assert client.get(url(project)).json()["cap_on_missing_must_have"] is True
+
+    def test_the_cap_switch_must_be_a_yes_or_no(self, client, project):
+        assert put(client, project, cap_on_missing_must_have="maybe").status_code == 400
 
     def test_saving_twice_keeps_one_row(self, client, project):
         put(client, project, top_n=5)

@@ -11,6 +11,7 @@ const SCORING = {
   nice_weight_percent: 30,
   recommendation_threshold: 75,
   top_n: 10,
+  cap_on_missing_must_have: false,
   top_n_cap: 20,
 };
 
@@ -67,7 +68,27 @@ describe("scoring settings", () => {
       nice_weight_percent: 40,
       recommendation_threshold: 75,
       top_n: 5,
+      cap_on_missing_must_have: false,
     });
+  });
+
+  it("saves the cap switch when it is ticked", async () => {
+    reply(200, SCORING);
+    reply(200, { ...SCORING, cap_on_missing_must_have: true });
+    render(<ScoringSettings projectId="p1" />);
+    await screen.findByDisplayValue("75");
+    await userEvent.click(screen.getByLabelText("Cap the score when a must-have is missing"));
+    await userEvent.click(screen.getByRole("button", { name: "Save scoring settings" }));
+    expect(await screen.findByText("Scoring settings saved")).toBeTruthy();
+    expect(sent().cap_on_missing_must_have).toBe(true);
+  });
+
+  it("shows the cap switch as saved", async () => {
+    reply(200, { ...SCORING, cap_on_missing_must_have: true });
+    render(<ScoringSettings projectId="p1" />);
+    await screen.findByDisplayValue("75");
+    const box = screen.getByLabelText("Cap the score when a must-have is missing");
+    expect((box as HTMLInputElement).checked).toBe(true);
   });
 
   it("shows an impossible combination's message next to the field", async () => {

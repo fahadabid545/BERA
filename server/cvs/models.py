@@ -184,6 +184,34 @@ class AtsScore(CompanyOwnedModel):
         ]
 
 
+class CandidateScore(CompanyOwnedModel):
+    """The final score of one candidate (see `scoring.py`): 0 to 100 with one decimal, the grade
+    it falls in, and the two group scores it was combined from. It is worked out by the system's
+    own rules from the requirement results, never by the AI. `capped` says the cap on a missing
+    must-have lowered it. Only the requirements count: the ATS score and the extra factors stay
+    separate."""
+
+    candidate = models.OneToOneField(Candidate, on_delete=models.CASCADE, related_name="score")
+    score = models.DecimalField(max_digits=4, decimal_places=1)
+    grade = models.CharField(max_length=1)
+    must_score = models.DecimalField(max_digits=4, decimal_places=1, null=True)
+    nice_score = models.DecimalField(max_digits=4, decimal_places=1, null=True)
+    capped = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(score__gte=0, score__lte=100), name="score_is_0_to_100"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(grade__in=["A", "B", "C", "D", "E"]),
+                name="score_grade_is_known",
+            ),
+        ]
+
+
 class ExtraFactorValues(CompanyOwnedModel):
     """The extra scoring factors of one candidate (see `extra_factors.py`): for each factor a
     whole number from 0 to 100 or null for "Not found", with a short explanation. All are stored,

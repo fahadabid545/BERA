@@ -32,6 +32,7 @@ EXPECTED_STEPS = {
     "ats_score",
     "requirement_evaluation",
     "extra_factors",
+    "scoring",
 }  # a ticket that plugs in a step adds its slot here
 
 
@@ -173,6 +174,7 @@ class TestSlots:
             extra_factors,
             fairness,
             profile_reading,
+            scoring,
             steps,
         )
 
@@ -183,6 +185,7 @@ class TestSlots:
         importlib.reload(evaluation)
         importlib.reload(ats_scoring)
         importlib.reload(extra_factors)
+        importlib.reload(scoring)
         assert set(processing.STEPS) == EXPECTED_STEPS
 
     def test_an_unknown_slot_fails_loudly(self):

@@ -13,6 +13,7 @@ from platform_settings.service import get_setting
 
 from .deletion import register_project_data
 from .models import Project, Requirement
+from .recalculation import recalculate_scores
 from .rescoring import rescoring_estimate
 from .service import require_editable
 
@@ -104,6 +105,7 @@ def save_requirements(project_id, company_id, items, *, acknowledge_rescoring=Fa
                 kept.add(str(created.id))
         Requirement.objects.filter(project=project).exclude(pk__in=kept).delete()
         project.save(update_fields=["updated_at"])
+        recalculate_scores(project)
     return list_requirements(project), near_duplicates(items)
 
 

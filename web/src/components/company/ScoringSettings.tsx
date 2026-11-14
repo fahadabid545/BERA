@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 
 import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
-import { Button, Dialog, Input } from "@/components/ui";
+import { Button, Checkbox, Dialog, Input } from "@/components/ui";
 import { getJson, putJson, type ApiError } from "@/lib/api";
 
 type Scoring = {
@@ -11,6 +11,7 @@ type Scoring = {
   nice_weight_percent: number;
   recommendation_threshold: number;
   top_n: number;
+  cap_on_missing_must_have: boolean;
   top_n_cap: number;
 };
 
@@ -23,6 +24,7 @@ export function ScoringSettings({ projectId }: { projectId: string }) {
   const base = `/api/company/projects/${projectId}/scoring/`;
   const [loaded, setLoaded] = useState<Scoring | null>(null);
   const [mustWeight, setMustWeight] = useState("");
+  const [capOnMissing, setCapOnMissing] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [saved, setSaved] = useState(false);
   const [prompt, setPrompt] = useState<"upgrade" | "renewal" | null>(null);
@@ -32,6 +34,7 @@ export function ScoringSettings({ projectId }: { projectId: string }) {
       if (!result.ok) return setError(result.error);
       setLoaded(result.data);
       setMustWeight(String(result.data.must_weight_percent));
+      setCapOnMissing(result.data.cap_on_missing_must_have);
     });
   }, [base]);
 
@@ -45,6 +48,7 @@ export function ScoringSettings({ projectId }: { projectId: string }) {
       nice_weight_percent: TOTAL - must,
       recommendation_threshold: toNumber(String(form.get("recommendation_threshold") ?? "")),
       top_n: toNumber(String(form.get("top_n") ?? "")),
+      cap_on_missing_must_have: capOnMissing,
     });
     if (result.ok) {
       setLoaded(result.data);
@@ -94,6 +98,11 @@ export function ScoringSettings({ projectId }: { projectId: string }) {
         type="number"
         defaultValue={loaded.top_n}
         error={fields.top_n}
+      />
+      <Checkbox
+        label="Cap the score when a must-have is missing"
+        checked={capOnMissing}
+        onChange={(event) => setCapOnMissing(event.target.checked)}
       />
       {generalError && (
         <p className="ui-error" role="alert">
