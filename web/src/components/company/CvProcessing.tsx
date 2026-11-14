@@ -5,11 +5,22 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, Dialog, Table, Tag, type TagVariant } from "@/components/ui";
 import { getJson, postJson, type ApiError } from "@/lib/api";
 
-type Status = "waiting" | "reading" | "scoring" | "done" | "failed" | "cancelled";
+type Status =
+  "awaiting_confirmation" | "waiting" | "reading" | "scoring" | "done" | "failed" | "cancelled";
 type Item = { id: string; name: string; status: Status; reason: string; can_retry: boolean };
+type Used = { used: number; limit: number };
+type Estimate = {
+  cvs: number;
+  tokens_total: number;
+  estimated_cost: string;
+  limits: { cvs_this_month: Used; cvs_in_project: Used; tokens: Used & { after_estimate: number } };
+  blocked: boolean;
+  message: string;
+};
 type Processing = { refresh_seconds: number; counts: Record<Status, number>; items: Item[] };
 
 const STATUSES: { status: Status; label: string; variant: TagVariant }[] = [
+  { status: "awaiting_confirmation", label: "Awaiting confirmation", variant: "neutral" },
   { status: "waiting", label: "Waiting", variant: "neutral" },
   { status: "reading", label: "Reading", variant: "live" },
   { status: "scoring", label: "Scoring", variant: "live" },
@@ -18,6 +29,8 @@ const STATUSES: { status: Status; label: string; variant: TagVariant }[] = [
   { status: "cancelled", label: "Cancelled", variant: "neutral" },
 ];
 const MILLISECONDS = 1000;
+/** Sent by the upload area when files were added, so the estimate opens at once. */
+export const CVS_HELD_EVENT = "cvs-held";
 
 /** The project's CVs and where each one is. It looks again every few seconds, so people can
  * leave the page and come back. A failed CV shows why and has a Retry button; CVs that have not
@@ -27,6 +40,8 @@ export function CvProcessing({ projectId }: { projectId: string }) {
   const [processing, setProcessing] = useState<Processing | null>(null);
   const [loadError, setLoadError] = useState<ApiError | null>(null);
   const [actionError, setActionError] = useState<ApiError | null>(null);
+  const [estimate, setEstimate] = useState<Estimate | null>(null);
+  const [estimateOpen, setEstimateOpen] = useState(false);
 
   const load = useCallback(async () => {
     const result = await getJson<Processing>(`${base}processing/`);
@@ -50,6 +65,19 @@ export function CvProcessing({ projectId }: { projectId: string }) {
       clearTimeout(timer);
     };
   }, [load]);
+
+  const reviewEstimate = useCallback(async () => {
+    const result = await getJson<Estimate>(`${base}cvs/estimate/`);
+    if (!result.ok) return setActionError(result.error);
+    setEstimate(result.data);
+    setEstimateOpen(true);
+  }, [base]);
+
+  useEffect(() => {
+    const opened = () => void load().then(reviewEstimate);
+    window.addEventListener(CVS_HELD_EVENT, opened);
+    return () => window.removeEventListener(CVS_HELD_EVENT, opened);
+  }, [load, reviewEstimate]);
 
   async function act(path: string) {
     setActionError(null);
@@ -76,6 +104,55 @@ export function CvProcessing({ projectId }: { projectId: string }) {
           </li>
         ))}
       </ul>
+      {processing.counts.awaiting_confirmation > 0 && (
+        <div className="page-actions">
+          <Button variant="secondary" onClick={reviewEstimate}>
+            Review cost estimate
+          </Button>
+        </div>
+      )}
+      {estimate && (
+        <Dialog
+          open={estimateOpen}
+          onOpenChange={setEstimateOpen}
+          title="Approximate cost"
+          confirmLabel={estimate.blocked ? undefined : "Process CVs"}
+          onConfirm={() => act("cvs/estimate/")}
+          actions={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setEstimateOpen(false);
+                void act("cvs/cancel/");
+              }}
+            >
+              Discard CVs
+            </Button>
+          }
+        >
+          <ul aria-label="Cost estimate">
+            <li>CVs: {estimate.cvs}</li>
+            <li>Approximate tokens: {estimate.tokens_total}</li>
+            <li>Approximate cost: ${estimate.estimated_cost}</li>
+            <li>
+              CVs this month: {estimate.limits.cvs_this_month.used} of{" "}
+              {estimate.limits.cvs_this_month.limit}
+            </li>
+            <li>
+              CVs in this project: {estimate.limits.cvs_in_project.used} of{" "}
+              {estimate.limits.cvs_in_project.limit}
+            </li>
+            <li>
+              AI tokens this period: {estimate.limits.tokens.used} of {estimate.limits.tokens.limit}
+            </li>
+          </ul>
+          {estimate.blocked && (
+            <p className="ui-error" role="alert">
+              {estimate.message}
+            </p>
+          )}
+        </Dialog>
+      )}
       {processing.counts.waiting > 0 && (
         <div className="page-actions">
           <Dialog

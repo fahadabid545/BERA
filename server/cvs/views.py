@@ -12,6 +12,7 @@ from platform_settings.service import get_setting
 from projects.models import Project
 from signin.company_views import CandidateDataView, CompanyObjectView
 
+from .estimate import confirm, estimate
 from .file_checks import check_cv_file, check_name_and_size
 from .models import Candidate, CandidateScore, CvFile
 from .processing import cancel_unstarted, project_processing, retry_failed
@@ -105,6 +106,23 @@ class ProjectProcessing(CandidateDataView):
 
     def get(self, request, id):
         return Response(project_processing(self.get_object()))
+
+
+class CostEstimate(CandidateDataView):
+    """The estimate for the project's CVs held for confirmation, and the confirmation itself.
+    `batch` limits both to one upload."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("cv.upload")
+
+    def get(self, request, id):
+        return Response(estimate(self.get_object(), _batch_id(request.query_params.get("batch"))))
+
+    def post(self, request, id):
+        released = confirm(self.get_object(), _batch_id(request.data.get("batch")))
+        return Response({"confirmed": released})
 
 
 class CancelUnstarted(CandidateDataView):

@@ -4,8 +4,9 @@ bad ones get their own clear message.
 The server enforces every rule (the screen only mirrors them): type and size, the batch size,
 the plan's monthly and per-project CV limits, and the project not being archived. A file is
 accepted through `usage.accept_cv` after the limit check, with the company row locked, so two
-uploads at once cannot pass a limit together. Accepted files stay Waiting; Background
-processing takes them from there."""
+uploads at once cannot pass a limit together. Accepted files are held (Awaiting confirmation)
+until the person confirms the cost estimate (`estimate.py`); Background processing takes them
+from there."""
 
 import logging
 import uuid
@@ -26,7 +27,6 @@ from usage import service as usage
 from .duplicates import DUPLICATE_FILE, DUPLICATE_FILE_MESSAGE, split_identical
 from .file_checks import TOO_MANY_FILES, FileCheck, check_cv_file, check_name_and_size
 from .models import CvFile
-from .processing import kick
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +158,7 @@ def _accept(uploader, project, candidates, results, batch_id):
                     content_hash=candidate.content_hash,
                     uploaded_by=uploader,
                     batch_id=batch_id,
+                    status=CvFile.Status.AWAITING_CONFIRMATION,
                 )
                 usage.accept_cv(project.company_id, candidate.cv_id, project.pk)
                 kept_keys.append(candidate.key)
@@ -168,7 +169,6 @@ def _accept(uploader, project, candidates, results, batch_id):
         _discard(candidate.key for candidate in saved)  # nothing was recorded
         raise
     _discard(candidate.key for candidate in saved if candidate.key not in kept_keys)
-    kick(len(kept_keys))  # outside the transaction, so workers find the rows
 
 
 def remove_cv_file(cv_file):

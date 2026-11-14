@@ -1145,6 +1145,25 @@ the AI (so nothing can be missed).
   billing checks after any of them is deleted. Only the company's own deletion removes them.
 - Recording only: the pages and endpoints that read the log come in their own tickets.
 
+## Cost estimate before processing
+
+An upload no longer starts processing by itself. The accepted CVs are held (status "Awaiting
+confirmation", `cvs/estimate.py`) until the person has seen the estimate and confirmed it.
+
+- `GET /api/company/projects/<project>/cvs/estimate/` (optionally `?batch=`) returns the number of
+  held CVs, the approximate tokens and cost, and where that leaves the plan: CVs this month, CVs in
+  the project and the monthly AI token cap. It is always marked approximate.
+- The figures are averages from platform settings (`estimate.*`: CV text, prompts, output per
+  requirement, characters per token), priced with the project's reading and scoring models. The
+  real use is only known after processing.
+- `POST` to the same address confirms: the held CVs become Waiting and the workers are woken.
+  If the estimate would pass the token cap (or the subscription has ended) it is refused with a
+  message (409, `estimate_over_token_cap`) and an Upgrade or Renewal prompt; the CVs stay held.
+- Cancelling is the existing "cancel" action, which now also covers held CVs and gives their
+  allowance back. Held CVs still count against the month's and the project's CV limits.
+- The project page opens the estimate in a popup after an upload ("Process CVs" or "Discard CVs")
+  and keeps a "Review cost estimate" button while CVs are held.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

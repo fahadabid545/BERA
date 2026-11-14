@@ -312,6 +312,16 @@ SETTINGS = [
         "Can you give an example from your recent work of: {requirement}?",
         short_text(300),
     ),
+    # The cost estimate shown before processing (see cvs/estimate.py). Averages only: the screen
+    # always calls the figures approximate.
+    SettingDefinition("estimate.cv_text_tokens", 2500, whole_number(1, 200000)),
+    SettingDefinition("estimate.reading_prompt_tokens", 600, whole_number(0, 200000)),
+    SettingDefinition("estimate.reading_output_tokens", 1200, whole_number(1, 200000)),
+    SettingDefinition("estimate.scoring_prompt_tokens", 500, whole_number(0, 200000)),
+    SettingDefinition(
+        "estimate.scoring_output_tokens_per_requirement", 120, whole_number(1, 20000)
+    ),
+    SettingDefinition("estimate.characters_per_token", 4, whole_number(1, 20)),
     # Projects. The reading model and prompt version are pinned to each new project; the
     # stand-in values are replaced from the admin panel once Model settings and Prompt
     # versions exist.

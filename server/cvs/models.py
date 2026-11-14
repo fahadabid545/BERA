@@ -10,6 +10,8 @@ class CvFile(CompanyOwnedModel):
     kept by `cvs/storage.py` under `storage_key`; the name is only for showing to people."""
 
     class Status(models.TextChoices):
+        # Accepted and held until the person confirms the cost estimate (see estimate.py).
+        AWAITING_CONFIRMATION = "awaiting_confirmation"
         WAITING = "waiting"  # accepted (or waiting for another try); processing takes it next
         READING = "reading"  # being read (text, then the AI)
         SCORING = "scoring"
@@ -17,7 +19,8 @@ class CvFile(CompanyOwnedModel):
         FAILED = "failed"  # gave up; `failure_reason` says why and the person can retry
         CANCELLED = "cancelled"  # the batch was cancelled before this one started
 
-    ACTIVE_STATUSES = (Status.WAITING, Status.READING, Status.SCORING)
+    UNSTARTED_STATUSES = (Status.AWAITING_CONFIRMATION, Status.WAITING)
+    ACTIVE_STATUSES = (Status.AWAITING_CONFIRMATION, Status.WAITING, Status.READING, Status.SCORING)
 
     class Review(models.TextChoices):
         NONE = "none"
@@ -38,7 +41,7 @@ class CvFile(CompanyOwnedModel):
     contact_hashes = models.JSONField(default=list)
     review = models.CharField(max_length=20, choices=Review.choices, default=Review.NONE)
     duplicate_of = models.ForeignKey("self", null=True, on_delete=models.SET_NULL, related_name="+")
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.WAITING)
+    status = models.CharField(max_length=30, choices=Status.choices, default=Status.WAITING)
     # Processing (see processing.py). A worker claims a CV by giving it a fresh `claim_token`
     # and only the holder of that token may change it afterwards, so a worker that was
     # replaced (after a restart or a timeout) can never overwrite the new one.

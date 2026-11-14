@@ -116,12 +116,14 @@ class TestRules:
 
 
 class TestAccepting:
-    def test_pdf_and_docx_are_accepted_and_stay_waiting(self, company, client, project, settings):
+    def test_pdf_and_docx_are_accepted_and_held_for_confirmation(
+        self, company, client, project, settings
+    ):
         response = upload(client, project, ("a.pdf", different("a.pdf")), ("b.docx", docx_bytes()))
         assert response.status_code == 200
         assert results(response) == [("a.pdf", "accepted", ""), ("b.docx", "accepted", "")]
         rows = CvFile.objects.filter(project=project)
-        assert {row.status for row in rows} == {"waiting"}
+        assert {row.status for row in rows} == {"awaiting_confirmation"}
         assert {row.file_type for row in rows} == {"pdf", "docx"}
         assert len(stored_files(settings.PRIVATE_FILES_ROOT)) == 2
 

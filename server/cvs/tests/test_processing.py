@@ -52,7 +52,7 @@ def make_plan(**changes):
             "max_projects": 5,
             "max_team_accounts": 3,
             "max_top_n": 10,
-            "monthly_ai_token_cap": 10000,
+            "monthly_ai_token_cap": 10_000_000,
             **changes,
         }
     )
@@ -99,6 +99,18 @@ class Tenant:
         )
         usage.accept_cv(self.company.pk, row.pk, project.pk)
         return row
+
+    def confirm(self, batch=None):
+        body = {"batch": str(batch)} if batch else {}
+        return self.client.post(
+            f"/api/company/projects/{self.project.pk}/cvs/estimate/", body, format="json"
+        )
+
+    def upload_and_confirm(self, *files, batch=None):
+        """An upload followed by the person's confirmation of its estimate."""
+        response = self.upload(*files, batch=batch)
+        assert self.confirm(batch).status_code == 200
+        return response
 
     def upload(self, *files, batch=None):
         sent = [SimpleUploadedFile(name, data) for name, data in files]
@@ -497,7 +509,7 @@ class TestNothingRunsTwiceOrIsLost:
             raise ConnectionError("queue unreachable")
 
         monkeypatch.setattr(processing, "async_task", down)
-        response = tenant.upload(("a.pdf", make_pdf(text="Experienced engineer one")))
+        response = tenant.upload_and_confirm(("a.pdf", make_pdf(text="Experienced engineer one")))
         assert response.json()["results"][0]["status"] == "accepted"
         assert CvFile.objects.filter(status="waiting").count() == 1
 
@@ -659,6 +671,7 @@ class TestWhatTheProjectPageShows:
         tenant.cv(status="failed", failure_reason="We could not read this file.")
         body = tenant.client.get(self.url(tenant)).json()
         assert body["counts"] == {
+            "awaiting_confirmation": 0,
             "waiting": 1,
             "reading": 1,
             "scoring": 0,
@@ -699,8 +712,15 @@ class TestWhatTheProjectPageShows:
 
 
 class TestUploadHandsOverToProcessing:
-    def test_accepted_files_wake_the_workers_once_each(self, tenant, kicks):
+    def test_an_upload_alone_wakes_nobody_until_the_estimate_is_confirmed(self, tenant, kicks):
         tenant.upload(
+            ("a.pdf", make_pdf(text="Engineer one")), ("b.pdf", make_pdf(text="Engineer two"))
+        )
+        assert kicks == []
+        assert {row.status for row in CvFile.objects.all()} == {"awaiting_confirmation"}
+
+    def test_confirming_wakes_the_workers_once_each(self, tenant, kicks):
+        tenant.upload_and_confirm(
             ("a.pdf", make_pdf(text="Engineer one")), ("b.pdf", make_pdf(text="Engineer two"))
         )
         assert kicks == [processing.TICK_JOB] * 2
@@ -733,7 +753,9 @@ class TestTheTextReadingStepEndToEnd:
         register_step("text_reading", steps.read_the_text)
 
     def test_an_uploaded_cv_is_read_and_done(self, tenant, kicks):
-        tenant.upload(("a.pdf", make_pdf(text="Experienced engineer who builds payment systems")))
+        tenant.upload_and_confirm(
+            ("a.pdf", make_pdf(text="Experienced engineer who builds payment systems"))
+        )
         processing.tick()
         assert CvFile.objects.get().status == "done"
 
@@ -744,7 +766,7 @@ class TestTheTextReadingStepEndToEnd:
 
         buffer = io.BytesIO()
         Document().save(buffer)
-        tenant.upload(("empty.docx", buffer.getvalue()))
+        tenant.upload_and_confirm(("empty.docx", buffer.getvalue()))
         processing.tick()
         row = CvFile.objects.get()
         assert (row.status, row.attempts, row.failure_reason) == (
@@ -755,7 +777,9 @@ class TestTheTextReadingStepEndToEnd:
         assert usage.waiting_cvs(tenant.company.pk) == 0
 
     def test_a_missing_file_fails_with_a_clear_reason(self, tenant, kicks, settings):
-        tenant.upload(("a.pdf", make_pdf(text="Experienced engineer who builds systems")))
+        tenant.upload_and_confirm(
+            ("a.pdf", make_pdf(text="Experienced engineer who builds systems"))
+        )
         import privatefiles
 
         privatefiles.delete_file(CvFile.objects.get().storage_key)
@@ -776,7 +800,7 @@ class TestTheTextReadingStepEndToEnd:
             document.save(buffer)
             return buffer.getvalue()
 
-        tenant.upload(
+        tenant.upload_and_confirm(
             ("a.docx", word("Jane Doe, jane@example.com, backend engineer with many years")),
             ("b.docx", word("J. Doe, jane@example.com, senior developer with many years")),
         )
@@ -818,7 +842,7 @@ class TestJobsRunForTheRightCompany:
         monkeypatch.setattr(
             processing, "async_task", lambda *args, **kwargs: calls.append((args, kwargs))
         )
-        tenant.upload(("a.pdf", make_pdf(text="Experienced engineer one")))
+        tenant.upload_and_confirm(("a.pdf", make_pdf(text="Experienced engineer one")))
         assert calls == [((processing.TICK_JOB,), {})]
 
 

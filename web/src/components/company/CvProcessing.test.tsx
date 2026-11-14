@@ -17,7 +17,16 @@ const item = (over: object = {}) => ({
 });
 const snapshot = (items: object[], counts: object = {}, refresh = 3) => ({
   refresh_seconds: refresh,
-  counts: { waiting: 0, reading: 0, scoring: 0, done: 0, failed: 0, cancelled: 0, ...counts },
+  counts: {
+    awaiting_confirmation: 0,
+    waiting: 0,
+    reading: 0,
+    scoring: 0,
+    done: 0,
+    failed: 0,
+    cancelled: 0,
+    ...counts,
+  },
   items,
 });
 
@@ -172,5 +181,113 @@ describe("CV processing", () => {
     answer({ error: { code: "internal_error", message: "Something went wrong." } }, 500);
     render(<CvProcessing projectId="p1" />);
     expect((await screen.findByRole("alert")).textContent).toBe("Something went wrong.");
+  });
+});
+
+describe("cost estimate before processing", () => {
+  const ESTIMATE = {
+    approximate: true,
+    cvs: 3,
+    tokens_in: 6000,
+    tokens_out: 1000,
+    tokens_total: 7000,
+    estimated_cost: "0.021000",
+    limits: {
+      cvs_this_month: { used: 3, limit: 100 },
+      cvs_in_project: { used: 3, limit: 50 },
+      tokens: { used: 500, limit: 100000, after_estimate: 7500 },
+    },
+    blocked: false,
+    message: "",
+    prompt: null,
+  };
+
+  function serve(estimate: object = ESTIMATE) {
+    fetchMock.mockImplementation(async (path: string, options?: { method?: string }) => {
+      const body = path.endsWith("/cvs/estimate/")
+        ? options?.method === "POST"
+          ? { confirmed: 3 }
+          : estimate
+        : snapshot([item({ status: "awaiting_confirmation" })], { awaiting_confirmation: 3 }, 0);
+      return { ok: true, status: 200, json: async () => body };
+    });
+  }
+
+  it("shows the held CVs as awaiting confirmation with a way to review the estimate", async () => {
+    serve();
+    render(<CvProcessing projectId="p1" />);
+    expect(await screen.findByText("Awaiting confirmation 3")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Review cost estimate" })).toBeTruthy();
+  });
+
+  it("shows the approximate figures against the plan's limits", async () => {
+    serve();
+    render(<CvProcessing projectId="p1" />);
+    await userEvent.click(await screen.findByRole("button", { name: "Review cost estimate" }));
+    const list = await screen.findByRole("list", { name: "Cost estimate" });
+    expect(
+      within(list)
+        .getAllByRole("listitem")
+        .map((li) => li.textContent),
+    ).toEqual([
+      "CVs: 3",
+      "Approximate tokens: 7000",
+      "Approximate cost: $0.021000",
+      "CVs this month: 3 of 100",
+      "CVs in this project: 3 of 50",
+      "AI tokens this period: 500 of 100000",
+    ]);
+    expect(screen.getByText("Approximate cost")).toBeTruthy();
+  });
+
+  it("confirming sends the confirmation and nothing else", async () => {
+    serve();
+    render(<CvProcessing projectId="p1" />);
+    await userEvent.click(await screen.findByRole("button", { name: "Review cost estimate" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Process CVs" }));
+    await waitFor(() =>
+      expect(callsTo("cvs/estimate/").some((c) => c[1]?.method === "POST")).toBe(true),
+    );
+    expect(callsTo("cvs/cancel/")).toHaveLength(0);
+  });
+
+  it("discarding cancels the held CVs", async () => {
+    serve();
+    render(<CvProcessing projectId="p1" />);
+    await userEvent.click(await screen.findByRole("button", { name: "Review cost estimate" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Discard CVs" }));
+    await waitFor(() => expect(callsTo("cvs/cancel/")).toHaveLength(1));
+    expect(callsTo("cvs/estimate/").some((c) => c[1]?.method === "POST")).toBe(false);
+  });
+
+  it("a batch that would pass the token cap shows the message and cannot be confirmed", async () => {
+    serve({
+      ...ESTIMATE,
+      blocked: true,
+      message: "Too much AI for this period.",
+      prompt: "upgrade",
+    });
+    render(<CvProcessing projectId="p1" />);
+    await userEvent.click(await screen.findByRole("button", { name: "Review cost estimate" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("Too much AI for this period.");
+    expect(screen.queryByRole("button", { name: "Process CVs" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Discard CVs" })).toBeTruthy();
+  });
+
+  it("opens the estimate by itself when the upload area says CVs were added", async () => {
+    serve();
+    render(<CvProcessing projectId="p1" />);
+    await screen.findByText("Awaiting confirmation 3");
+    act(() => {
+      window.dispatchEvent(new Event("cvs-held"));
+    });
+    expect(await screen.findByRole("list", { name: "Cost estimate" })).toBeTruthy();
+  });
+
+  it("shows no estimate button when nothing is held", async () => {
+    answer(snapshot([item()], { waiting: 1 }));
+    render(<CvProcessing projectId="p1" />);
+    await screen.findByText("Waiting 1");
+    expect(screen.queryByRole("button", { name: "Review cost estimate" })).toBeNull();
   });
 });

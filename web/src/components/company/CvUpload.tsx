@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
 
 import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
+import { CVS_HELD_EVENT } from "@/components/company/CvProcessing";
 import { Button } from "@/components/ui";
 import { getJson, uploadFiles } from "@/lib/api";
 
@@ -55,6 +56,7 @@ export function CvUpload({ projectId }: { projectId: string }) {
   const chooser = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
   const waiting = useRef<Entry[]>([]);
+  const addedAny = useRef(false);
 
   useEffect(() => {
     void getJson<Rules>(base).then((result) => {
@@ -81,6 +83,7 @@ export function CvUpload({ projectId }: { projectId: string }) {
     }
     const outcome = result.data.results[0];
     if (outcome.status === "accepted") {
+      addedAny.current = true;
       return update(entry.id, { state: "added", progress: PERCENT, message: outcome.notice });
     }
     if (outcome.status === "skipped") {
@@ -98,6 +101,10 @@ export function CvUpload({ projectId }: { projectId: string }) {
     busy.current = true;
     while (waiting.current.length > 0) await sendOne(waiting.current.shift()!);
     busy.current = false;
+    if (addedAny.current) {
+      addedAny.current = false;
+      window.dispatchEvent(new Event(CVS_HELD_EVENT)); // the held CVs wait for their estimate
+    }
   }
 
   function add(chosen: File[]) {

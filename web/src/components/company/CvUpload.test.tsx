@@ -59,6 +59,28 @@ describe("CV upload", () => {
     expect(uploadFiles.mock.calls.map((call) => (call[1] as File[]).length)).toEqual([1, 1]);
   });
 
+  it("tells the page once, after all files are sent, that CVs are held for their estimate", async () => {
+    const held = vi.fn();
+    window.addEventListener("cvs-held", held);
+    uploadFiles.mockImplementation(async (_path, files: File[]) => accepted(files[0].name));
+    await ready();
+    await choose(pdf("a.pdf"), pdf("b.pdf"));
+    await waitFor(() => expect(screen.getAllByText("Added")).toHaveLength(2));
+    window.removeEventListener("cvs-held", held);
+    expect(held).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not ask for an estimate when nothing was added", async () => {
+    const held = vi.fn();
+    window.addEventListener("cvs-held", held);
+    uploadFiles.mockResolvedValue(refused("a.pdf", "Nope."));
+    await ready();
+    await choose(pdf("a.pdf"));
+    await screen.findByText("Nope.");
+    window.removeEventListener("cvs-held", held);
+    expect(held).not.toHaveBeenCalled();
+  });
+
   it("shows upload progress for a file", async () => {
     let finish: (value: unknown) => void = () => {};
     uploadFiles.mockImplementation(

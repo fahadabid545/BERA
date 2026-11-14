@@ -226,7 +226,7 @@ def cancel_unstarted(project, batch_id=None):
     allowance back. Work already running finishes. Returns how many were skipped."""
     with transaction.atomic():
         Company.objects.select_for_update().get(pk=project.company_id)
-        waiting = CvFile.objects.filter(project=project, status=CvFile.Status.WAITING)
+        waiting = CvFile.objects.filter(project=project, status__in=CvFile.UNSTARTED_STATUSES)
         if batch_id is not None:
             waiting = waiting.filter(batch_id=batch_id)
         skipped = list(waiting.select_for_update())
