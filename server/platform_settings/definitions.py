@@ -107,6 +107,32 @@ PERSONAL_DETAIL_LABELS = [
     "permanent address",
 ]
 
+ATS_EXPERIENCE_HEADINGS = [
+    "experience",
+    "work experience",
+    "professional experience",
+    "employment",
+    "employment history",
+    "work history",
+    "career history",
+]
+ATS_EDUCATION_HEADINGS = [
+    "education",
+    "education and training",
+    "academic background",
+    "qualifications",
+    "academic qualifications",
+]
+ATS_SKILLS_HEADINGS = [
+    "skills",
+    "key skills",
+    "technical skills",
+    "core skills",
+    "core competencies",
+    "competencies",
+    "technologies",
+]
+
 
 @dataclass(frozen=True)
 class SettingDefinition:
@@ -264,6 +290,25 @@ SETTINGS = [
     SettingDefinition("fairness.born_words", ["born"], list_of_words(20)),
     SettingDefinition("fairness.min_name_part_length", 3, whole_number(1, 20)),
     SettingDefinition("fairness.phone_min_digits", 7, whole_number(5, 15)),
+    # The ATS score (see cvs/ats.py): the four parts and their weights, and what each looks for.
+    SettingDefinition("ats.weight_keywords", 40, whole_number(0, 100)),
+    SettingDefinition("ats.weight_sections", 30, whole_number(0, 100)),
+    SettingDefinition("ats.weight_readability", 15, whole_number(0, 100)),
+    SettingDefinition("ats.weight_formatting", 15, whole_number(0, 100)),
+    SettingDefinition("ats.keyword_count", 30, whole_number(1, 200)),
+    SettingDefinition("ats.keyword_min_length", 2, whole_number(1, 10)),
+    SettingDefinition("ats.keywords_listed", 5, whole_number(1, 50)),
+    SettingDefinition("ats.reasons_shown", 5, whole_number(1, 50)),
+    SettingDefinition("ats.experience_headings", ATS_EXPERIENCE_HEADINGS, list_of_words(100)),
+    SettingDefinition("ats.education_headings", ATS_EDUCATION_HEADINGS, list_of_words(100)),
+    SettingDefinition("ats.skills_headings", ATS_SKILLS_HEADINGS, list_of_words(100)),
+    SettingDefinition("ats.heading_max_length", 40, whole_number(10, 200)),
+    SettingDefinition("ats.min_words", 150, whole_number(1, 100000)),
+    SettingDefinition("ats.max_words", 1200, whole_number(1, 100000)),
+    SettingDefinition("ats.min_readable_percent", 95, whole_number(1, 100)),
+    SettingDefinition("ats.min_words_per_line", 3, whole_number(1, 50)),
+    SettingDefinition("ats.max_pages", 3, whole_number(1, 100)),
+    SettingDefinition("ats.image_page_min_characters", 50, whole_number(1, 5000)),
     SettingDefinition("requirements.max_total", 30, whole_number(1, 200)),
     SettingDefinition("requirements.max_length", 120, whole_number(20, 500)),
     SettingDefinition("requirements.weight_default", 3, whole_number(1, 10)),

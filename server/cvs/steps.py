@@ -23,6 +23,7 @@ def read_the_text(context: StepContext):
     except CvTextUnreadable as error:
         raise PermanentFailure(error.message) from error
     context.state["text"] = text
+    context.state["file_data"] = data  # the ATS score looks at the pages themselves
     review_likely_duplicate(cv_file, text)
 
 

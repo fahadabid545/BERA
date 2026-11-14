@@ -53,6 +53,7 @@ KINDS_NAMED_IN_THE_TICKET = {
 # CvProfile, CvContact: cvs/tests/test_ai_reading.py (TestAnotherCompany).
 # Candidate: cvs/tests/test_candidate_record.py (TestAnotherCompany).
 # RequirementResult: cvs/tests/test_requirement_evaluation.py (TestAnotherCompany).
+# AtsScore: cvs/tests/test_ats_score.py (TestAnotherCompany).
 # UsagePeriod, UsageCounter, CvUsage: usage/tests/test_usage_counting.py (kept apart per company).
 REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Invitation",
@@ -71,6 +72,7 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "CvContact",
     "Candidate",
     "RequirementResult",
+    "AtsScore",
 }
 
 

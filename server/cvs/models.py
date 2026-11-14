@@ -161,3 +161,24 @@ class RequirementResult(CompanyOwnedModel):
                 name="evidence_exactly_when_not_missing",
             ),
         ]
+
+
+class AtsScore(CompanyOwnedModel):
+    """How well an applicant tracking system would read the CV (see `ats.py`): a number from 0 to
+    100 and the reasons that lowered it. It is kept apart from the AI score and made without AI.
+    `job_description_hash` says which job description it was measured against, so an edited
+    description is measured again; `rules_version` says which rules made it."""
+
+    candidate = models.OneToOneField(Candidate, on_delete=models.CASCADE, related_name="ats_score")
+    score = models.PositiveSmallIntegerField()
+    reasons = models.JSONField(default=list)
+    job_description_hash = models.CharField(max_length=64)
+    rules_version = models.PositiveSmallIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(score__lte=100), name="ats_score_is_at_most_100"
+            ),
+        ]

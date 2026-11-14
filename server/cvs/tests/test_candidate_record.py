@@ -123,6 +123,7 @@ class TestPipeline:
         real = dict(processing.STEPS)
         processing.STEPS["text_reading"] = lambda context: context.state.update(text=CV_TEXT)
         processing.STEPS.pop("requirement_evaluation")  # judged in test_requirement_evaluation.py
+        processing.STEPS.pop("ats_score")  # in test_ats_score.py
         yield sent
         processing.STEPS.clear()
         processing.STEPS.update(real)

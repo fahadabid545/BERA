@@ -14,12 +14,14 @@ def make_pdf(
     content=None,
     commands=None,
     page_texts=None,
+    image_on_pages=(),
 ):
     """A valid PDF whose pages each draw `text`. `root_extra` and `page_extra` add entries to
     the catalog and to every page (for the scripts and actions the checker must refuse).
     `content` replaces the drawing commands of every page with a compressed stream.
     `commands` is a string of drawing commands (Latin-1) used on every page, and `page_texts`
-    gives each page its own text."""
+    gives each page its own text. `image_on_pages` lists the page numbers (from 0) that also
+    show a picture, as a scan or a screenshot of text would."""
     objects = []
 
     def add(body):
@@ -29,24 +31,33 @@ def make_pdf(
     catalog = add(b"")  # filled in below, once the pages exist
     pages_object = add(b"")
     font = add(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+    image = add(
+        b"<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray "
+        b"/BitsPerComponent 8 /Length 1 >>\nstream\n\x00\nendstream"
+    )
     page_numbers = []
     for number in range(pages):
+        picture = number in image_on_pages
         if content is None:
             if commands is not None:
                 stream = commands.encode("latin-1")
             else:
                 shown = page_texts[number] if page_texts else text
                 stream = f"BT /F1 12 Tf 72 720 Td ({shown}) Tj ET".encode("latin-1")
+            if picture:
+                stream = b"q 500 0 0 700 50 50 cm /Im1 Do Q " + stream
             header = b"<< /Length %d >>" % len(stream)
         else:
             stream = zlib.compress(content)
             header = b"<< /Length %d /Filter /FlateDecode >>" % len(stream)
         content_object = add(b"%s\nstream\n%s\nendstream" % (header, stream))
+        xobject = f"/XObject << /Im1 {image} 0 R >>" if picture else ""
         page_numbers.append(
             add(
                 (
                     f"<< /Type /Page /Parent {pages_object} 0 R /MediaBox [0 0 612 792] "
-                    f"/Contents {content_object} 0 R /Resources << /Font << /F1 {font} 0 R >> >> "
+                    f"/Contents {content_object} 0 R "
+                    f"/Resources << /Font << /F1 {font} 0 R >> {xobject} >> "
                     f"{page_extra} >>"
                 ).encode()
             )

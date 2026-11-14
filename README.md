@@ -1036,6 +1036,30 @@ reads saved results (`RequirementResult`, one per candidate and requirement).
   migration updates it only if nobody changed it.
 - Platform settings: `ai.evaluation_max_output_tokens`, `evaluation.evidence_max_length`.
 
+## ATS score
+
+A second score, separate from the AI score and made without AI (`cvs/ats.py`,
+`cvs/ats_layout.py`, `cvs/ats_scoring.py`). The `ats_score` pipeline slot runs it after
+`candidate_record` and before the AI evaluation, so it is made even when AI scoring is paused. The
+result is saved per candidate (`AtsScore`): a whole number from 0 to 100, a short list of what
+lowered it (largest loss first) and the rules version. The same input always gives the same result.
+It reads the original CV text and file (the sections include contact details and pictures of text
+come from the PDF pages); only the score and generic reasons are stored. English text only.
+
+- Four parts, weighted by platform settings (defaults in brackets): keywords (40), sections (30),
+  readability (15) and formatting (15).
+- Keywords: the job description's most frequent meaningful words (common words removed, plurals
+  matched, top `ats.keyword_count`), and how many the CV contains. The reason lists some missing ones.
+- Sections: contact details (an email or phone), experience, education and skills, found by a short
+  heading line (`ats.experience_headings`, `ats.education_headings`, `ats.skills_headings`).
+- Readability: enough text but not too much (`ats.min_words`, `ats.max_words`), ordinary
+  characters (`ats.min_readable_percent`; icon fonts and symbols count against it) and lines that
+  hold words (`ats.min_words_per_line`).
+- Formatting: no pages that are mostly a picture (`ats.image_page_min_characters`) and no more
+  than `ats.max_pages` pages.
+- The score is made again only when the job description changed or the rules version did.
+- Showing it next to the AI score comes with the ranked list and candidate detail tickets.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

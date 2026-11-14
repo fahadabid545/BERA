@@ -55,7 +55,7 @@ def _has_text(pages):
     return any((page.extract_text() or "").strip() for page in pages)
 
 
-def _unpack_limit():
+def unpack_limit():
     """pypdf's own caps on how much a compressed part may unpack to, held to the platform's
     for the time of one check (the context manager restores them afterwards)."""
     limit = get_setting("uploads.max_unpacked_mb") * shared.BYTES_PER_MEGABYTE
@@ -71,7 +71,7 @@ def _unpack_limit():
 
 def check(data):
     try:
-        with _unpack_limit():
+        with unpack_limit():
             return _read(data)
     except Exception:  # pypdf raises many kinds of error for broken files; all mean "damaged"
         logger.warning("A PDF could not be read.")

@@ -52,6 +52,7 @@ SLOTS = (
     "ai_reading",
     "fairness_guard",
     "candidate_record",
+    "ats_score",
     "requirement_evaluation",
     "scoring",
 )
@@ -61,6 +62,7 @@ SLOT_STATUS = {
     "ai_reading": READING,
     "fairness_guard": READING,
     "candidate_record": READING,
+    "ats_score": SCORING,
     "requirement_evaluation": SCORING,
     "scoring": SCORING,
 }
