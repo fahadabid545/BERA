@@ -1,9 +1,5 @@
-import { Button } from "@/components/ui";
+import { AiModels } from "@/components/admin/AiModels";
 
 export default function AiModelsPage() {
-  return (
-    <div className="page-actions">
-      <Button>Add model</Button>
-    </div>
-  );
+  return <AiModels />;
 }

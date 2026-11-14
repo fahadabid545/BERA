@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Q
 
 from core.models import CompanyOwnedModel
+from platform_settings.definitions import DEFINITIONS
 
 
 class Project(CompanyOwnedModel):
@@ -12,12 +13,16 @@ class Project(CompanyOwnedModel):
     """One job opening. Lengths are limited by platform settings when it is written, so the
     columns are plain text and a changed limit needs no migration.
 
-    The reading model and prompt version are the defaults at the moment of creation and never
-    change afterwards, so a project is always read the way it was first set up."""
+    The reading and scoring models and the prompt version are the defaults at the moment of
+    creation and change only when an admin disables a model in use and picks a replacement, so
+    a project is always read the way it was first set up."""
 
     title = models.TextField()
     job_description = models.TextField()
     reading_model = models.CharField(max_length=100)
+    scoring_model = models.CharField(
+        max_length=100, default=DEFINITIONS["ai.scoring_model"].default
+    )
     prompt_version = models.CharField(max_length=100)
     created_by = models.ForeignKey(
         "companies.CompanyUser", on_delete=models.PROTECT, related_name="+"

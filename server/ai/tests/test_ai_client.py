@@ -5,6 +5,7 @@ import pytest
 
 from ai import client
 from ai.client import AiAnswer, AiUnavailable, call_ai
+from ai.models import AiModel
 from core.tests.factories import make_company
 from usage import service as usage
 
@@ -60,13 +61,14 @@ def test_a_failed_call_counts_nothing_and_says_so(monkeypatch):
     assert usage.current_usage(company.pk)["tokens_in"] == 0
 
 
-def test_the_cost_is_passed_in_and_defaults_to_nothing(monkeypatch):
+def test_the_cost_comes_from_the_models_prices_at_the_time_of_the_call(monkeypatch):
     company = make_company()
-    stub_provider(monkeypatch, AiAnswer("{}", 1, 1))
-    call_ai(company.pk, model="m", instructions="i", text="t")
-    assert usage.current_usage(company.pk)["estimated_cost"] == Decimal(0)
-    call_ai(company.pk, model="m", instructions="i", text="t", estimated_cost=Decimal("0.5"))
-    assert usage.current_usage(company.pk)["estimated_cost"] == Decimal("0.5")
+    AiModel.objects.create(
+        name="priced", input_price_per_million=Decimal("2"), output_price_per_million=Decimal("10")
+    )
+    stub_provider(monkeypatch, AiAnswer("{}", 1_000_000, 500_000))
+    call_ai(company.pk, model="priced", instructions="i", text="t")
+    assert usage.current_usage(company.pk)["estimated_cost"] == Decimal("7.000000")
 
 
 def test_without_a_key_the_real_sender_reports_unavailable(settings):

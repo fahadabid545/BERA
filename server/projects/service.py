@@ -73,6 +73,7 @@ def create_project(creator, title, job_description, *, acknowledge_warnings=Fals
             title=title,
             job_description=job_description,
             reading_model=get_setting("ai.reading_model"),
+            scoring_model=get_setting("ai.scoring_model"),
             prompt_version=get_setting("ai.prompt_version"),
             created_by=creator,
         )

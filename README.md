@@ -966,6 +966,26 @@ use them instead of writing their own.
   justified in writing and audited.
 - Retention and deletion features are separate tickets.
 
+## Model settings
+
+Super admins choose and price the AI models on `/admin/ai/models` (routes under
+`/api/admin/ai/`, `ai/views.py`; rules in `ai/model_settings.py`). Support is refused. Every
+change is audited (`admin.model_added`, `admin.model_changed`, `admin.models_selected`; changes
+need a written reason).
+
+- The models list (`AiModel`) holds each model's name (the provider's id, never changed), input
+  and output price per million tokens, and an on/off switch. The platform starts with two
+  zero-price stand-in models, which an admin replaces with real ones.
+- Two dropdowns choose the reading and scoring model (platform settings `ai.reading_model` and
+  `ai.scoring_model`). The choice applies to new projects, which pin both names when created
+  (`Project.reading_model`, `Project.scoring_model`). Existing projects keep what they pinned.
+- A model that is switched off cannot be chosen. Switching off a model that is in use (chosen, or
+  pinned by projects) is answered with 409 `model_in_use` and the list of replacements; sending
+  `replacement` moves the choices and the projects that used it to the replacement, in one step.
+- `call_ai` prices every call from the model's prices at that moment and stores the cost with the
+  tokens, so a later price change never alters a past record. A model that is not in the list
+  costs 0 and a warning is logged.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

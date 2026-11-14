@@ -256,6 +256,7 @@ SETTINGS = [
     SettingDefinition("projects.description_max_length", 15000, whole_number(500, 100000)),
     SettingDefinition("projects.short_description_length", 300, whole_number(1, 5000)),
     SettingDefinition("ai.reading_model", "standin-reading-model", short_text(100)),
+    SettingDefinition("ai.scoring_model", "standin-scoring-model", short_text(100)),
     SettingDefinition("ai.prompt_version", "standin-prompt-v1", short_text(100)),
     # AI calls (see ai/client.py) and the requirements the AI proposes. The prompt is a
     # stand-in until Prompt versions exist.

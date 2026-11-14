@@ -10,12 +10,13 @@ Nothing sent or received is logged: job descriptions and CVs are personal data.
 
 import logging
 from dataclasses import dataclass
-from decimal import Decimal
 
 from django.conf import settings
 
 from platform_settings.service import get_setting
 from usage import service as usage
+
+from .costs import price_call
 
 logger = logging.getLogger(__name__)
 
@@ -67,13 +68,13 @@ def call_ai(
     project_id=None,
     cv_id=None,
     max_output_tokens=None,
-    estimated_cost=Decimal(0),
 ):
     """Asks the AI for a JSON answer and records the tokens it used for the company.
 
     `model` is the one pinned to the project (or the platform default) and `instructions` the
-    prompt for the task. `estimated_cost` is passed in by the AI usage tracking ticket, which
-    prices tokens; until then it is zero. Raises `AiUnavailable` when there is no answer.
+    prompt for the task. The cost is the model's price at the moment of the call (see
+    `costs.py`) and is stored with the tokens, so a later price change never alters it. Raises
+    `AiUnavailable` when there is no answer.
     """
     try:
         answer = _send(
@@ -90,7 +91,7 @@ def call_ai(
         company_id,
         answer.tokens_in,
         answer.tokens_out,
-        estimated_cost,
+        price_call(model, answer.tokens_in, answer.tokens_out),
         cv_id=cv_id,
         project_id=project_id,
     )

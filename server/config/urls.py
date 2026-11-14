@@ -10,6 +10,7 @@ urlpatterns = [
     path("api/company/activity/", include("activity.urls")),
     path("api/company/usage/", include("plans.company_urls")),
     path("api/admin/plans/", include("plans.urls")),
+    path("api/admin/ai/", include("ai.urls")),
     path("api/admin/", include("adminusers.control_urls")),
     path("api/plans/", include("plans.public_urls")),
     path("api/company/projects/", include("cvs.urls")),

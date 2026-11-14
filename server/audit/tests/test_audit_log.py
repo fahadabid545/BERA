@@ -67,6 +67,8 @@ class TestTheWrittenReason:
         needing = {name for name, kind in KINDS.items() if kind.reason_required}
         assert needing == {
             "admin.candidate_data_exception",
+            "admin.model_changed",
+            "admin.models_selected",
             "admin.role_changed",
             "admin.status_changed",
             "admin.member_blocked",

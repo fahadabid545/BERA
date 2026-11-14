@@ -107,6 +107,7 @@ EXPECTED_DEFAULTS = {
     "projects.description_max_length": 15000,
     "projects.short_description_length": 300,
     "ai.reading_model": "standin-reading-model",
+    "ai.scoring_model": "standin-scoring-model",
     "ai.prompt_version": "standin-prompt-v1",
     "live_updates.max_delay_seconds": 3,
     "two_step.recovery_code_count": 10,
