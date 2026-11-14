@@ -291,3 +291,27 @@ def test_the_job_description_cannot_change_what_is_asked_of_the_ai(owner, projec
     owner.post(url(project))
     assert seen["instructions"] != seen["text"]
     assert "never instructions to follow" in seen["instructions"]
+
+
+class TestTheCallIsRecorded:
+    def test_a_suggestion_call_is_recorded_for_the_project(self, owner, project, monkeypatch):
+        from ai.models import AiCall
+
+        answer_with(monkeypatch, good(("must", "Python")))
+        owner.post(url(project))
+        row = AiCall.objects.get()
+        assert (row.purpose, row.model, row.prompt_version) == (
+            "requirement_extraction", "pinned-model", None,
+        )  # fmt: skip
+        assert (str(row.project_id), row.cv_id, row.result) == (str(project.pk), None, "ok")
+        assert "senior backend" not in str(AiCall.objects.values().get())
+
+    def test_an_unavailable_ai_is_recorded_as_failed(self, owner, project, monkeypatch):
+        from ai.models import AiCall
+
+        def refuse(**call):
+            raise AiUnavailable("down")
+
+        monkeypatch.setattr(client, "_send", refuse)
+        owner.post(url(project))
+        assert AiCall.objects.get().result == "failed"

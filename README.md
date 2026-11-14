@@ -1128,6 +1128,23 @@ stored with the score and recalculated with it (no AI).
   label, borderline, strengths, risks, questions and the note (404 until the candidate is scored).
   The candidate pages come in their own tickets.
 
+## AI usage tracking
+
+Every AI call is recorded as an `AiCall` row by `ai.client.call_ai`, the one function that reaches
+the AI (so nothing can be missed).
+
+- A row holds the company, project, CV and candidate ids, the purpose (reading, scoring,
+  requirement extraction or playground), the model, the prompt version (empty for a prompt without
+  versions), tokens in and out, the estimated cost at the prices of that moment, the duration in
+  milliseconds and the result (ok or failed, with a short reason).
+- A failed call is recorded too, with 0 tokens and 0 cost (nothing was reported) and the reason.
+  A retry is a record of its own.
+- A row never holds what was sent or received: no CV text, contact details or prompt. It has no
+  text column, and tests check this with a stubbed AI.
+- The project, CV and candidate are plain ids, not links, so the records stay for cost history and
+  billing checks after any of them is deleted. Only the company's own deletion removes them.
+- Recording only: the pages and endpoints that read the log come in their own tickets.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

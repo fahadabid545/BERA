@@ -229,7 +229,7 @@ class TestPriceChangesNeverAlterPastCosts:
     ):
         self.stub(monkeypatch)
         add(boss, "gpt-test", "1", "2")
-        call_ai(company.pk, model="gpt-test", instructions="i", text="t")
+        call_ai(company.pk, purpose="scoring", model="gpt-test", instructions="i", text="t")
         assert usage.current_usage(company.pk)["estimated_cost"] == Decimal("3.000000")
         model = model_named("gpt-test")
         boss.patch(
@@ -238,7 +238,7 @@ class TestPriceChangesNeverAlterPastCosts:
             format="json",
         )
         assert usage.current_usage(company.pk)["estimated_cost"] == Decimal("3.000000")
-        call_ai(company.pk, model="gpt-test", instructions="i", text="t")
+        call_ai(company.pk, purpose="scoring", model="gpt-test", instructions="i", text="t")
         assert usage.current_usage(company.pk)["estimated_cost"] == Decimal("33.000000")
 
     def test_a_model_with_no_price_costs_nothing_and_a_warning_is_logged(
@@ -246,7 +246,7 @@ class TestPriceChangesNeverAlterPastCosts:
     ):
         self.stub(monkeypatch)
         caplog.set_level(logging.WARNING)
-        call_ai(company.pk, model="not-in-the-list", instructions="i", text="t")
+        call_ai(company.pk, purpose="scoring", model="not-in-the-list", instructions="i", text="t")
         assert usage.current_usage(company.pk)["estimated_cost"] == Decimal(0)
         assert "No price is set for AI model not-in-the-list" in caplog.text
 
@@ -254,7 +254,7 @@ class TestPriceChangesNeverAlterPastCosts:
         self.stub(monkeypatch)
         add(boss, "gpt-test")
         caplog.set_level(logging.WARNING)
-        call_ai(company.pk, model="gpt-test", instructions="i", text="t")
+        call_ai(company.pk, purpose="scoring", model="gpt-test", instructions="i", text="t")
         assert "No price" not in caplog.text
 
 

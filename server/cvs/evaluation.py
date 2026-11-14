@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from django.db import transaction
 
 from ai.client import call_ai
+from ai.models import AiCall
 from ai.prompt_versions import SCORING, prompt_text
 from core.errors import AppError
 from plans.limits import check_ai_allowed
@@ -101,7 +102,7 @@ def _question(wanted, cv_text):
     return f"Requirements:\n{lines}\n\nCV:\n{cv_text}"
 
 
-def judge(cv_file, requirements, cv_text):
+def judge(cv_file, requirements, cv_text, candidate_id):
     """{requirement: Judgement} for the given requirements, asking the AI (once, plus the retry)."""
     project = cv_file.project
     by_number = {position: requirement for position, requirement in enumerate(requirements, 1)}
@@ -110,6 +111,9 @@ def judge(cv_file, requirements, cv_text):
     for _ in range(1 + get_setting("ai.invalid_answer_retries")):
         answer = call_ai(
             cv_file.company_id,
+            purpose=AiCall.Purpose.SCORING,
+            prompt_version=project.scoring_prompt_version,
+            candidate_id=candidate_id,
             model=project.scoring_model,
             instructions=prompt_text(SCORING, project.scoring_prompt_version),
             text=_question(pending, cv_text),
@@ -156,7 +160,7 @@ def evaluate_candidate(candidate, cv_text):
         return
     if not check_ai_allowed(candidate.company_id).allowed:
         raise PermanentFailure(AI_PAUSED_REASON)
-    judged = judge(candidate.cv_file, needed, cv_text)
+    judged = judge(candidate.cv_file, needed, cv_text, candidate.pk)
     with transaction.atomic():
         for requirement, judgement in judged.items():
             RequirementResult.objects.update_or_create(

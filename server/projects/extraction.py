@@ -9,6 +9,7 @@ import json
 import logging
 
 from ai.client import AiUnavailable, call_ai
+from ai.models import AiCall
 from plans.limits import check_ai_allowed
 from platform_settings.service import get_setting
 
@@ -72,6 +73,7 @@ def suggest_requirements(project):
     try:
         answer = call_ai(
             project.company_id,
+            purpose=AiCall.Purpose.REQUIREMENT_EXTRACTION,
             model=project.reading_model,
             instructions=get_setting("ai.requirement_extraction_prompt"),
             text=project.job_description,

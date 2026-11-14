@@ -9,14 +9,18 @@ Nothing sent or received is logged: job descriptions and CVs are personal data.
 """
 
 import logging
+import time
 from dataclasses import dataclass
+from decimal import Decimal
 
 from django.conf import settings
+from django.db import transaction
 
 from platform_settings.service import get_setting
 from usage import service as usage
 
 from .costs import price_call
+from .models import AiCall
 
 logger = logging.getLogger(__name__)
 
@@ -59,23 +63,50 @@ def _send(*, model, instructions, text, max_output_tokens, timeout_seconds):
     )
 
 
+def _record(company_id, started, *, result, failure="", tokens=(0, 0), cost=Decimal(0), **ids):
+    """Writes the AiCall row. Only ids, numbers and the purpose are stored."""
+    AiCall.objects.create(
+        company_id=company_id,
+        tokens_in=tokens[0],
+        tokens_out=tokens[1],
+        estimated_cost=cost,
+        duration_ms=round((time.monotonic() - started) * 1000),
+        result=result,
+        failure=failure[:100],
+        **ids,
+    )
+
+
 def call_ai(
     company_id,
     *,
+    purpose,
     model,
     instructions,
     text,
+    prompt_version=None,
     project_id=None,
     cv_id=None,
+    candidate_id=None,
     max_output_tokens=None,
 ):
-    """Asks the AI for a JSON answer and records the tokens it used for the company.
+    """Asks the AI for a JSON answer, records the tokens it used for the company and writes an
+    `AiCall` row for the call (see `models.AiCall`).
 
-    `model` is the one pinned to the project (or the platform default) and `instructions` the
-    prompt for the task. The cost is the model's price at the moment of the call (see
-    `costs.py`) and is stored with the tokens, so a later price change never alters it. Raises
-    `AiUnavailable` when there is no answer.
+    `purpose` is an `AiCall.Purpose`, `model` the one pinned to the project (or the platform
+    default) and `instructions` the prompt for the task. The cost is the model's price at the
+    moment of the call (see `costs.py`) and is stored with the tokens, so a later price change
+    never alters it. A failed call is recorded too, then `AiUnavailable` is raised.
     """
+    ids = {
+        "purpose": purpose,
+        "model": model,
+        "prompt_version": prompt_version,
+        "project_id": project_id,
+        "cv_id": cv_id,
+        "candidate_id": candidate_id,
+    }
+    started = time.monotonic()
     try:
         answer = _send(
             model=model,
@@ -84,15 +115,26 @@ def call_ai(
             max_output_tokens=max_output_tokens or get_setting("ai.default_max_output_tokens"),
             timeout_seconds=get_setting("ai.request_timeout_seconds"),
         )
-    except AiUnavailable:
+    except AiUnavailable as error:
         logger.warning("The AI call failed.")
+        _record(company_id, started, result=AiCall.Result.FAILED, failure=str(error), **ids)
         raise
-    usage.add_tokens(
-        company_id,
-        answer.tokens_in,
-        answer.tokens_out,
-        price_call(model, answer.tokens_in, answer.tokens_out),
-        cv_id=cv_id,
-        project_id=project_id,
-    )
+    cost = price_call(model, answer.tokens_in, answer.tokens_out)
+    with transaction.atomic():
+        usage.add_tokens(
+            company_id,
+            answer.tokens_in,
+            answer.tokens_out,
+            cost,
+            cv_id=cv_id,
+            project_id=project_id,
+        )
+        _record(
+            company_id,
+            started,
+            result=AiCall.Result.OK,
+            tokens=(answer.tokens_in, answer.tokens_out),
+            cost=cost,
+            **ids,
+        )
     return answer

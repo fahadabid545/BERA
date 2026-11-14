@@ -32,8 +32,8 @@ EXPECTED_REGISTRATIONS = {
 }
 # Work stoppers registered with register_work_stopper.
 EXPECTED_STOPPERS = {"CvProcessing"}
-# Models that mention a project on purpose and are kept: the usage ledger is history.
-KEPT_FOR_HISTORY = {"UsageCounter", "CvUsage"}
+# Models that mention a project on purpose and are kept: the usage ledger and the AI call log are history.
+KEPT_FOR_HISTORY = {"UsageCounter", "CvUsage", "AiCall"}
 
 
 def url(project, suffix=""):

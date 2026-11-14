@@ -474,3 +474,32 @@ class TestRemoval:
         monkeypatch.setattr(service.storage, "delete_file", lambda key: None)
         service.remove_cv_file(cv)
         assert not CvProfile.objects.exists() and not CvContact.objects.exists()
+
+
+class TestTheCallIsRecorded:
+    def test_a_reading_call_is_recorded_for_the_cv_with_the_pinned_model_and_prompt(self, cv, ai):
+        from ai.models import AiCall
+
+        ai.answers = [answer_with()]
+        profile_reading.read_profile(cv, CV_TEXT)
+        row = AiCall.objects.get()
+        assert (row.purpose, row.model, row.prompt_version) == ("reading", "pinned-model", 7)
+        assert (row.cv_id, row.project_id, row.candidate_id) == (cv.pk, cv.project_id, None)
+        assert (row.tokens_in, row.tokens_out, row.result) == (100, 50, "ok")
+
+    def test_the_record_holds_no_cv_text_or_contact_details(self, cv, ai):
+        from ai.models import AiCall
+
+        ai.answers = [answer_with()]
+        profile_reading.read_profile(cv, CV_TEXT)
+        values = str(AiCall.objects.values().get())
+        assert "Jane" not in values and "example.com" not in values and "Python" not in values
+
+    def test_a_failed_reading_call_is_recorded_too(self, cv, ai):
+        from ai.client import AiUnavailable
+        from ai.models import AiCall
+
+        ai.answers = [AiUnavailable("Timeout")]
+        with pytest.raises(AiUnavailable):
+            profile_reading.read_profile(cv, CV_TEXT)
+        assert AiCall.objects.get().result == "failed"

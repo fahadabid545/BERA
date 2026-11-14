@@ -28,7 +28,7 @@ def stub_provider(monkeypatch, answer=None, error=None):
 def test_the_answer_comes_back_and_its_tokens_are_counted_for_the_company(monkeypatch):
     company = make_company()
     stub_provider(monkeypatch, AiAnswer("{}", 120, 30))
-    answer = call_ai(company.pk, model="m", instructions="i", text="t")
+    answer = call_ai(company.pk, purpose="scoring", model="m", instructions="i", text="t")
     assert answer.text == "{}"
     current = usage.current_usage(company.pk)
     assert (current["tokens_in"], current["tokens_out"]) == (120, 30)
@@ -37,7 +37,7 @@ def test_the_answer_comes_back_and_its_tokens_are_counted_for_the_company(monkey
 def test_tokens_never_count_as_a_cv(monkeypatch):
     company = make_company()
     stub_provider(monkeypatch, AiAnswer("{}", 10, 10))
-    call_ai(company.pk, model="m", instructions="i", text="t")
+    call_ai(company.pk, purpose="scoring", model="m", instructions="i", text="t")
     assert usage.current_usage(company.pk)["cvs_scored"] == 0
     assert usage.waiting_cvs(company.pk) == 0
 
@@ -45,7 +45,9 @@ def test_tokens_never_count_as_a_cv(monkeypatch):
 def test_the_model_prompt_text_and_platform_settings_are_passed_on(monkeypatch):
     company = make_company()
     seen = stub_provider(monkeypatch, AiAnswer("{}", 1, 1))
-    call_ai(company.pk, model="the-model", instructions="the prompt", text="the text")
+    call_ai(
+        company.pk, purpose="scoring", model="the-model", instructions="the prompt", text="the text"
+    )
     assert seen["model"] == "the-model"
     assert seen["instructions"] == "the prompt"
     assert seen["text"] == "the text"
@@ -57,7 +59,7 @@ def test_a_failed_call_counts_nothing_and_says_so(monkeypatch):
     company = make_company()
     stub_provider(monkeypatch, error=AiUnavailable("down"))
     with pytest.raises(AiUnavailable):
-        call_ai(company.pk, model="m", instructions="i", text="t")
+        call_ai(company.pk, purpose="scoring", model="m", instructions="i", text="t")
     assert usage.current_usage(company.pk)["tokens_in"] == 0
 
 
@@ -67,7 +69,7 @@ def test_the_cost_comes_from_the_models_prices_at_the_time_of_the_call(monkeypat
         name="priced", input_price_per_million=Decimal("2"), output_price_per_million=Decimal("10")
     )
     stub_provider(monkeypatch, AiAnswer("{}", 1_000_000, 500_000))
-    call_ai(company.pk, model="priced", instructions="i", text="t")
+    call_ai(company.pk, purpose="scoring", model="priced", instructions="i", text="t")
     assert usage.current_usage(company.pk)["estimated_cost"] == Decimal("7.000000")
 
 
@@ -81,7 +83,13 @@ def test_the_text_sent_is_never_logged(monkeypatch, caplog):
     company = make_company()
     stub_provider(monkeypatch, error=AiUnavailable("down"))
     with caplog.at_level(logging.DEBUG), pytest.raises(AiUnavailable):
-        call_ai(company.pk, model="m", instructions="i", text="Jane Doe's private text")
+        call_ai(
+            company.pk,
+            purpose="scoring",
+            model="m",
+            instructions="i",
+            text="Jane Doe's private text",
+        )
     assert "Jane Doe" not in caplog.text
 
 

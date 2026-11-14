@@ -564,3 +564,37 @@ class TestAnotherCompany:
         assert RequirementResult.objects.filter(company_id=mine.company_id).count() == 1
         deletion.delete_project(mine.cv_file.uploaded_by, mine.project)
         assert RequirementResult.objects.get().company_id == theirs.company_id
+
+
+class TestTheCallIsRecorded:
+    def test_a_scoring_call_is_recorded_for_the_candidate(self, candidate, ai):
+        from ai.models import AiCall
+
+        ai.answers = [answer(entry(1, "met", PYTHON), entry(2, "missing"), entry(3, "missing"))]
+        evaluation.evaluate_candidate(candidate, CV_TEXT)
+        row = AiCall.objects.get()
+        project = candidate.project
+        assert (row.purpose, row.model) == ("scoring", project.scoring_model)
+        assert row.prompt_version == project.scoring_prompt_version
+        assert (row.candidate_id, row.cv_id, row.project_id) == (
+            candidate.pk, candidate.cv_file_id, project.pk,
+        )  # fmt: skip
+        assert row.result == "ok"
+
+    def test_every_try_is_its_own_record(self, candidate, ai):
+        from ai.models import AiCall
+
+        ai.answers = [
+            "not json",
+            answer(entry(1, "missing"), entry(2, "missing"), entry(3, "missing")),
+        ]
+        evaluation.evaluate_candidate(candidate, CV_TEXT)
+        assert AiCall.objects.filter(purpose="scoring").count() == 2
+
+    def test_the_record_holds_no_cv_text(self, candidate, ai):
+        from ai.models import AiCall
+
+        ai.answers = [answer(entry(1, "met", PYTHON), entry(2, "missing"), entry(3, "missing"))]
+        evaluation.evaluate_candidate(candidate, CV_TEXT)
+        values = str(AiCall.objects.values().get())
+        assert "Django" not in values and "Acme" not in values

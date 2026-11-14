@@ -11,6 +11,7 @@ import logging
 from django.db import transaction
 
 from ai.client import call_ai
+from ai.models import AiCall
 from ai.prompt_versions import READING, prompt_text
 from plans.limits import check_ai_allowed
 from platform_settings.service import get_setting
@@ -38,6 +39,8 @@ def read_profile(cv_file, cv_text):
     for _ in range(tries):
         answer = call_ai(
             cv_file.company_id,
+            purpose=AiCall.Purpose.READING,
+            prompt_version=project.reading_prompt_version,
             model=project.reading_model,
             instructions=prompt_text(READING, project.reading_prompt_version),
             text=cv_text,
