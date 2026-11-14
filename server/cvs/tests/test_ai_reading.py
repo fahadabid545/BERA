@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from ai import client
 from ai.client import AiAnswer, AiUnavailable
+from ai.models import PromptVersion
 from core.tests.factories import make_company, make_company_user
 from cvs import processing, profile_reading
 from cvs.models import CvContact, CvFile, CvProfile
@@ -98,8 +99,11 @@ def make_cv(cap=10000):
         title="T",
         job_description="t",
         reading_model="pinned-model",
-        prompt_version="pinned-prompt",
+        reading_prompt_version=7,
         created_by=owner,
+    )
+    PromptVersion.objects.get_or_create(
+        kind="reading", number=7, defaults={"text": "The pinned reading prompt."}
     )
     cv = CvFile.objects.create(
         company=company,
@@ -124,7 +128,7 @@ class TestProfileIsCreated:
     def test_the_profile_holds_the_checked_fields_and_the_model_and_prompt_version(self, cv, ai):
         ai.answers = [answer_with()]
         saved = profile_reading.read_profile(cv, CV_TEXT)
-        assert saved.model == "pinned-model" and saved.prompt_version == "pinned-prompt"
+        assert saved.model == "pinned-model" and saved.prompt_version == 7
         content = saved.content
         assert content["skills"] == ["Python", "Django", "PostgreSQL", "C++", "Go"]
         assert [job["title"] for job in content["jobs"]] == [
@@ -153,6 +157,12 @@ class TestProfileIsCreated:
         profile_reading.read_profile(cv, CV_TEXT)
         current = usage.current_usage(cv.company_id)
         assert (current["tokens_in"], current["tokens_out"]) == (100, 50)
+
+    def test_the_instructions_are_the_text_of_the_projects_pinned_prompt_version(self, cv, ai):
+        PromptVersion.objects.create(kind="reading", number=8, text="A newer reading prompt.")
+        ai.answers = [answer_with()]
+        profile_reading.read_profile(cv, CV_TEXT)
+        assert ai.calls[0]["instructions"] == "The pinned reading prompt."
 
     def test_the_output_limit_comes_from_the_platform_settings(self, cv, ai):
         set_setting("ai.cv_reading_max_output_tokens", 777)

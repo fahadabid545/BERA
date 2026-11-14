@@ -41,7 +41,6 @@ def make_cv(company=None, project=None):
         title="T",
         job_description="t",
         reading_model="m",
-        prompt_version="p",
         created_by=owner,
     )
     cv = CvFile.objects.create(
@@ -60,7 +59,7 @@ def make_cv(company=None, project=None):
 
 def add_profile(cv):
     CvProfile.objects.create(
-        company_id=cv.company_id, cv_file=cv, content={"skills": []}, model="m", prompt_version="p"
+        company_id=cv.company_id, cv_file=cv, content={"skills": []}, model="m", prompt_version=1
     )
     CvContact.objects.create(company_id=cv.company_id, cv_file=cv, name="Jane Example")
     return CvFile.objects.get(pk=cv.pk)
@@ -214,7 +213,6 @@ class TestRemoval:
             title="Other",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=cv.uploaded_by,
         )
         kept = add_profile(make_cv(cv.company, other_project))

@@ -301,7 +301,6 @@ class TestDeletionRemovesFilesFromTheStore:
             title="T",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=owner,
         )
         issued = start_session_for(
@@ -336,7 +335,6 @@ class TestDeletionRemovesFilesFromTheStore:
             title="T",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=owner,
         )
         cv = CvFile.objects.create(

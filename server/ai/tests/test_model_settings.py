@@ -71,7 +71,6 @@ def make_project(company, **fields):
         title="T",
         job_description="t",
         reading_model=fields.pop("reading_model", "standin-reading-model"),
-        prompt_version="p",
         created_by=make_company_user(company),
         **fields,
     )

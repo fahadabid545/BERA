@@ -1,20 +1,28 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AiPromptsPage from "./page";
 
-describe("AI Prompts page", () => {
-  it("shows its buttons and nothing else", () => {
-    const { container } = render(<AiPromptsPage />);
-    expect(screen.getByRole("button", { name: "New version" })).toBeTruthy();
-    expect(container.querySelectorAll("button, a, input, select, textarea")).toHaveLength(1);
-  });
+const fetchMock = vi.fn();
 
-  it("does nothing when a button is pressed", async () => {
-    const { container } = render(<AiPromptsPage />);
-    const before = container.innerHTML;
-    for (const button of screen.getAllByRole("button")) await userEvent.click(button);
-    expect(container.innerHTML).toBe(before);
+beforeEach(() => {
+  fetchMock.mockReset();
+  vi.stubGlobal("fetch", fetchMock);
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+describe("AI Prompts page", () => {
+  it("shows the prompt versions", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ reading: [], scoring: [] }),
+    });
+    render(<AiPromptsPage />);
+    expect(await screen.findByRole("button", { name: "New version" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Reading versions" })).toBeTruthy();
   });
 });

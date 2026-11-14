@@ -67,7 +67,6 @@ def project(company, owner):
         title="T",
         job_description="t",
         reading_model="m",
-        prompt_version="p",
         created_by=owner[0],
     )
 
@@ -149,7 +148,6 @@ class TestIdenticalFiles:
             title="O",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=owner[0],
         )
         upload(owner[1], project, ("a.pdf", pdf("one")))
@@ -174,7 +172,6 @@ class TestIdenticalFiles:
             title="T",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=theirs_person,
         )
         upload(theirs, their_project, ("a.pdf", pdf("one")))
@@ -287,7 +284,6 @@ class TestLikelySamePerson:
             title="O",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=owner[0],
         )
         upload(owner[1], other, ("c.pdf", pdf("three")))

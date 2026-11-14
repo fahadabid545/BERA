@@ -55,7 +55,6 @@ def project(company, signed_in):
         title="Backend engineer",
         job_description="text",
         reading_model="m",
-        prompt_version="p",
         created_by=signed_in[0],
     )
 
@@ -165,7 +164,6 @@ class TestLimits:
             title="O",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=project.created_by,
         )
         theirs = Requirement.objects.create(
@@ -299,7 +297,6 @@ class TestAnotherCompany:
             title="T",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=make_company_user(stranger),
         )
         Requirement.objects.create(

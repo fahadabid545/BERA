@@ -53,6 +53,7 @@ AREAS = {
         "cvs/tests/test_candidate_record.py",
         "cvs/tests/test_candidate_data_protection.py",
         "ai/tests/test_model_settings.py",
+        "ai/tests/test_prompt_versions.py",
         "cvs/tests/test_read_description.py",
         "privatefiles/tests/test_private_storage.py",
         "ai/tests/test_ai_client.py",

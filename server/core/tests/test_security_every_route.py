@@ -8,6 +8,7 @@ and a suspended company. All with the same answer, which reveals nothing.
 
 import base64
 import json
+import re
 
 import pytest
 from rest_framework.test import APIClient
@@ -51,7 +52,8 @@ OTHER = {"company": "admin", "admin": "company"}
 
 
 def address(route):
-    return "/" + route.replace("<str:id>", "x").replace("<int:pk>", "1")
+    route = re.sub(r"<int:\w+>", "1", route)  # any whole-number part of an address
+    return "/" + re.sub(r"<str:\w+>", "x", route)
 
 
 def sign_in(kind):

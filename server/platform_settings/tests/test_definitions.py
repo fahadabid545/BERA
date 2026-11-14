@@ -1,7 +1,6 @@
 import pytest
 
 from platform_settings.definitions import (
-    CV_READING_PROMPT,
     PERSONAL_DETAIL_LABELS,
     REQUIREMENT_EXTRACTION_PROMPT,
     SETTINGS,
@@ -86,7 +85,6 @@ EXPECTED_DEFAULTS = {
     "scoring.possible_match_min": 55,
     "ai.request_timeout_seconds": 60,
     "ai.requirement_extraction_prompt": REQUIREMENT_EXTRACTION_PROMPT,
-    "ai.cv_reading_prompt": CV_READING_PROMPT,
     "ai.cv_reading_max_output_tokens": 4000,
     "ai.invalid_answer_retries": 1,
     "fairness.labels": PERSONAL_DETAIL_LABELS,
@@ -108,7 +106,9 @@ EXPECTED_DEFAULTS = {
     "projects.short_description_length": 300,
     "ai.reading_model": "standin-reading-model",
     "ai.scoring_model": "standin-scoring-model",
-    "ai.prompt_version": "standin-prompt-v1",
+    "ai.reading_prompt_version": 1,
+    "ai.scoring_prompt_version": 1,
+    "prompts.max_length": 20000,
     "live_updates.max_delay_seconds": 3,
     "two_step.recovery_code_count": 10,
     "two_step.code_drift_steps": 1,

@@ -45,3 +45,48 @@ class SelectModelsSerializer(StrictSerializer):
     reason = SafeTextField(max_length=MAX_REASON_LENGTH)
     reading_model = serializers.IntegerField(min_value=1)
     scoring_model = serializers.IntegerField(min_value=1)
+
+
+class PromptKind(serializers.ChoiceField):
+    def __init__(self, **kwargs):
+        super().__init__(choices=["reading", "scoring"], **kwargs)
+
+
+class CreatePromptSerializer(StrictSerializer):
+    kind = PromptKind()
+    text = serializers.CharField(trim_whitespace=True)
+
+    def validate_text(self, value):
+        from platform_settings.service import get_setting
+
+        if len(value) > get_setting("prompts.max_length"):
+            raise serializers.ValidationError("This text is too long.")
+        return value
+
+
+class PromptNumber(serializers.IntegerField):
+    def __init__(self, **kwargs):
+        super().__init__(min_value=1, max_value=2_000_000_000, **kwargs)
+
+
+class MakeCurrentSerializer(StrictSerializer):
+    kind = PromptKind()
+    number = PromptNumber()
+    reason = SafeTextField(max_length=MAX_REASON_LENGTH)
+
+
+class DeletePromptSerializer(StrictSerializer):
+    reason = SafeTextField(max_length=MAX_REASON_LENGTH)
+
+
+class MoveProjectSerializer(StrictSerializer):
+    project_id = serializers.UUIDField()
+    kind = PromptKind()
+    number = PromptNumber()
+    reason = SafeTextField(max_length=MAX_REASON_LENGTH)
+
+
+class CompareSerializer(StrictSerializer):
+    kind = PromptKind()
+    left = PromptNumber()
+    right = PromptNumber()

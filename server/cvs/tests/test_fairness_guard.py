@@ -215,7 +215,6 @@ class TestAsAStep:
             title="T",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=owner,
         )
         return CvFile.objects.create(
@@ -254,7 +253,6 @@ class TestAsAStep:
             title="T",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=other_owner,
         )
         other_cv = CvFile.objects.create(

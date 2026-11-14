@@ -11,6 +11,7 @@ import logging
 from django.db import transaction
 
 from ai.client import call_ai
+from ai.prompt_versions import READING, prompt_text
 from plans.limits import check_ai_allowed
 from platform_settings.service import get_setting
 
@@ -38,7 +39,7 @@ def read_profile(cv_file, cv_text):
         answer = call_ai(
             cv_file.company_id,
             model=project.reading_model,
-            instructions=get_setting("ai.cv_reading_prompt"),
+            instructions=prompt_text(READING, project.reading_prompt_version),
             text=cv_text,
             project_id=project.pk,
             cv_id=cv_file.pk,
@@ -61,7 +62,7 @@ def _save(cv_file, project, profile, contact):
                 "company_id": cv_file.company_id,
                 "content": profile,
                 "model": project.reading_model,
-                "prompt_version": project.prompt_version,
+                "prompt_version": project.reading_prompt_version,
             },
         )
         CvContact.objects.get_or_create(

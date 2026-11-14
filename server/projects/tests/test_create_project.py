@@ -86,18 +86,21 @@ class TestPinnedSetup:
         _, client = sign_in(company)
         project = Project.objects.get(pk=client.post(URL, body(), format="json").json()["id"])
         assert project.reading_model == "standin-reading-model"
-        assert project.prompt_version == "standin-prompt-v1"
+        assert (project.reading_prompt_version, project.scoring_prompt_version) == (1, 1)
 
     def test_a_later_default_does_not_change_an_existing_project(self, company):
         _, client = sign_in(company)
         first = client.post(URL, body(title="First"), format="json").json()["id"]
         set_setting("ai.reading_model", "newer-model")
-        set_setting("ai.prompt_version", "newer-prompt")
+        set_setting("ai.reading_prompt_version", 2)
+        set_setting("ai.scoring_prompt_version", 3)
         second = client.post(URL, body(title="Second"), format="json").json()["id"]
         assert Project.objects.get(pk=first).reading_model == "standin-reading-model"
-        assert Project.objects.get(pk=first).prompt_version == "standin-prompt-v1"
+        old = Project.objects.get(pk=first)
+        assert (old.reading_prompt_version, old.scoring_prompt_version) == (1, 1)
         assert Project.objects.get(pk=second).reading_model == "newer-model"
-        assert Project.objects.get(pk=second).prompt_version == "newer-prompt"
+        new = Project.objects.get(pk=second)
+        assert (new.reading_prompt_version, new.scoring_prompt_version) == (2, 3)
 
 
 class TestFields:

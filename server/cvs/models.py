@@ -85,7 +85,7 @@ class CvProfile(CompanyOwnedModel):
     cv_file = models.OneToOneField(CvFile, on_delete=models.CASCADE, related_name="profile")
     content = models.JSONField()
     model = models.CharField(max_length=100)
-    prompt_version = models.CharField(max_length=100)
+    prompt_version = models.PositiveIntegerField()  # the reading prompt version used
     created_at = models.DateTimeField(auto_now_add=True)
 
 

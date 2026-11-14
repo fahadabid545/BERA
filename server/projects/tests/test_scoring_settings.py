@@ -68,7 +68,6 @@ def project(company, signed_in):
         title="Backend engineer",
         job_description="text",
         reading_model="m",
-        prompt_version="p",
         created_by=signed_in[0],
     )
 
@@ -294,7 +293,6 @@ class TestAnotherCompany:
             title="T",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=make_company_user(stranger),
         )
         assert client.get(url(theirs)).status_code == 404
@@ -311,7 +309,6 @@ class TestAnotherCompany:
             title="Other",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=signed_in[0],
         )
         put(client, project, top_n=3)

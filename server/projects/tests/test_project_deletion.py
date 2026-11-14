@@ -46,7 +46,6 @@ def make_project(company, person, title="Backend engineer"):
         title=title,
         job_description="text",
         reading_model="model",
-        prompt_version="prompt",
         created_by=person,
     )
 

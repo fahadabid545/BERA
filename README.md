@@ -563,9 +563,10 @@ company; the company is never read from the request. Owners and members may both
   characters, and a title the company already uses (case ignored). Without
   `acknowledge_warnings: true` the server answers 409 `project_warnings` with the list in
   `details.warnings`; the form shows them in a popup and "Create anyway" sends it again confirmed.
-- The reading model and prompt version (`ai.reading_model`, `ai.prompt_version`, seeded stand-in
-  values until Model settings and Prompt versions exist) are copied onto the project when it is
-  created and never change after. Showing them to admins comes with the Companies detail ticket.
+- The reading and scoring models and the reading and scoring prompt versions (`ai.reading_model`,
+  `ai.scoring_model`, `ai.reading_prompt_version`, `ai.scoring_prompt_version`; see Model settings
+  and Prompt versions) are copied onto the project when it is created. They change only by an
+  admin action. Showing them to admins comes with the Companies detail ticket.
 - The plan meter's project count now counts real projects.
 
 ## Projects list
@@ -879,7 +880,7 @@ period by the Usage counting functions.
 
 - The profile (`CvProfile`) holds skills, job titles with start and end dates, years of
   experience, education, certifications, languages and a short summary. It is saved with the
-  reading model and prompt version pinned to the project.
+  reading model and the reading prompt version number pinned to the project.
 - A CV with a profile is never read again: a retry after a later failure, and every
   re-scoring, use the saved profile and cost no tokens.
 - An answer that is not valid JSON of the expected shape, or has no skills and no job titles,
@@ -894,8 +895,8 @@ period by the Usage counting functions.
   only when found in the CV. Entries holding a contact detail are removed from the profile, and
   so is a summary that contains one. Nothing from a CV or an AI answer is logged. Encryption
   and masking of that table come with Candidate data protection.
-- Platform settings: `ai.cv_reading_prompt` (a stand-in until Prompt versions),
-  `ai.cv_reading_max_output_tokens`, `ai.invalid_answer_retries`, `profile.max_items`,
+- The instructions are the text of the project's pinned reading prompt version (see Prompt
+  versions). Platform settings: `ai.cv_reading_max_output_tokens`, `ai.invalid_answer_retries`, `profile.max_items`,
   `profile.item_max_length`, `profile.summary_max_length`.
 - Tests use a stubbed AI (`cvs/tests/test_ai_reading.py`).
 
@@ -985,6 +986,28 @@ need a written reason).
 - `call_ai` prices every call from the model's prices at that moment and stores the cost with the
   tokens, so a later price change never alters a past record. A model that is not in the list
   costs 0 and a warning is logged.
+
+## Prompt versions
+
+Super admins manage the instructions given to the AI on `/admin/ai/prompts` (routes under
+`/api/admin/ai/prompts/`, rules in `ai/prompt_versions.py`). Support is refused. Every change is
+audited (`admin.prompt_created`, `admin.prompt_made_current`, `admin.prompt_deleted`,
+`admin.project_prompt_moved`; all but creating need a written reason).
+
+- There are numbered versions for reading and for scoring (`PromptVersion`). A version's text
+  never changes; a change is a new version. Numbers are never reused, even after a delete. Version
+  1 of each kind is created by a migration (the reading prompt used so far, and a stand-in scoring
+  prompt until the scoring step exists).
+- A new version changes nothing until an admin makes it current (platform settings
+  `ai.reading_prompt_version` and `ai.scoring_prompt_version`). Projects pin both numbers when they
+  are created (`Project.reading_prompt_version`, `Project.scoring_prompt_version`) and keep them.
+  The AI reading step uses the text of the project's pinned reading version, and the CV profile
+  records the number used.
+- An admin can move one project to another version (by its id, with a reason).
+- Two versions of a kind can be compared side by side (`GET prompts/compare/`: aligned rows with
+  the changed ones marked).
+- A version that is current or pinned by a project cannot be deleted (409 `prompt_in_use`).
+- The requirement-extraction prompt is still the platform setting `ai.requirement_extraction_prompt`.
 
 ## Library checks and updates
 

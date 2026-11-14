@@ -127,7 +127,7 @@ class TestContactDetailsAreEncryptedAtRest:
     def test_an_empty_detail_is_stored_encrypted_too(self):
         cv = make_cv()
         CvProfile.objects.create(
-            company_id=cv.company_id, cv_file=cv, content={}, model="m", prompt_version="p"
+            company_id=cv.company_id, cv_file=cv, content={}, model="m", prompt_version=1
         )
         CvContact.objects.create(company_id=cv.company_id, cv_file=cv)
         assert all(self.raw_row(cv))

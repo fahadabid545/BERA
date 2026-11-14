@@ -54,7 +54,6 @@ def project(company, signed_in):
         title="Backend engineer",
         job_description=LONG_TEXT,
         reading_model="pinned-model",
-        prompt_version="pinned-prompt",
         created_by=person,
     )
 
@@ -263,7 +262,6 @@ class TestAccess:
             title="T",
             job_description="x",
             reading_model="m",
-            prompt_version="p",
             created_by=make_company_user(stranger),
         )
         calls = answer_with(monkeypatch, good(("must", "x")))

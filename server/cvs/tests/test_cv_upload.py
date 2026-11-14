@@ -85,7 +85,6 @@ def project(company, signed_in):
         title="Backend engineer",
         job_description="text",
         reading_model="m",
-        prompt_version="p",
         created_by=signed_in[0],
     )
 
@@ -324,7 +323,6 @@ class TestPlanLimits:
             title="B",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=signed_in[0],
         )
         upload(client, project, ("a.pdf", different("a.pdf")))
@@ -376,7 +374,6 @@ class TestUploadRateLimit:
             title="T",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=stranger,
         )
         assert upload(theirs, their_project, ("a.pdf", different("a.pdf"))).status_code == 200
@@ -407,7 +404,6 @@ class TestAccess:
             title="T",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=make_company_user(stranger),
         )
         assert upload(client, theirs, ("a.pdf", different("a.pdf"))).status_code == 404
@@ -443,7 +439,6 @@ class TestAnotherCompany:
             title="T",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=stranger,
         )
         upload(theirs, their_project, ("a.pdf", different("a.pdf")))
@@ -552,7 +547,6 @@ class TestDeletingTheProject:
             title="Other",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=signed_in[0],
         )
         upload(client, project, ("a.pdf", different("a.pdf")), ("b.pdf", different("b.pdf")))

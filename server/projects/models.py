@@ -13,9 +13,10 @@ class Project(CompanyOwnedModel):
     """One job opening. Lengths are limited by platform settings when it is written, so the
     columns are plain text and a changed limit needs no migration.
 
-    The reading and scoring models and the prompt version are the defaults at the moment of
-    creation and change only when an admin disables a model in use and picks a replacement, so
-    a project is always read the way it was first set up."""
+    The reading and scoring models and the two prompt versions are the defaults at the moment of
+    creation. They change only by an admin action (a replacement for a disabled model, or moving
+    the project to another prompt version), so a project is always read the way it was
+    first set up."""
 
     title = models.TextField()
     job_description = models.TextField()
@@ -23,7 +24,12 @@ class Project(CompanyOwnedModel):
     scoring_model = models.CharField(
         max_length=100, default=DEFINITIONS["ai.scoring_model"].default
     )
-    prompt_version = models.CharField(max_length=100)
+    reading_prompt_version = models.PositiveIntegerField(
+        default=DEFINITIONS["ai.reading_prompt_version"].default
+    )
+    scoring_prompt_version = models.PositiveIntegerField(
+        default=DEFINITIONS["ai.scoring_prompt_version"].default
+    )
     created_by = models.ForeignKey(
         "companies.CompanyUser", on_delete=models.PROTECT, related_name="+"
     )

@@ -64,7 +64,6 @@ def stored_cv(company, owner):
         title="T",
         job_description="t",
         reading_model="m",
-        prompt_version="p",
         created_by=owner,
     )
     issued = start_session_for(

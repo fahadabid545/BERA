@@ -71,7 +71,6 @@ class Tenant:
             title="T",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=self.owner,
         )
         self.counter = 0
@@ -512,7 +511,6 @@ class TestCancelling:
             title="O",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=tenant.owner,
         )
         stranger = Tenant(plan)
@@ -600,7 +598,6 @@ class TestRetryingAFailedCv:
             title="O",
             job_description="t",
             reading_model="m",
-            prompt_version="p",
             created_by=tenant.owner,
         )
         row = tenant.cv(status="failed")

@@ -1,9 +1,5 @@
-import { Button } from "@/components/ui";
+import { AiPrompts } from "@/components/admin/AiPrompts";
 
 export default function AiPromptsPage() {
-  return (
-    <div className="page-actions">
-      <Button>New version</Button>
-    </div>
-  );
+  return <AiPrompts />;
 }

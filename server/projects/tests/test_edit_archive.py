@@ -34,7 +34,6 @@ def make_project(company, person, title="Backend engineer", status="active"):
         title=title,
         job_description="text " * 100,
         reading_model="model",
-        prompt_version="prompt",
         created_by=person,
         status=status,
     )
@@ -72,7 +71,7 @@ class TestReading:
         assert body["title"] == "Backend engineer"
         assert body["status"] == "active"
         assert body["may_delete"] is True
-        assert "reading_model" not in body and "prompt_version" not in body
+        assert "reading_model" not in body and "reading_prompt_version" not in body
 
     def test_a_member_may_read_but_is_not_offered_delete(self, company, owner):
         project = make_project(company, owner[0])
@@ -124,7 +123,7 @@ class TestEditing:
         project = make_project(company, person)
         client.patch(url(project), {"title": "T"}, format="json")
         project.refresh_from_db()
-        assert (project.reading_model, project.prompt_version) == ("model", "prompt")
+        assert (project.reading_model, project.reading_prompt_version) == ("model", 1)
         assert client.patch(url(project), {"reading_model": "x"}, format="json").status_code == 400
 
     def test_an_empty_change_is_refused(self, company, owner):
