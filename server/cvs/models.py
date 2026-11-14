@@ -74,3 +74,27 @@ class ProcessingTurn(CompanyOwnedModel):
         constraints = [
             models.UniqueConstraint(fields=["company"], name="one_processing_turn_per_company")
         ]
+
+
+class CvProfile(CompanyOwnedModel):
+    """What the AI read from a CV, checked against the CV's text. Made once and reused: scoring
+    and re-scoring work from it and never read the CV again. It holds no contact or personal
+    details; those are in `CvContact`. The model and prompt version say how it was made."""
+
+    cv_file = models.OneToOneField(CvFile, on_delete=models.CASCADE, related_name="profile")
+    content = models.JSONField()
+    model = models.CharField(max_length=100)
+    prompt_version = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class CvContact(CompanyOwnedModel):
+    """The contact details found in a CV, kept apart from the profile used for scoring so that
+    they can never reach it. Encryption and masking come with Candidate data protection."""
+
+    cv_file = models.OneToOneField(CvFile, on_delete=models.CASCADE, related_name="contact")
+    name = models.TextField(blank=True)
+    email = models.TextField(blank=True)
+    phone = models.TextField(blank=True)
+    address = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)

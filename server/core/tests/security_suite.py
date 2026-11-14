@@ -48,6 +48,7 @@ AREAS = {
         "cvs/tests/test_duplicate_detection.py",
         "cvs/tests/test_text_reading.py",
         "cvs/tests/test_processing.py",
+        "cvs/tests/test_ai_reading.py",
         "cvs/tests/test_read_description.py",
         "privatefiles/tests/test_private_storage.py",
         "ai/tests/test_ai_client.py",

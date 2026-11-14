@@ -871,6 +871,34 @@ can leave the page. Statuses: `waiting`, `reading`, `scoring`, `done`, `failed` 
   the slot to `EXPECTED_STEPS` in `cvs/tests/test_processing.py` with your test. Plugged in so far:
   `text_reading` (`cvs/steps.py`: reads the text, then looks for a CV of the same person).
 
+## AI reading of CVs
+
+The `ai_reading` step (`cvs/profile_reading.py`) turns the CV text into a profile once and
+reuses it. It uses the shared `call_ai` function, so its tokens are counted for the CV and its
+period by the Usage counting functions.
+
+- The profile (`CvProfile`) holds skills, job titles with start and end dates, years of
+  experience, education, certifications, languages and a short summary. It is saved with the
+  reading model and prompt version pinned to the project.
+- A CV with a profile is never read again: a retry after a later failure, and every
+  re-scoring, use the saved profile and cost no tokens.
+- An answer that is not valid JSON of the expected shape, or has no skills and no job titles,
+  is asked for once more (`ai.invalid_answer_retries`). After that the CV fails with a clear
+  reason and is not counted. An unavailable AI is retried by Background processing; a company
+  over its monthly token cap fails with a reason and can be retried later.
+- Every fact is checked against the CV text (`cvs/profile_checks.py`): skills, titles, degrees,
+  institutions, certifications and languages that are not found are removed, and so is a date
+  whose year is not in the CV. Years of experience are counted from the checked job dates (the
+  figure the AI gives is ignored). Fields the AI adds beyond the ones above are dropped.
+- Contact details (name, email, phone, address) are kept in their own table (`CvContact`),
+  only when found in the CV. Entries holding a contact detail are removed from the profile, and
+  so is a summary that contains one. Nothing from a CV or an AI answer is logged. Encryption
+  and masking of that table come with Candidate data protection.
+- Platform settings: `ai.cv_reading_prompt` (a stand-in until Prompt versions),
+  `ai.cv_reading_max_output_tokens`, `ai.invalid_answer_retries`, `profile.max_items`,
+  `profile.item_max_length`, `profile.summary_max_length`.
+- Tests use a stubbed AI (`cvs/tests/test_ai_reading.py`).
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

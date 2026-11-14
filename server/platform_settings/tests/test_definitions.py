@@ -1,6 +1,7 @@
 import pytest
 
 from platform_settings.definitions import (
+    CV_READING_PROMPT,
     REQUIREMENT_EXTRACTION_PROMPT,
     SETTINGS,
     list_of_file_types,
@@ -84,6 +85,12 @@ EXPECTED_DEFAULTS = {
     "scoring.possible_match_min": 55,
     "ai.request_timeout_seconds": 60,
     "ai.requirement_extraction_prompt": REQUIREMENT_EXTRACTION_PROMPT,
+    "ai.cv_reading_prompt": CV_READING_PROMPT,
+    "ai.cv_reading_max_output_tokens": 4000,
+    "ai.invalid_answer_retries": 1,
+    "profile.max_items": 50,
+    "profile.item_max_length": 120,
+    "profile.summary_max_length": 600,
     "ai.default_max_output_tokens": 2000,
     "requirements.max_total": 30,
     "requirements.max_length": 120,
