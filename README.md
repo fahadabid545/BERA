@@ -1009,6 +1009,33 @@ audited (`admin.prompt_created`, `admin.prompt_made_current`, `admin.prompt_dele
 - A version that is current or pinned by a project cannot be deleted (409 `prompt_in_use`).
 - The requirement-extraction prompt is still the platform setting `ai.requirement_extraction_prompt`.
 
+## Requirement evaluation
+
+The `requirement_evaluation` step (`cvs/evaluation.py`) judges each CV against each requirement of
+its project. It is a pipeline slot between `candidate_record` and `scoring`, so Score calculation
+reads saved results (`RequirementResult`, one per candidate and requirement).
+
+- Each result has a verdict (`met`, `partly_met`, `missing`), a short quote from the CV (up to
+  `evaluation.evidence_max_length`, default 200 characters) and a confidence (`high`, `medium`,
+  `low`). The database refuses a quote on a missing result and a met result without a quote.
+- One AI call per CV covers all requirements that need judging, using the project's pinned
+  scoring model and scoring prompt version. Tokens are counted for the CV's company.
+- The CV text is the guarded text (`scoring_text`, see Fairness guard), never the original.
+- A quote must really be in that text (ignoring case, spacing and line breaks). An invented,
+  altered or overlong quote is discarded and that requirement is asked again once
+  (`ai.invalid_answer_retries`); if it is still wrong the requirement is Missing with low
+  confidence. A met or partly met verdict with no quote is Missing, and a missing verdict keeps no
+  quote.
+- An answer that cannot be used at all is asked for once more, then the CV fails with a reason
+  (and can be retried). A project with no requirements, or a company over its token cap, fails the
+  CV with a clear reason too.
+- Results are reused: a retry or re-scoring judges only requirements with no result or whose text
+  was edited, so unchanged ones cost no tokens. Results are removed with their candidate,
+  requirement or project.
+- Scoring prompt version 1 (a stand-in until now) holds the instructions for this judging; a
+  migration updates it only if nobody changed it.
+- Platform settings: `ai.evaluation_max_output_tokens`, `evaluation.evidence_max_length`.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

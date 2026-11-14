@@ -47,13 +47,21 @@ from .models import CvFile, ProcessingTurn
 
 logger = logging.getLogger(__name__)
 
-SLOTS = ("text_reading", "ai_reading", "fairness_guard", "candidate_record", "scoring")
+SLOTS = (
+    "text_reading",
+    "ai_reading",
+    "fairness_guard",
+    "candidate_record",
+    "requirement_evaluation",
+    "scoring",
+)
 READING, SCORING = CvFile.Status.READING, CvFile.Status.SCORING
 SLOT_STATUS = {
     "text_reading": READING,
     "ai_reading": READING,
     "fairness_guard": READING,
     "candidate_record": READING,
+    "requirement_evaluation": SCORING,
     "scoring": SCORING,
 }
 STEPS = {}

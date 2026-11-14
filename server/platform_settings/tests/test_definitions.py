@@ -87,6 +87,8 @@ EXPECTED_DEFAULTS = {
     "ai.requirement_extraction_prompt": REQUIREMENT_EXTRACTION_PROMPT,
     "ai.cv_reading_max_output_tokens": 4000,
     "ai.invalid_answer_retries": 1,
+    "ai.evaluation_max_output_tokens": 6000,
+    "evaluation.evidence_max_length": 200,
     "fairness.labels": PERSONAL_DETAIL_LABELS,
     "fairness.born_words": ["born"],
     "fairness.min_name_part_length": 3,

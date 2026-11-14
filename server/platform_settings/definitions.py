@@ -253,6 +253,9 @@ SETTINGS = [
     # Reading a CV into a profile (see cvs/profile_reading.py); its prompt is a prompt version.
     SettingDefinition("ai.cv_reading_max_output_tokens", 4000, whole_number(100, 32000)),
     SettingDefinition("ai.invalid_answer_retries", 1, whole_number(0, 3)),
+    # Judging a CV against each requirement (see cvs/evaluation.py).
+    SettingDefinition("ai.evaluation_max_output_tokens", 6000, whole_number(100, 32000)),
+    SettingDefinition("evaluation.evidence_max_length", 200, whole_number(20, 1000)),
     SettingDefinition("profile.max_items", 50, whole_number(1, 500)),
     SettingDefinition("profile.item_max_length", 120, whole_number(20, 500)),
     SettingDefinition("profile.summary_max_length", 600, whole_number(50, 5000)),

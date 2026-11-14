@@ -120,3 +120,44 @@ class Candidate(CompanyOwnedModel):
     contact = models.OneToOneField(CvContact, on_delete=models.CASCADE, related_name="candidate")
     stage = models.CharField(max_length=20, choices=Stage.choices, default=Stage.NEW)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class RequirementResult(CompanyOwnedModel):
+    """How one candidate's CV meets one requirement: a verdict, a short quote that really is in
+    the CV, and a confidence. Score calculation works from these. `requirement_text` is what the
+    CV was judged against, so an edited requirement is judged again and an unchanged one never
+    is."""
+
+    class Verdict(models.TextChoices):
+        MET = "met"
+        PARTLY_MET = "partly_met"
+        MISSING = "missing"
+
+    class Confidence(models.TextChoices):
+        HIGH = "high"
+        MEDIUM = "medium"
+        LOW = "low"
+
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name="results")
+    requirement = models.ForeignKey(
+        "projects.Requirement", on_delete=models.CASCADE, related_name="results"
+    )
+    requirement_text = models.TextField()
+    verdict = models.CharField(max_length=20, choices=Verdict.choices)
+    evidence = models.TextField(blank=True)  # empty exactly when the verdict is missing
+    confidence = models.CharField(max_length=10, choices=Confidence.choices)
+    model = models.CharField(max_length=100)
+    prompt_version = models.PositiveIntegerField()  # the scoring prompt version used
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["candidate", "requirement"], name="one_result_per_candidate_requirement"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(verdict="missing", evidence="")
+                | (~models.Q(verdict="missing") & ~models.Q(evidence="")),
+                name="evidence_exactly_when_not_missing",
+            ),
+        ]

@@ -52,6 +52,7 @@ AREAS = {
         "cvs/tests/test_fairness_guard.py",
         "cvs/tests/test_candidate_record.py",
         "cvs/tests/test_candidate_data_protection.py",
+        "cvs/tests/test_requirement_evaluation.py",
         "ai/tests/test_model_settings.py",
         "ai/tests/test_prompt_versions.py",
         "cvs/tests/test_read_description.py",

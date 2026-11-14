@@ -79,6 +79,7 @@ def stub_ai(monkeypatch):
 def real_pipeline():
     real = dict(processing.STEPS)
     processing.STEPS["text_reading"] = lambda context: context.state.update(text=CV_TEXT)
+    processing.STEPS.pop("requirement_evaluation")  # judged in test_requirement_evaluation.py
     yield
     processing.STEPS.clear()
     processing.STEPS.update(real)

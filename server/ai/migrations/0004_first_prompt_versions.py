@@ -1,8 +1,8 @@
 from django.db import migrations
 
-from ai.default_prompts import CV_READING_PROMPT, SCORING_PROMPT
+from ai.default_prompts import CV_READING_PROMPT, STAND_IN_SCORING_PROMPT
 
-FIRST_VERSIONS = {"reading": CV_READING_PROMPT, "scoring": SCORING_PROMPT}
+FIRST_VERSIONS = {"reading": CV_READING_PROMPT, "scoring": STAND_IN_SCORING_PROMPT}
 
 
 def add_the_first_versions(apps, schema_editor):
