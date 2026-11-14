@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 
 from core.models import CompanyOwnedModel
+from core.protected_fields import EncryptedTextField
 
 
 class CvFile(CompanyOwnedModel):
@@ -90,13 +91,15 @@ class CvProfile(CompanyOwnedModel):
 
 class CvContact(CompanyOwnedModel):
     """The contact details found in a CV, kept apart from the profile used for scoring so that
-    they can never reach it. Encryption and masking come with Candidate data protection."""
+    they can never reach it. The four fields are encrypted in the database (see
+    `core/protected_fields.py`); show them masked (`core/personal_data.py`) unless the full
+    value is needed."""
 
     cv_file = models.OneToOneField(CvFile, on_delete=models.CASCADE, related_name="contact")
-    name = models.TextField(blank=True)
-    email = models.TextField(blank=True)
-    phone = models.TextField(blank=True)
-    address = models.TextField(blank=True)
+    name = EncryptedTextField(purpose="cv_contact.name", blank=True)
+    email = EncryptedTextField(purpose="cv_contact.email", blank=True)
+    phone = EncryptedTextField(purpose="cv_contact.phone", blank=True)
+    address = EncryptedTextField(purpose="cv_contact.address", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
 

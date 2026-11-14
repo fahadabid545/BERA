@@ -937,6 +937,35 @@ exists before scoring and stays visible if scoring fails.
   project removes all its candidates the same way (registered in `projects/deletion.py`).
 - The ranked list and the detail screen come with their own tickets.
 
+## Candidate data protection
+
+Everything about candidates is sensitive personal data. The rules are built into the shared layer
+(`core/personal_data.py`, `core/protected_fields.py`, `core/logging_setup.py`) so later tickets
+use them instead of writing their own.
+
+- **Encrypted at rest:** the four contact fields of `CvContact` (name, email, phone, address) are
+  `EncryptedTextField`s (AES-GCM, one purpose per column, key from `FIELD_ENCRYPTION_KEY`). The
+  migration `cvs/migrations/0008` encrypts existing rows. The profile stays in plain fields: it
+  holds no personal details after the fairness guard and is searched and ranked. Files stay in
+  private storage; connections use TLS.
+- **Masking:** `mask_email`, `mask_phone` (last four digits), `mask_name` (initials),
+  `mask_address` (never shown) and `mask_contact`. Show a detail in full only where a person
+  really needs it.
+- **Logs:** candidate data is never given to a logger (a test reads the logger calls of the CV
+  code and runs the pipeline with logging switched on). The log formatter scrubs emails, phone
+  numbers and keys such as `phone`, `address` and `contact` as a second layer.
+- **Emails and analytics:** no email template takes a candidate value, the email code never
+  imports candidate models, and the pipeline sends nothing.
+- **Admin and support:** `CandidateDataOnly` and the `CandidateDataView` base refuse every
+  non-company sign-in with `candidate_data_blocked`; the CV views use it. Support tools use
+  `cvs/support_figures.py`, which returns counts per status only. A test walks every admin route
+  and the audit log and activity list and finds no candidate content; `assert_clean` in
+  `cvs/tests/test_candidate_data_protection.py` is the check for later admin screens and exports.
+- **Exceptions:** none are built. The audit kind `admin.candidate_data_exception` (written reason
+  required) is reserved; an exception would be its own ticket and must be explicit, time limited,
+  justified in writing and audited.
+- Retention and deletion features are separate tickets.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

@@ -10,7 +10,7 @@ from core.errors import form_error
 from core.throttles import UploadThrottle, limited
 from platform_settings.service import get_setting
 from projects.models import Project
-from signin.company_views import CompanyObjectView
+from signin.company_views import CandidateDataView, CompanyObjectView
 
 from .file_checks import check_cv_file, check_name_and_size
 from .models import CvFile
@@ -28,7 +28,7 @@ def _batch_id(value):
         return None
 
 
-class ProjectCvUpload(CompanyObjectView):
+class ProjectCvUpload(CandidateDataView):
     """Uploads CVs to a project of the user's own company (another company's is "not found").
     The files arrive as one multipart request; every file gets its own result."""
 
@@ -95,7 +95,7 @@ class ReadDescriptionFile(CompanyObjectView):
         return Response({"text": read.text, "trimmed": read.trimmed, "notice": checked.notice})
 
 
-class ProjectProcessing(CompanyObjectView):
+class ProjectProcessing(CandidateDataView):
     """What the project page shows about its CVs: counts per status and each CV's status."""
 
     queryset = Project.objects.all()
@@ -107,7 +107,7 @@ class ProjectProcessing(CompanyObjectView):
         return Response(project_processing(self.get_object()))
 
 
-class CancelUnstarted(CompanyObjectView):
+class CancelUnstarted(CandidateDataView):
     """Skips the CVs that have not started, for the whole project or one upload (`batch`)."""
 
     queryset = Project.objects.all()
@@ -121,7 +121,7 @@ class CancelUnstarted(CompanyObjectView):
         return Response({"skipped": skipped})
 
 
-class RetryFailedCv(CompanyObjectView):
+class RetryFailedCv(CandidateDataView):
     """Puts one failed CV back in line. The CV must belong to this project and company."""
 
     queryset = CvFile.objects.all()

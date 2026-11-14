@@ -14,15 +14,20 @@ REDACTED = "[REDACTED]"
 NOT_KNOWN = "-"
 
 _SENSITIVE_NAME = (
-    r"[\w-]*(?:password|passwd|pwd|secret|token|api[_-]?key|authorization|cookie|cv_text|resume_text)"
+    r"[\w-]*(?:password|passwd|pwd|secret|token|api[_-]?key|authorization|cookie|cv_text|resume_text"
+    r"|phone|address|contact|full_name|date_of_birth|candidate_name)"
     r"[\w-]*"
 )
 _VALUE = r"\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'|[^\s,&}\]]+"
 _PATTERNS = [
+    # First, so a number written with spaces is taken whole before the rule below sees it.
+    # A phone number written with a plus or with a bracketed area code. Plain digit groups
+    # (dates, ids, versions) are left alone so log lines stay readable.
+    (re.compile(r"(?<![\w.])(?:\+\d[\d\s().-]{6,}\d|\(\d{2,5}\)[\d\s.-]{4,}\d)"), REDACTED),
     (re.compile(r"(?i)\b(bearer|basic)\s+[A-Za-z0-9._~+/=-]+"), rf"\1 {REDACTED}"),
     (re.compile(r"\beyJ[\w-]+\.[\w-]+\.[\w-]+"), REDACTED),
     (
-        re.compile(rf"(?i)([\"']?{_SENSITIVE_NAME}[\"']?\s*[:=]\s*)({_VALUE})"),
+        re.compile(rf"(?i)([\"']?{_SENSITIVE_NAME}[\"']?\s*[:=]\s*)(?!\[REDACTED\])({_VALUE})"),
         rf"\1{REDACTED}",
     ),
     (re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+"), "[EMAIL]"),

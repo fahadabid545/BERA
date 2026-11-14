@@ -9,6 +9,7 @@ from rest_framework.generics import GenericAPIView
 
 from companies.role_matrix import roles_allowed
 from core.permissions import IsSignedIn
+from core.personal_data import CandidateDataOnly
 from core.scoping import get_company_object, require_role, scope_to_company
 
 from .authentication import CompanyAuthentication
@@ -38,3 +39,10 @@ class CompanyObjectView(GenericAPIView):
             allowed_roles=self.permitted_roles(),
             **{self.lookup_field: lookup_value},
         )
+
+
+class CandidateDataView(CompanyObjectView):
+    """The base for every view that shows candidate content (files, contact details, profiles).
+    Company members only: admin and support staff are refused even if they reach the route."""
+
+    permission_classes = [IsSignedIn, CandidateDataOnly]
