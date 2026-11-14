@@ -200,6 +200,9 @@ class CandidateScore(CompanyOwnedModel):
     must_score = models.DecimalField(max_digits=4, decimal_places=1, null=True)
     nice_score = models.DecimalField(max_digits=4, decimal_places=1, null=True)
     capped = models.BooleanField(default=False)
+    # True from the moment the requirements change until the candidate is judged again (see
+    # `rescoring.py`); the score shown is then the old one.
+    outdated = models.BooleanField(default=False)
     # The recommendation and insights (see `recommendation.py`), worked out with the score.
     label = models.CharField(max_length=20, default="not_recommended")
     borderline = models.BooleanField(default=False)

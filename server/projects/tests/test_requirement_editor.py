@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -208,23 +210,27 @@ class TestNearDuplicates:
 class TestRescoringNotice:
     @pytest.fixture
     def scored(self, monkeypatch):
+        """Twelve scored CVs would run again for one changed requirement."""
         monkeypatch.setattr(
             editor,
             "rescoring_estimate",
-            lambda project: {"cvs": 12, "estimated_cost": __import__("decimal").Decimal("0.84")},
-        )
+            lambda project, items: {
+                "cvs": 12, "requirements": 1, "estimated_cost": Decimal("0.84"),
+                "blocked": False, "code": "", "message": "", "prompt": None,
+            },
+        )  # fmt: skip
 
     def test_no_notice_when_nothing_was_scored(self, client, project):
         assert save(client, project, item("A")).status_code == 200
 
-    def test_a_change_after_scoring_asks_first_with_the_count_and_cost(
+    def test_a_new_wording_after_scoring_asks_first_with_the_count_and_cost(
         self, client, project, scored
     ):
         response = save(client, project, item("A"))
         assert response.status_code == 409
         error = response.json()["error"]
         assert error["code"] == "rescoring_needed"
-        assert error["details"] == {"cvs": 12, "estimated_cost": "0.840000"}
+        assert error["details"] == {"cvs": 12, "requirements": 1, "estimated_cost": "0.840000"}
         assert not Requirement.objects.filter(project=project).exists()
 
     def test_confirming_saves_it(self, client, project, scored):
@@ -232,36 +238,28 @@ class TestRescoringNotice:
         assert response.status_code == 200
         assert Requirement.objects.filter(project=project).count() == 1
 
-    def test_saving_without_a_change_needs_no_notice(self, client, project):
-        rows = save(client, project, item("A", weight=4)).json()["requirements"]
-        from unittest.mock import patch
-
-        with patch.object(
-            editor, "rescoring_estimate", return_value={"cvs": 9, "estimated_cost": 0}
-        ):
-            again = save(client, project, item("A", weight=4, id=rows[0]["id"]))
+    def test_a_changed_weight_needs_no_notice_because_it_needs_no_ai(self, client, project, scored):
+        rows = save(client, project, item("A", weight=3), acknowledge_rescoring=True).json()
+        again = save(client, project, item("A", weight=4, id=rows["requirements"][0]["id"]))
         assert again.status_code == 200
 
-    def test_only_reordering_needs_no_notice(self, client, project):
-        rows = save(client, project, item("A"), item("B")).json()["requirements"]
-        from unittest.mock import patch
+    def test_only_reordering_needs_no_notice(self, client, project, scored):
+        rows = save(client, project, item("A"), item("B"), acknowledge_rescoring=True).json()
+        swapped = [
+            item(r["text"], weight=r["weight"], id=r["id"]) for r in reversed(rows["requirements"])
+        ]
+        assert save(client, project, *swapped).status_code == 200
 
-        swapped = [item(r["text"], weight=r["weight"], id=r["id"]) for r in reversed(rows)]
-        with patch.object(
-            editor, "rescoring_estimate", return_value={"cvs": 9, "estimated_cost": 0}
-        ):
-            assert save(client, project, *swapped).status_code == 200
+    def test_a_changed_kind_needs_no_notice(self, client, project, scored):
+        rows = save(client, project, item("A"), acknowledge_rescoring=True).json()
+        changed = item("A", id=rows["requirements"][0]["id"])
+        changed["kind"] = "nice"
+        assert save(client, project, changed).status_code == 200
 
-    def test_a_changed_weight_does_need_it(self, client, project):
-        rows = save(client, project, item("A", weight=3)).json()["requirements"]
-        from decimal import Decimal
-        from unittest.mock import patch
-
-        with patch.object(
-            editor, "rescoring_estimate", return_value={"cvs": 3, "estimated_cost": Decimal(1)}
-        ):
-            response = save(client, project, item("A", weight=4, id=rows[0]["id"]))
-        assert response.status_code == 409
+    def test_saving_without_a_change_needs_no_notice(self, client, project, scored):
+        rows = save(client, project, item("A", weight=4), acknowledge_rescoring=True).json()
+        same = item("A", weight=4, id=rows["requirements"][0]["id"])
+        assert save(client, project, same).status_code == 200
 
 
 class TestBeforeScoring:

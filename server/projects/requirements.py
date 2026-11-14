@@ -14,7 +14,12 @@ from platform_settings.service import get_setting
 from .deletion import register_project_data
 from .models import Project, Requirement
 from .recalculation import recalculate_scores
-from .rescoring import rescoring_estimate
+from .rescoring import (
+    changed_requirement_count,
+    rescoring_estimate,
+    start_rescoring,
+    wake_workers,
+)
 from .service import require_editable
 
 RESCORING_CODE = "rescoring_needed"
@@ -51,11 +56,6 @@ def near_duplicates(items):
     return pairs
 
 
-def _fingerprint(items):
-    """What scoring depends on. The order does not change a score, so it is left out."""
-    return sorted((item["kind"], _words(item["text"]), item["weight"]) for item in items)
-
-
 def _checked(items):
     limit = get_setting("requirements.max_total")
     if len(items) > limit:
@@ -75,16 +75,23 @@ def save_requirements(project_id, company_id, items, *, acknowledge_rescoring=Fa
         unknown = [item["id"] for item in items if item.get("id") and item["id"] not in stored]
         if unknown:
             raise form_error({"requirements": "One of these requirements no longer exists."})
-        if _fingerprint(items) != _fingerprint(list_requirements(project)):
-            estimate = rescoring_estimate(project)
-            if estimate["cvs"] > 0 and not acknowledge_rescoring:
+        rescoring = None
+        if changed_requirement_count(project, items):
+            rescoring = rescoring_estimate(project, items)
+            if rescoring["blocked"]:
+                raise AppError(
+                    rescoring["code"], rescoring["message"], status_code=409,
+                    details={"prompt": rescoring["prompt"]},
+                )  # fmt: skip
+            if rescoring["cvs"] > 0 and not acknowledge_rescoring:
                 raise AppError(
                     RESCORING_CODE,
                     "Re-scoring needed: changing the requirements means scoring the CVs again.",
                     status_code=409,
                     details={
-                        "cvs": estimate["cvs"],
-                        "estimated_cost": f"{estimate['estimated_cost']:.6f}",
+                        "cvs": rescoring["cvs"],
+                        "requirements": rescoring["requirements"],
+                        "estimated_cost": f"{rescoring['estimated_cost']:.6f}",
                     },
                 )
         kept = set()
@@ -106,6 +113,8 @@ def save_requirements(project_id, company_id, items, *, acknowledge_rescoring=Fa
         Requirement.objects.filter(project=project).exclude(pk__in=kept).delete()
         project.save(update_fields=["updated_at"])
         recalculate_scores(project)
+        queued = start_rescoring(project) if rescoring and rescoring["cvs"] > 0 else 0
+    wake_workers(queued)  # outside the transaction, so workers find the rows
     return list_requirements(project), near_duplicates(items)
 
 

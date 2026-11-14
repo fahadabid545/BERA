@@ -107,6 +107,11 @@ def mark_scored(company_id, cv_id):
         return True
 
 
+def is_counted(company_id, cv_id):
+    """Whether the CV was already counted as scored (re-scoring it is then free of the limit)."""
+    return CvUsage.objects.filter(company_id=company_id, cv_id=cv_id, status=Status.SCORED).exists()
+
+
 def mark_failed(company_id, cv_id):
     """Reading or scoring failed for good: the CV is never counted. A CV already counted stays
     counted (a later failed re-scoring does not take it back)."""

@@ -246,7 +246,8 @@ def retry_failed(cv_file):
         require_editable(item.project)
         if item.status != CvFile.Status.FAILED:
             raise AppError(NOT_FAILED_CODE, "Only a failed file can be retried.", status_code=409)
-        check_cvs_this_month(item.company_id).raise_if_blocked()
+        if not usage.is_counted(item.company_id, item.pk):  # a re-scored CV is already counted
+            check_cvs_this_month(item.company_id).raise_if_blocked()
         usage.reopen_cv(item.company_id, item.pk)
         item.status, item.attempts, item.failure_reason = CvFile.Status.WAITING, 0, ""
         item.next_attempt_at, item.finished_at = _now(), None

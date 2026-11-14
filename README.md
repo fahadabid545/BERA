@@ -1164,6 +1164,27 @@ confirmation", `cvs/estimate.py`) until the person has seen the estimate and con
 - The project page opens the estimate in a popup after an upload ("Process CVs" or "Discard CVs")
   and keeps a "Review cost estimate" button while CVs are held.
 
+## Re-scoring
+
+How scored candidates are brought up to date when a project changes (`cvs/rescoring.py`).
+
+- **No AI:** changing a requirement's weight, kind or order, the must-have/nice-to-have split, the
+  threshold or the cap switch recombines the stored results at once. Removing a requirement does
+  too. No confirmation is needed.
+- **A new or reworded requirement** needs judging, and only that one. The scored CVs are put back
+  through the pipeline: the stored file is read again (no AI) and guarded, and only requirements
+  without a current result go to the AI. The profile and every other result are kept. A CV
+  already counted is never counted again, and the re-scoring does not use the plan's CV limits.
+- **Before saving**, the requirement editor shows how many CVs will run, how many requirements,
+  and the approximate cost (`409 rescoring_needed`); the person confirms. A change that would pass
+  the monthly AI token cap is refused with a message and an Upgrade or Renewal prompt
+  (`rescoring_over_token_cap`) and nothing is saved.
+- **Outdated:** from the moment of the change until the candidate is judged again its score is
+  marked Outdated (`outdated` in the candidate's recommendation). If the AI fails for a CV, that CV
+  fails with a reason and a Retry button, its old score stays and stays Outdated, and the other CVs
+  carry on.
+- The estimate uses the `estimate.*` platform settings.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

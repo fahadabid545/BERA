@@ -5,7 +5,6 @@ import pytest
 from ai import client
 from cvs import candidates, processing, scoring
 from cvs.models import CandidateScore, RequirementResult
-from cvs.processing import PermanentFailure
 from cvs.tests.test_ai_reading import set_setting
 from cvs.tests.test_candidate_record import add_profile, make_cv
 from projects import scoring_settings
@@ -293,7 +292,7 @@ class TestTheStep:
         scoring.calculate_the_score(Context)
         assert CandidateScore.objects.get(candidate=candidate).grade == "C"
 
-    def test_an_unjudged_candidate_fails_with_a_plain_reason(self):
+    def test_an_unjudged_candidate_is_tried_again_so_the_new_requirement_gets_judged(self):
         cv = add_profile(make_cv())
         candidate = candidates.create_candidate(cv)
 
@@ -301,6 +300,5 @@ class TestTheStep:
             cv_file = candidate.cv_file
             state = {}
 
-        with pytest.raises(PermanentFailure) as failure:
+        with pytest.raises(scoring.ResultsOutOfDate):
             scoring.calculate_the_score(Context)
-        assert "retry" in str(failure.value)

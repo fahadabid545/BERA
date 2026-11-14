@@ -26,7 +26,7 @@ from projects.models import Requirement
 from projects.scoring_settings import effective_settings
 
 from .models import Candidate, CandidateScore, RequirementResult
-from .processing import PermanentFailure, StepContext, register_step
+from .processing import StepContext, register_step
 from .recommendation import recommend
 
 MUST, NICE = Requirement.Kind.MUST, Requirement.Kind.NICE
@@ -44,7 +44,11 @@ GRADE_LIMITS = (
     ("D", "scoring.grade_d_min"),
 )
 LOWEST_GRADE = "E"
-NOT_JUDGED_REASON = "We could not score this CV. You can retry it."
+
+
+class ResultsOutOfDate(Exception):
+    """A requirement has no current result (it changed while this CV was being processed), so
+    the CV is tried again and the evaluation step judges what is new."""
 
 
 @dataclass(frozen=True)
@@ -152,6 +156,7 @@ def score_candidate(candidate, requirements=None, settings=None):
             "must_score": outcome.must_score,
             "nice_score": outcome.nice_score,
             "capped": outcome.capped,
+            "outdated": False,
             **recommend(outcome.score, settings["recommendation_threshold"], judged),
         },
     )
@@ -176,7 +181,7 @@ def recalculate_project(project):
 def calculate_the_score(context: StepContext):
     """Slot `scoring`: the final score from the results the evaluation step saved."""
     if score_candidate(context.cv_file.candidate) is None:
-        raise PermanentFailure(NOT_JUDGED_REASON)
+        raise ResultsOutOfDate
 
 
 register_step("scoring", calculate_the_score)

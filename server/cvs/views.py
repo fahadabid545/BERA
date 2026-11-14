@@ -178,6 +178,7 @@ class CandidateRecommendation(CandidateDataView):
                 "score": f"{score.score:.1f}",
                 "grade": score.grade,
                 "capped": score.capped,
+                "outdated": score.outdated,
                 "label": score.label,
                 "borderline": score.borderline,
                 "strengths": score.strengths,
