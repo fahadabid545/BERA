@@ -97,6 +97,20 @@ EXPECTED_DEFAULTS = {
     "scoring.points_missing": 0,
     "scoring.cap_on_missing_must_have": False,
     "scoring.missing_must_have_cap": 60,
+    "recommendation.borderline_points": 3,
+    "recommendation.max_strengths": 3,
+    "recommendation.max_risks": 3,
+    "recommendation.max_questions": 5,
+    "recommendation.guide_note": "This is a guide. The recruiter decides.",
+    "recommendation.question_missing": (
+        "The CV does not show: {requirement}. What is your experience with this?"
+    ),
+    "recommendation.question_partly_met": (
+        "The CV shows part of this: {requirement}. Can you walk us through it in more detail?"
+    ),
+    "recommendation.question_met": (
+        "Can you give an example from your recent work of: {requirement}?"
+    ),
     "ai.request_timeout_seconds": 60,
     "ai.requirement_extraction_prompt": REQUIREMENT_EXTRACTION_PROMPT,
     "ai.cv_reading_max_output_tokens": 4000,

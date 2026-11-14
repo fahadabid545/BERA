@@ -197,11 +197,22 @@ class CandidateScore(CompanyOwnedModel):
     must_score = models.DecimalField(max_digits=4, decimal_places=1, null=True)
     nice_score = models.DecimalField(max_digits=4, decimal_places=1, null=True)
     capped = models.BooleanField(default=False)
+    # The recommendation and insights (see `recommendation.py`), worked out with the score.
+    label = models.CharField(max_length=20, default="not_recommended")
+    borderline = models.BooleanField(default=False)
+    strengths = models.JSONField(default=list)
+    risks = models.JSONField(default=list)
+    interview_questions = models.JSONField(default=list)
+    guide_note = models.CharField(max_length=200, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         constraints = [
+            models.CheckConstraint(
+                condition=models.Q(label__in=["strong_match", "possible", "not_recommended"]),
+                name="score_label_is_known",
+            ),
             models.CheckConstraint(
                 condition=models.Q(score__gte=0, score__lte=100), name="score_is_0_to_100"
             ),

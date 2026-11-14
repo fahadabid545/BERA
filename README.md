@@ -1109,6 +1109,25 @@ The final score is worked out by the system's own rules (`cvs/scoring.py`), neve
 - The pipeline now loads every step at start-up (the ATS, extra-factor and scoring steps had been
   loaded only by tests).
 
+## Recommendation and insights
+
+A plain label and a few things to look at for each scored candidate (`cvs/recommendation.py`),
+stored with the score and recalculated with it (no AI).
+
+- Label: Strong match at or above the project's recommendation threshold (it starts at
+  `scoring.strong_match_min`), Possible at or above `scoring.possible_match_min`, otherwise Not
+  recommended.
+- A score within `recommendation.borderline_points` (3) of either limit is also marked Borderline.
+- Up to 3 strengths (met requirements), 3 risks (missing or partly met) and 5 interview questions,
+  made by fixed rules from the requirement results: must-haves first, then the heavier ones. The
+  questions probe the gaps first, then check what is met. The templates and the limits are platform
+  settings (`recommendation.*`). Only the requirement wording is used, never CV text.
+- The note "This is a guide. The recruiter decides." is stored with each recommendation
+  (`recommendation.guide_note`).
+- `GET /api/company/projects/<project>/candidates/<candidate>/recommendation/` returns score, grade,
+  label, borderline, strengths, risks, questions and the note (404 until the candidate is scored).
+  The candidate pages come in their own tickets.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

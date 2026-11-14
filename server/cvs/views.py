@@ -13,7 +13,7 @@ from projects.models import Project
 from signin.company_views import CandidateDataView, CompanyObjectView
 
 from .file_checks import check_cv_file, check_name_and_size
-from .models import CvFile
+from .models import Candidate, CandidateScore, CvFile
 from .processing import cancel_unstarted, project_processing, retry_failed
 from .service import upload_cvs, upload_rules
 from .text_reading import CvTextUnreadable, read_text
@@ -136,3 +136,35 @@ class RetryFailedCv(CandidateDataView):
             raise Http404
         retry_failed(cv_file)
         return Response({"status": CvFile.Status.WAITING})
+
+
+class CandidateRecommendation(CandidateDataView):
+    """The score, grade, label and insights of one candidate. The candidate must belong to this
+    project and company, and must have been scored."""
+
+    queryset = Candidate.objects.all()
+    lookup_url_kwarg = "candidate_id"
+
+    def permitted_roles(self):
+        return roles_allowed("project.view")
+
+    def get(self, request, id, candidate_id):
+        candidate = self.get_object()
+        if str(candidate.project_id) != str(id):
+            raise Http404
+        score = CandidateScore.objects.filter(candidate=candidate).first()
+        if score is None:
+            raise Http404
+        return Response(
+            {
+                "score": f"{score.score:.1f}",
+                "grade": score.grade,
+                "capped": score.capped,
+                "label": score.label,
+                "borderline": score.borderline,
+                "strengths": score.strengths,
+                "risks": score.risks,
+                "interview_questions": score.interview_questions,
+                "guide_note": score.guide_note,
+            }
+        )

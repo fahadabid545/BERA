@@ -288,6 +288,30 @@ SETTINGS = [
     SettingDefinition("scoring.points_missing", 0, percent),
     SettingDefinition("scoring.cap_on_missing_must_have", False, yes_or_no),
     SettingDefinition("scoring.missing_must_have_cap", 60, percent),
+    # Recommendation and insights (see cvs/recommendation.py). `{requirement}` in a question
+    # template is replaced by the requirement's text.
+    SettingDefinition("recommendation.borderline_points", 3, whole_number(0, 100)),
+    SettingDefinition("recommendation.max_strengths", 3, whole_number(1, 20)),
+    SettingDefinition("recommendation.max_risks", 3, whole_number(1, 20)),
+    SettingDefinition("recommendation.max_questions", 5, whole_number(1, 20)),
+    SettingDefinition(
+        "recommendation.guide_note", "This is a guide. The recruiter decides.", short_text(200)
+    ),
+    SettingDefinition(
+        "recommendation.question_missing",
+        "The CV does not show: {requirement}. What is your experience with this?",
+        short_text(300),
+    ),
+    SettingDefinition(
+        "recommendation.question_partly_met",
+        "The CV shows part of this: {requirement}. Can you walk us through it in more detail?",
+        short_text(300),
+    ),
+    SettingDefinition(
+        "recommendation.question_met",
+        "Can you give an example from your recent work of: {requirement}?",
+        short_text(300),
+    ),
     # Projects. The reading model and prompt version are pinned to each new project; the
     # stand-in values are replaced from the admin panel once Model settings and Prompt
     # versions exist.

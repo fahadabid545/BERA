@@ -12,6 +12,8 @@ Optionally (per project) a missing must-have caps the score (60 by default).
 The same results and settings always give the same score. Changing weights, the split or the cap
 only recombines the stored results, so it never calls the AI (`recalculate_project`). Only the
 requirements count: the ATS score and the extra factors are shown beside the score, not in it.
+The recommendation (label, strengths, risks, questions) is made with the score; see
+`recommendation.py`.
 A candidate whose requirements have not all been judged (a requirement was added or edited) keeps
 the score it has until the CV is judged again.
 """
@@ -25,6 +27,7 @@ from projects.scoring_settings import effective_settings
 
 from .models import Candidate, CandidateScore, RequirementResult
 from .processing import PermanentFailure, StepContext, register_step
+from .recommendation import recommend
 
 MUST, NICE = Requirement.Kind.MUST, Requirement.Kind.NICE
 MET, PARTLY_MET, MISSING = (
@@ -110,17 +113,17 @@ def combine(entries, must_percent, nice_percent, cap_missing_must_have):
     )
 
 
-def _entries(candidate, requirements):
-    """(kind, weight, verdict) for every requirement, or None when one has no current result
+def _judged(candidate, requirements):
+    """(requirement, verdict) for every requirement, or None when one has no current result
     (never judged, or judged against an older wording)."""
     results = {r.requirement_id: r for r in RequirementResult.objects.filter(candidate=candidate)}
-    entries = []
+    judged = []
     for requirement in requirements:
         result = results.get(requirement.pk)
         if result is None or result.requirement_text != requirement.text:
             return None
-        entries.append((requirement.kind, requirement.weight, result.verdict))
-    return entries
+        judged.append((requirement, result.verdict))
+    return judged
 
 
 def score_candidate(candidate, requirements=None, settings=None):
@@ -129,9 +132,10 @@ def score_candidate(candidate, requirements=None, settings=None):
     or a requirement not yet judged); an existing score is then left as it is."""
     if requirements is None:
         requirements = list(Requirement.objects.filter(project=candidate.project))
-    entries = _entries(candidate, requirements)
-    if not entries:
+    judged = _judged(candidate, requirements)
+    if not judged:
         return None
+    entries = [(requirement.kind, requirement.weight, verdict) for requirement, verdict in judged]
     settings = settings or effective_settings(candidate.project)
     outcome = combine(
         entries,
@@ -148,6 +152,7 @@ def score_candidate(candidate, requirements=None, settings=None):
             "must_score": outcome.must_score,
             "nice_score": outcome.nice_score,
             "capped": outcome.capped,
+            **recommend(outcome.score, settings["recommendation_threshold"], judged),
         },
     )
     return saved
@@ -161,9 +166,9 @@ def recalculate_project(project):
     changed = 0
     for candidate in Candidate.objects.filter(project=project):
         before = CandidateScore.objects.filter(candidate=candidate).first()
-        before_values = before and (before.score, before.grade, before.capped)
+        before_values = before and (before.score, before.grade, before.capped, before.label)
         after = score_candidate(candidate, requirements, settings)
-        if after and (after.score, after.grade, after.capped) != before_values:
+        if after and (after.score, after.grade, after.capped, after.label) != before_values:
             changed += 1
     return changed
 
