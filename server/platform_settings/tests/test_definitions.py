@@ -2,6 +2,7 @@ import pytest
 
 from platform_settings.definitions import (
     CV_READING_PROMPT,
+    PERSONAL_DETAIL_LABELS,
     REQUIREMENT_EXTRACTION_PROMPT,
     SETTINGS,
     list_of_file_types,
@@ -88,6 +89,10 @@ EXPECTED_DEFAULTS = {
     "ai.cv_reading_prompt": CV_READING_PROMPT,
     "ai.cv_reading_max_output_tokens": 4000,
     "ai.invalid_answer_retries": 1,
+    "fairness.labels": PERSONAL_DETAIL_LABELS,
+    "fairness.born_words": ["born"],
+    "fairness.min_name_part_length": 3,
+    "fairness.phone_min_digits": 7,
     "profile.max_items": 50,
     "profile.item_max_length": 120,
     "profile.summary_max_length": 600,

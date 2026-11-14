@@ -46,6 +46,21 @@ def list_of_file_types(value):
     )
 
 
+def list_of_words(maximum_items):
+    """A list of distinct, non-empty, lower-case texts (labels and key words)."""
+
+    def is_valid(value):
+        return (
+            isinstance(value, list)
+            and 0 < len(value) <= maximum_items
+            and len({item.strip().lower() for item in value if isinstance(item, str)}) == len(value)
+            and all(isinstance(item, str) and item.strip() == item and item for item in value)
+            and all(item == item.lower() and len(item) <= 40 for item in value)
+        )
+
+    return is_valid
+
+
 def short_text(maximum):
     def is_valid(value):
         return isinstance(value, str) and 0 < len(value.strip()) <= maximum
@@ -81,6 +96,34 @@ CV_READING_PROMPT = (
     "writes them. Use an empty list or an empty text when the CV does not say. The summary must "
     "not contain the name, email, phone or address, nor age, gender, nationality or photo."
 )
+
+PERSONAL_DETAIL_LABELS = [
+    "name",
+    "full name",
+    "first name",
+    "last name",
+    "surname",
+    "photo",
+    "picture",
+    "age",
+    "date of birth",
+    "birth date",
+    "birthdate",
+    "dob",
+    "d.o.b.",
+    "place of birth",
+    "gender",
+    "sex",
+    "marital status",
+    "civil status",
+    "nationality",
+    "citizenship",
+    "religion",
+    "address",
+    "home address",
+    "current address",
+    "permanent address",
+]
 
 
 @dataclass(frozen=True)
@@ -228,6 +271,11 @@ SETTINGS = [
     SettingDefinition("profile.max_items", 50, whole_number(1, 500)),
     SettingDefinition("profile.item_max_length", 120, whole_number(20, 500)),
     SettingDefinition("profile.summary_max_length", 600, whole_number(50, 5000)),
+    # The fairness guard (see cvs/fairness.py): labels whose value is removed before scoring.
+    SettingDefinition("fairness.labels", PERSONAL_DETAIL_LABELS, list_of_words(200)),
+    SettingDefinition("fairness.born_words", ["born"], list_of_words(20)),
+    SettingDefinition("fairness.min_name_part_length", 3, whole_number(1, 20)),
+    SettingDefinition("fairness.phone_min_digits", 7, whole_number(5, 15)),
     SettingDefinition("requirements.max_total", 30, whole_number(1, 200)),
     SettingDefinition("requirements.max_length", 120, whole_number(20, 500)),
     SettingDefinition("requirements.weight_default", 3, whole_number(1, 10)),

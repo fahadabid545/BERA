@@ -899,6 +899,26 @@ period by the Usage counting functions.
   `profile.item_max_length`, `profile.summary_max_length`.
 - Tests use a stubbed AI (`cvs/tests/test_ai_reading.py`).
 
+## Fairness guard
+
+`cvs/fairness.py::remove_personal_details(text, contact)` is the one function applied to CV text
+before scoring (Requirement evaluation must call it). There is no route and no page. The
+`fairness_guard` step runs it in the pipeline and keeps the result in `scoring_text`; scoring
+never reads the original `text`. It makes no AI call.
+
+- Removed wherever they sit (header, footer, table, middle of a sentence): the CV's own saved
+  name, address, email and phone (`CvContact`); the value after a label such as Name, Photo,
+  Age, Date of birth, Gender, Marital status, Nationality, Religion or Address (also a value on
+  the next line, and "Age 34" or "DOB 12.05.1990" without a colon); a date after "born"; any
+  email address or phone number. Ranges of years such as "2014 - 2017" are kept.
+- Email and phone are kept only for the recruiter's view (in `CvContact`).
+- Unlabelled words (a nationality, a religion, "married") are left alone on purpose, so real text
+  such as "Indian cuisine" is not cut. Photos are images, not part of the text.
+- Platform settings: `fairness.labels`, `fairness.born_words`, `fairness.min_name_part_length`,
+  `fairness.phone_min_digits`.
+- Tests: `cvs/tests/test_fairness_guard.py` runs a set of sample CVs and checks that none of
+  their personal details remain while the work history does.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

@@ -24,7 +24,11 @@ from usage import service as usage
 
 pytestmark = pytest.mark.django_db
 
-EXPECTED_STEPS = {"text_reading", "ai_reading"}  # a ticket that plugs in a step adds its slot here
+EXPECTED_STEPS = {
+    "text_reading",
+    "ai_reading",
+    "fairness_guard",
+}  # a ticket that plugs in a step adds its slot here
 
 
 def set_setting(key, value):
@@ -150,10 +154,11 @@ class TestSlots:
     def test_the_steps_plugged_in_so_far_are_exactly_the_expected_ones(self):
         import importlib
 
-        from cvs import profile_reading, steps
+        from cvs import fairness, profile_reading, steps
 
         importlib.reload(steps)
         importlib.reload(profile_reading)
+        importlib.reload(fairness)
         assert set(processing.STEPS) == EXPECTED_STEPS
 
     def test_an_unknown_slot_fails_loudly(self):
