@@ -1,36 +1,27 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import CandidatePage from "./page";
 
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: { code: "not_found", message: "Not found." } }),
+    }),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
 describe("candidate page", () => {
-  it("shows the Download CV button, the Stage selector and the Notes box", () => {
-    render(<CandidatePage />);
-    expect(screen.getByRole("button", { name: "Download CV" })).toBeTruthy();
-    expect(screen.getByLabelText("Notes").tagName).toBe("TEXTAREA");
-    const stage = screen.getByLabelText("Stage") as HTMLSelectElement;
-    expect(Array.from(stage.options).map((option) => option.text)).toEqual([
-      "New",
-      "Shortlisted",
-      "Interview",
-      "Approved",
-      "Rejected",
-    ]);
-  });
-
-  it("starts at New, lets the stage change, and Download CV does nothing", async () => {
-    render(<CandidatePage />);
-    const stage = screen.getByLabelText("Stage") as HTMLSelectElement;
-    expect(stage.value).toBe("New");
-    await userEvent.selectOptions(stage, "Interview");
-    expect(stage.value).toBe("Interview");
-    await userEvent.click(screen.getByRole("button", { name: "Download CV" }));
-  });
-
-  it("shows nothing else", () => {
-    const { container } = render(<CandidatePage />);
-    expect(container.querySelectorAll("button, select, textarea")).toHaveLength(3);
-    expect(screen.queryByRole("heading")).toBeNull();
+  it("asks for the candidate named in the address", async () => {
+    render(await CandidatePage({ params: Promise.resolve({ project: "p1", candidate: "k1" }) }));
+    await screen.findByRole("alert");
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/company/projects/p1/candidates/k1/");
   });
 });

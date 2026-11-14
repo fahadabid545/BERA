@@ -1,15 +1,10 @@
-import { Button, Select, Textarea } from "@/components/ui";
+import { CandidateDetail } from "@/components/company/CandidateDetail";
 
-const STAGES = ["New", "Shortlisted", "Interview", "Approved", "Rejected"];
-
-export default function CandidatePage() {
-  return (
-    <div className="page-form">
-      <div className="page-actions">
-        <Button>Download CV</Button>
-      </div>
-      <Select label="Stage" options={STAGES.map((stage) => ({ value: stage, label: stage }))} />
-      <Textarea label="Notes" />
-    </div>
-  );
+export default async function CandidatePage({
+  params,
+}: {
+  params: Promise<{ project: string; candidate: string }>;
+}) {
+  const { project, candidate } = await params;
+  return <CandidateDetail projectId={project} candidateId={candidate} />;
 }

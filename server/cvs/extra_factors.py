@@ -276,3 +276,14 @@ def make_the_factors(context: StepContext):
 
 
 register_step("extra_factors", make_the_factors)
+
+
+def stored_factors(candidate):
+    """(values, outdated) as last stored for a candidate, or None when nothing is stored. The
+    values are outdated when the job's expectations or description changed since."""
+    saved = ExtraFactorValues.objects.filter(candidate=candidate).first()
+    if saved is None:
+        return None
+    project = candidate.project
+    current = _basis(project, effective_factors(project))
+    return saved.values, saved.basis_hash != current

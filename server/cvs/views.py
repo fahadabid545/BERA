@@ -7,11 +7,13 @@ from rest_framework.response import Response
 from companies.models import CompanyUser
 from companies.role_matrix import roles_allowed
 from core.errors import form_error
-from core.throttles import UploadThrottle, limited
+from core.throttles import DownloadThrottle, UploadThrottle, limited
 from platform_settings.service import get_setting
 from projects.models import Project
 from signin.company_views import CandidateDataView, CompanyObjectView
 
+from .detail import candidate_detail
+from .downloads import cv_file_response
 from .estimate import confirm, estimate
 from .file_checks import check_cv_file, check_name_and_size
 from .models import Candidate, CandidateScore, CvFile
@@ -155,6 +157,44 @@ class RetryFailedCv(CandidateDataView):
             raise Http404
         retry_failed(cv_file)
         return Response({"status": CvFile.Status.WAITING})
+
+
+class CandidateDetail(CandidateDataView):
+    """Everything about one candidate, including the contact details. The candidate must belong
+    to this project and company; a deleted one is "not found"."""
+
+    queryset = Candidate.objects.select_related("cv_file", "profile", "contact", "project")
+    lookup_url_kwarg = "candidate_id"
+
+    def permitted_roles(self):
+        return roles_allowed("candidate.view")
+
+    def get(self, request, id, candidate_id):
+        candidate = self.get_object()
+        if str(candidate.project_id) != str(id):
+            raise Http404
+        return Response(candidate_detail(candidate))
+
+
+class CandidateCvFile(CandidateDataView):
+    """The candidate's original CV: shown in the page (PDF only) or, with `?download=1`, saved."""
+
+    queryset = Candidate.objects.select_related("cv_file")
+    lookup_url_kwarg = "candidate_id"
+
+    def permitted_roles(self):
+        return roles_allowed("cv.download")
+
+    def get_throttles(self):
+        return [throttle() for throttle in limited(DownloadThrottle)]
+
+    def get(self, request, id, candidate_id):
+        candidate = self.get_object()
+        if str(candidate.project_id) != str(id):
+            raise Http404
+        return cv_file_response(
+            candidate.cv_file, download=request.query_params.get("download") == "1"
+        )
 
 
 class CandidateRecommendation(CandidateDataView):

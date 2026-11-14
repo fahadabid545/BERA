@@ -1249,6 +1249,27 @@ Narrows the ranked candidate list (`cvs/filters.py`, query values of
   a link or a return visit shows the same result. Clear all (popup or empty result) removes them. An
   empty result says "No candidates match these filters."
 
+## Candidate detail
+
+Everything about one candidate (`cvs/detail.py`, `GET /api/company/projects/<project>/candidates/<candidate>/`;
+page `/company/projects/<project>/candidates/<candidate>`).
+
+- Shows: score, grade and label (with Borderline and Capped), the must-have and nice-to-have
+  scores, the ATS score and its reasons, each requirement's result with the evidence quote and
+  confidence, strengths, risks, interview questions and guide note, the extra factors, notes (an
+  empty list until the notes ticket), stage, date added, and the model and prompt version used for
+  reading and for the latest judgements.
+- After a change the page shows the latest stored results and marks what is out of date: the score
+  while re-scoring is due, a requirement judged against older wording (or not judged yet), and
+  extra factors worked out for an earlier job description. Nothing here calls the AI.
+- A failed CV shows its status and reason (and any old score); a deleted candidate is "Not found"
+  and the page says "This candidate no longer exists."
+- The original CV: `GET .../candidates/<candidate>/cv/` shows a PDF inline in the page, and
+  `?download=1` saves it. A DOCX is only downloaded. The type comes from the stored file type, with
+  `nosniff` and no caching; the route has the downloads rate limit and needs the `cv.download` role.
+- Contact details (name, email, phone, address) are shown here only. Company members only; another
+  company's or project's candidate is "Not found"; staff accounts are refused.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)
