@@ -1,22 +1,37 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ProjectCandidatesPage from "./page";
 
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ page: 1, pages: 1, count: 0, refresh_seconds: 3, rows: [] }),
+    }),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
 describe("ProjectCandidatesPage", () => {
-  it("shows its buttons and nothing else", () => {
-    const { container } = render(<ProjectCandidatesPage />);
+  it("keeps its Filters, Upload CVs and Download all buttons", async () => {
+    render(await ProjectCandidatesPage({ params: Promise.resolve({ project: "p1" }) }));
     expect(screen.getByRole("button", { name: "Filters" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Upload CVs" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Download all" })).toBeTruthy();
-    expect(container.querySelectorAll("button, a, input, select, textarea")).toHaveLength(3);
   });
 
-  it("does nothing when a button is pressed", async () => {
-    const { container } = render(<ProjectCandidatesPage />);
-    const before = container.innerHTML;
-    for (const button of screen.getAllByRole("button")) await userEvent.click(button);
-    expect(container.innerHTML).toBe(before);
+  it("asks for the candidates of the project it was opened for", async () => {
+    render(await ProjectCandidatesPage({ params: Promise.resolve({ project: "p1" }) }));
+    await vi.waitFor(() =>
+      expect(vi.mocked(fetch).mock.calls[0][0]).toBe(
+        "/api/company/projects/p1/candidates/?sort=score&direction=desc&page=1",
+      ),
+    );
   });
 });

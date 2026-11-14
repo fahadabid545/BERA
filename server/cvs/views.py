@@ -16,6 +16,7 @@ from .estimate import confirm, estimate
 from .file_checks import check_cv_file, check_name_and_size
 from .models import Candidate, CandidateScore, CvFile
 from .processing import cancel_unstarted, project_processing, retry_failed
+from .ranking import ranked_list
 from .service import upload_cvs, upload_rules
 from .text_reading import CvTextUnreadable, read_text
 
@@ -187,3 +188,15 @@ class CandidateRecommendation(CandidateDataView):
                 "guide_note": score.guide_note,
             }
         )
+
+
+class ProjectCandidates(CandidateDataView):
+    """The project's candidates, ranked: one sorted page at a time, only this company's."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("project.view")
+
+    def get(self, request, id):
+        return Response(ranked_list(self.get_object(), request.query_params))

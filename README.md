@@ -1207,6 +1207,27 @@ Keeps the system calm when the AI provider fails (`ai/control.py`).
   pauses or resumes all AI work at once. It is super admin only, needs a written reason, and is
   audited (`admin.ai_paused`, `admin.ai_resumed`). Resuming also ends an automatic pause.
 
+## Ranked candidate list
+
+The project's Candidates tab shows its candidates from best to worst (`cvs/ranking.py`,
+`GET /api/company/projects/<project>/candidates/`).
+
+- Columns: rank, candidate (file name, and the CV's name as initials once it has been read), AI score
+  with grade (marked Outdated while re-scoring is due), ATS score, recommendation label (and
+  Borderline), stage, date added.
+- Sorted by any column; the default is AI score high to low. 25 to a page (`candidates.page_size`).
+  The server sorts and pages in the database, reads only the page's rows, and decrypts only their
+  names, so it stays fast with thousands of CVs.
+- The rank is the place in the AI-score order and does not change when the list is sorted another
+  way. Ties are ordered by date added, then file name, then id, so the order never flickers.
+- The candidate column sorts by file name (the name itself is encrypted).
+- CVs still on their way (waiting, reading, scoring) or failed show their status (and a failed CV's
+  reason) instead of a score, and sit at the bottom whatever the sort. Cancelled CVs are not listed.
+- The page looks again every `live_updates.max_delay_seconds`, keeping its sort and page, so a CV
+  that finishes appears and takes its rank by itself.
+- Only the signed-in company's own projects and candidates; staff accounts are refused.
+- Filters and Live updates build on this list in their own tickets.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)
