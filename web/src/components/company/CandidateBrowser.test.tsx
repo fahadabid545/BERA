@@ -1,0 +1,167 @@
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { CandidateBrowser } from "./CandidateBrowser";
+
+const fetchMock = vi.fn();
+const replace = vi.fn();
+let search = "";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace }),
+  usePathname: () => "/company/projects/p1/candidates",
+  useSearchParams: () => new URLSearchParams(search),
+}));
+
+const REQUIREMENTS = [
+  { id: "r1", text: "Python", kind: "must" },
+  { id: "r2", text: "Docker", kind: "nice" },
+];
+const body = (over: object = {}) => ({
+  page: 1,
+  pages: 1,
+  count: 0,
+  filtered: false,
+  requirements: REQUIREMENTS,
+  refresh_seconds: 3,
+  rows: [],
+  ...over,
+});
+const paths = () => fetchMock.mock.calls.map((call) => call[0] as string);
+
+beforeEach(() => {
+  search = "";
+  replace.mockReset();
+  fetchMock.mockReset();
+  fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => body() });
+  vi.stubGlobal("fetch", fetchMock);
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+async function openFilters() {
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: /^Filters/ }));
+  return { user, dialog: await screen.findByRole("dialog", { name: "Filters" }) };
+}
+
+describe("candidate filters", () => {
+  it("asks the server for the filters found in the address", async () => {
+    search = "score_min=60&grade=A,B&q=jane&unknown=1";
+    render(<CandidateBrowser projectId="p1" />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(paths()[0]).toBe(
+      "/api/company/projects/p1/candidates/?sort=score&direction=desc&page=1&score_min=60&grade=A%2CB&q=jane",
+    );
+  });
+
+  it("shows how many filters are on the button", async () => {
+    search = "score_min=60&q=jane";
+    render(<CandidateBrowser projectId="p1" />);
+    expect(screen.getByRole("button", { name: "Filters (2)" })).toBeTruthy();
+  });
+
+  it("applying puts the filters in the address and leaves empty ones out", async () => {
+    render(<CandidateBrowser projectId="p1" />);
+    const { user, dialog } = await openFilters();
+    await user.type(within(dialog).getByLabelText("Search file name and summary"), "jane");
+    await user.type(within(dialog).getByLabelText("AI score, from"), "60");
+    await user.click(within(dialog).getByRole("checkbox", { name: "A" }));
+    await user.click(within(dialog).getByRole("checkbox", { name: "B" }));
+    await user.click(within(dialog).getByRole("button", { name: "Apply filters" }));
+    expect(replace).toHaveBeenCalledWith(
+      "/company/projects/p1/candidates?q=jane&score_min=60&grade=A%2CB",
+      { scroll: false },
+    );
+  });
+
+  it("offers the project's requirements, must-haves only for missing", async () => {
+    render(<CandidateBrowser projectId="p1" />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const { user, dialog } = await openFilters();
+    const missing = within(dialog).getByRole("group", { name: "Missing the must-have" });
+    expect(within(missing).getAllByRole("checkbox")).toHaveLength(1);
+    const has = within(dialog).getByRole("group", { name: "Meets the requirement" });
+    await user.click(within(has).getByRole("checkbox", { name: "Docker" }));
+    await user.click(within(missing).getByRole("checkbox", { name: "Python" }));
+    await user.click(within(dialog).getByRole("checkbox", { name: "Likely duplicates only" }));
+    await user.click(within(dialog).getByRole("button", { name: "Apply filters" }));
+    expect(replace).toHaveBeenCalledWith(
+      "/company/projects/p1/candidates?has=r2&missing=r1&duplicate=true",
+      { scroll: false },
+    );
+  });
+
+  it("the popup starts from the filters in the address", async () => {
+    search = "score_min=60&grade=B&duplicate=true";
+    render(<CandidateBrowser projectId="p1" />);
+    const { dialog } = await openFilters();
+    expect((within(dialog).getByLabelText("AI score, from") as HTMLInputElement).value).toBe("60");
+    expect((within(dialog).getByRole("checkbox", { name: "B" }) as HTMLInputElement).checked).toBe(
+      true,
+    );
+    expect(
+      (within(dialog).getByRole("checkbox", { name: "Likely duplicates only" }) as HTMLInputElement)
+        .checked,
+    ).toBe(true);
+  });
+
+  it("cancelling changes nothing", async () => {
+    render(<CandidateBrowser projectId="p1" />);
+    const { user, dialog } = await openFilters();
+    await user.type(within(dialog).getByLabelText("AI score, from"), "60");
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("Clear all in the popup removes every filter", async () => {
+    search = "score_min=60&q=jane";
+    render(<CandidateBrowser projectId="p1" />);
+    const { user, dialog } = await openFilters();
+    await user.click(within(dialog).getByRole("button", { name: "Clear all" }));
+    expect(replace).toHaveBeenCalledWith("/company/projects/p1/candidates", { scroll: false });
+  });
+
+  it("an empty result says so and offers Clear all", async () => {
+    search = "score_min=99";
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => body({ filtered: true }),
+    });
+    render(<CandidateBrowser projectId="p1" />);
+    expect(await screen.findByText("No candidates match these filters.")).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Clear all" }));
+    expect(replace).toHaveBeenCalledWith("/company/projects/p1/candidates", { scroll: false });
+  });
+
+  it("a project with no CVs and no filters shows no message", async () => {
+    render(<CandidateBrowser projectId="p1" />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(screen.queryByText("No candidates match these filters.")).toBeNull();
+  });
+
+  it("changing the filters starts again at the first page", async () => {
+    const rows = [
+      {
+        id: "c1", candidate_id: "k1", file_name: "a.pdf", name: "", status: "done", reason: "",
+        rank: 1, score: "80.0", grade: "B", outdated: false, ats_score: 1, label: "possible",
+        borderline: false, stage: "new", added_at: "2026-11-14T10:00:00Z",
+      },
+    ]; // prettier-ignore
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => body({ count: 40, pages: 2, rows }),
+    });
+    const { rerender } = render(<CandidateBrowser projectId="p1" />);
+    await userEvent.setup().click(await screen.findByRole("button", { name: "Next page" }));
+    await waitFor(() => expect(paths().some((p) => p.includes("page=2"))).toBe(true));
+    search = "grade=A";
+    rerender(<CandidateBrowser projectId="p1" />);
+    await waitFor(() => expect(paths().at(-1)).toContain("page=1&grade=A"));
+  });
+});

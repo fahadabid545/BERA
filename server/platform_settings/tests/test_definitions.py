@@ -98,6 +98,7 @@ EXPECTED_DEFAULTS = {
     "scoring.cap_on_missing_must_have": False,
     "scoring.missing_must_have_cap": 60,
     "candidates.page_size": 25,
+    "candidates.search_max_length": 200,
     "ai.pause_after_failures": 5,
     "ai.auto_pause_minutes": 10,
     "estimate.cv_text_tokens": 2500,

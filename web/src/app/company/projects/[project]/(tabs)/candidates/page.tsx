@@ -1,5 +1,6 @@
-import { CandidateList } from "@/components/company/CandidateList";
-import { Button } from "@/components/ui";
+import { Suspense } from "react";
+
+import { CandidateBrowser } from "@/components/company/CandidateBrowser";
 
 export default async function ProjectCandidatesPage({
   params,
@@ -8,13 +9,9 @@ export default async function ProjectCandidatesPage({
 }) {
   const { project } = await params;
   return (
-    <div className="page-stack">
-      <div className="page-actions">
-        <Button variant="secondary">Filters</Button>
-        <Button>Upload CVs</Button>
-        <Button variant="secondary">Download all</Button>
-      </div>
-      <CandidateList projectId={project} />
-    </div>
+    // useSearchParams needs a boundary so the page can still be built ahead of time.
+    <Suspense>
+      <CandidateBrowser projectId={project} />
+    </Suspense>
   );
 }

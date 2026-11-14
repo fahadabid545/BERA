@@ -10,6 +10,7 @@ the page's rows are read (and their names decrypted).
 - Whatever the sort, items without a score sit at the bottom.
 - Whatever the sort, ties are ordered by date added, then file name, then id, so the order
   never flickers.
+- Filters (`filters.py`) narrow the list first; the rank is then among the candidates that pass.
 - The CV's name is shown as initials (see `core/personal_data.py`). It is encrypted, so the
   candidate column sorts by the file name.
 """
@@ -21,6 +22,7 @@ from core.errors import form_error
 from core.personal_data import mask_name
 from platform_settings.service import get_setting
 
+from .filters import apply_filters, checked_filters, requirement_choices
 from .models import CvFile
 
 SORTS = ("rank", "candidate", "score", "ats", "label", "stage", "added")
@@ -130,7 +132,8 @@ def ranked_list(project, params):
     """One page of the project's ranked candidates, with the totals the page needs."""
     sort, direction, page = checked_query(params)
     size = get_setting("candidates.page_size")
-    rows = _base(project)
+    filters = checked_filters(params, project)
+    rows = apply_filters(_base(project), filters)
     total = rows.count()
     pages = max(1, -(-total // size))
     page = min(page, pages)
@@ -142,6 +145,8 @@ def ranked_list(project, params):
         "pages": pages,
         "page_size": size,
         "count": total,
+        "filtered": bool(filters),
+        "requirements": requirement_choices(project),
         "refresh_seconds": get_setting("live_updates.max_delay_seconds"),
         "rows": [_row(item) for item in window],
     }

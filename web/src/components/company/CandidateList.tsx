@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { Button, Table, Tag, TextLink, type TagVariant } from "@/components/ui";
 import { getJson, type ApiError } from "@/lib/api";
 
+import type { Filters, RequirementChoice } from "./CandidateFilters";
+
 type SortKey = "rank" | "candidate" | "score" | "ats" | "label" | "stage" | "added";
 type Direction = "asc" | "desc";
 type Row = {
@@ -28,6 +30,8 @@ type Page = {
   page: number;
   pages: number;
   count: number;
+  filtered: boolean;
+  requirements: RequirementChoice[];
   refresh_seconds: number;
   rows: Row[];
 };
@@ -63,11 +67,25 @@ const firstDirection = (key: SortKey): Direction =>
 /** The project's candidates, best first. The server sorts and pages; this looks again every few
  * seconds, so a CV that finishes appears and takes its rank on its own. Items still on their way
  * show their status instead of a score and stay at the bottom. */
-export function CandidateList({ projectId }: { projectId: string }) {
+export function CandidateList({
+  projectId,
+  filters = {},
+  onClearAll,
+  onRequirements,
+}: {
+  projectId: string;
+  filters?: Filters;
+  onClearAll?: () => void;
+  onRequirements?: (requirements: RequirementChoice[]) => void;
+}) {
   const base = `/api/company/projects/${projectId}/candidates/`;
   const [sort, setSort] = useState<SortKey>("score");
   const [direction, setDirection] = useState<Direction>("desc");
-  const [page, setPage] = useState(1);
+  const filterQuery = new URLSearchParams(filters).toString();
+  // A change of filters starts again at the first page.
+  const [pageOf, setPageOf] = useState({ filterQuery, page: 1 });
+  const page = pageOf.filterQuery === filterQuery ? pageOf.page : 1;
+  const setPage = (next: number) => setPageOf({ filterQuery, page: next });
   const [shown, setShown] = useState<Page | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
 
@@ -75,11 +93,12 @@ export function CandidateList({ projectId }: { projectId: string }) {
     let timer: ReturnType<typeof setTimeout>;
     let stopped = false;
     const load = async () => {
-      const query = `?sort=${sort}&direction=${direction}&page=${page}`;
+      const query = `?sort=${sort}&direction=${direction}&page=${page}${filterQuery && `&${filterQuery}`}`;
       const result = await getJson<Page>(`${base}${query}`);
       if (stopped) return;
       if (result.ok) {
         setShown(result.data);
+        onRequirements?.(result.data.requirements ?? []);
         setError(null);
         timer = setTimeout(load, result.data.refresh_seconds * MILLISECONDS);
       } else setError(result.error);
@@ -89,7 +108,7 @@ export function CandidateList({ projectId }: { projectId: string }) {
       stopped = true;
       clearTimeout(timer);
     };
-  }, [base, sort, direction, page]);
+  }, [base, sort, direction, page, filterQuery, onRequirements]);
 
   function sortBy(key: SortKey) {
     setPage(1);
@@ -105,7 +124,18 @@ export function CandidateList({ projectId }: { projectId: string }) {
       </p>
     ) : null;
   }
-  if (shown.count === 0) return null;
+  if (shown.count === 0) {
+    return shown.filtered ? (
+      <div className="page-stack">
+        <p role="status">No candidates match these filters.</p>
+        <div className="page-actions">
+          <Button variant="secondary" onClick={onClearAll}>
+            Clear all
+          </Button>
+        </div>
+      </div>
+    ) : null;
+  }
   return (
     <div className="page-stack">
       <Table label="Candidates">

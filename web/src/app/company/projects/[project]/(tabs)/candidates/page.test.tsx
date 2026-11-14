@@ -3,6 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ProjectCandidatesPage from "./page";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  usePathname: () => "/company/projects/p1/candidates",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",

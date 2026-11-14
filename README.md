@@ -1228,6 +1228,27 @@ The project's Candidates tab shows its candidates from best to worst (`cvs/ranki
 - Only the signed-in company's own projects and candidates; staff accounts are refused.
 - Filters and Live updates build on this list in their own tickets.
 
+## Filters
+
+Narrows the ranked candidate list (`cvs/filters.py`, query values of
+`GET /api/company/projects/<project>/candidates/`).
+
+- Filters: AI score range, grade, recommendation, stage, missing a particular must-have, meeting a
+  particular requirement, date added range, ATS score range, years of experience, likely
+  duplicates, and text search in the file name and the profile summary (any letter case).
+- They combine: a candidate must pass every one. Grade, recommendation, stage, missing and meeting
+  take several choices separated by commas (any one of them; for missing and meeting, every one).
+  Ranges and dates take either end alone; both ends are included.
+- "Meeting" a requirement means the candidate was judged Met on it. "Missing" only takes the
+  project's must-haves. CVs that have no value yet (still processing, no ATS score, no dated jobs)
+  never pass a filter on that value. The search is plain text and limited by
+  `candidates.search_max_length`.
+- Ranks, sort and paging apply to the candidates that pass. A wrong value is a 400 that names the
+  filter. The answer lists the project's requirements for the pickers.
+- On the Candidates tab the Filters popup edits a copy and Apply keeps the filters in the address, so
+  a link or a return visit shows the same result. Clear all (popup or empty result) removes them. An
+  empty result says "No candidates match these filters."
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)
