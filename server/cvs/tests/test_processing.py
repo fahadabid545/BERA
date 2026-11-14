@@ -31,6 +31,7 @@ EXPECTED_STEPS = {
     "candidate_record",
     "ats_score",
     "requirement_evaluation",
+    "extra_factors",
 }  # a ticket that plugs in a step adds its slot here
 
 
@@ -158,13 +159,22 @@ class TestSlots:
             "candidate_record",
             "ats_score",
             "requirement_evaluation",
+            "extra_factors",
             "scoring",
         )
 
     def test_the_steps_plugged_in_so_far_are_exactly_the_expected_ones(self):
         import importlib
 
-        from cvs import ats_scoring, candidates, evaluation, fairness, profile_reading, steps
+        from cvs import (
+            ats_scoring,
+            candidates,
+            evaluation,
+            extra_factors,
+            fairness,
+            profile_reading,
+            steps,
+        )
 
         importlib.reload(steps)
         importlib.reload(profile_reading)
@@ -172,6 +182,7 @@ class TestSlots:
         importlib.reload(candidates)
         importlib.reload(evaluation)
         importlib.reload(ats_scoring)
+        importlib.reload(extra_factors)
         assert set(processing.STEPS) == EXPECTED_STEPS
 
     def test_an_unknown_slot_fails_loudly(self):
@@ -209,6 +220,7 @@ class TestSlots:
             "candidate_record": "reading",
             "ats_score": "scoring",
             "requirement_evaluation": "scoring",
+            "extra_factors": "scoring",
             "scoring": "scoring",
         }
         assert reload(row).status == "done"

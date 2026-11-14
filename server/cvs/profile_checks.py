@@ -112,7 +112,7 @@ def _checked_education(values, text):
     return entries[: get_setting("profile.max_items")]
 
 
-def _month_number(value, *, end):
+def month_number(value, *, end):
     """A month count for 'YYYY' or 'YYYY-MM'; a bare year means its first (or last) month."""
     year, _, month = value.partition("-")
     default = MONTHS_IN_YEAR if end else 1
@@ -128,9 +128,9 @@ def years_of_experience(jobs, today=None):
     for job in jobs:
         if not job["start"]:
             continue
-        start = _month_number(job["start"], end=False)
+        start = month_number(job["start"], end=False)
         ending = job["end"]
-        stop = now if ending in (PRESENT, None) else _month_number(ending, end=True)
+        stop = now if ending in (PRESENT, None) else month_number(ending, end=True)
         spans.append((start, min(max(stop, start), now)))
     if not spans:
         return None

@@ -133,6 +133,32 @@ ATS_SKILLS_HEADINGS = [
     "technologies",
 ]
 
+FACTOR_BACHELOR_WORDS = [
+    "bachelor",
+    "bachelors",
+    "bsc",
+    "ba",
+    "beng",
+    "btech",
+    "bs",
+    "undergraduate",
+]
+FACTOR_MASTER_WORDS = [
+    "master",
+    "masters",
+    "msc",
+    "ma",
+    "meng",
+    "mtech",
+    "mba",
+    "ms",
+    "postgraduate",
+]
+FACTOR_DOCTORATE_WORDS = ["phd", "doctorate", "doctor", "dphil", "doctoral"]
+FACTOR_JUNIOR_WORDS = ["junior", "jr", "intern", "trainee", "graduate", "entry"]
+FACTOR_SENIOR_WORDS = ["senior", "sr", "staff"]
+FACTOR_LEAD_WORDS = ["lead", "head", "principal", "director", "manager", "chief", "architect", "vp"]
+
 
 @dataclass(frozen=True)
 class SettingDefinition:
@@ -309,6 +335,26 @@ SETTINGS = [
     SettingDefinition("ats.min_words_per_line", 3, whole_number(1, 50)),
     SettingDefinition("ats.max_pages", 3, whole_number(1, 100)),
     SettingDefinition("ats.image_page_min_characters", 50, whole_number(1, 5000)),
+    # The extra scoring factors (see cvs/extra_factors.py).
+    SettingDefinition("factors.default_weight", 50, whole_number(0, 100)),
+    SettingDefinition("factors.max_required_years", 60, whole_number(1, 100)),
+    SettingDefinition("factors.bachelor_words", FACTOR_BACHELOR_WORDS, list_of_words(100)),
+    SettingDefinition("factors.master_words", FACTOR_MASTER_WORDS, list_of_words(100)),
+    SettingDefinition("factors.doctorate_words", FACTOR_DOCTORATE_WORDS, list_of_words(100)),
+    SettingDefinition("factors.junior_words", FACTOR_JUNIOR_WORDS, list_of_words(100)),
+    SettingDefinition("factors.senior_words", FACTOR_SENIOR_WORDS, list_of_words(100)),
+    SettingDefinition("factors.lead_words", FACTOR_LEAD_WORDS, list_of_words(100)),
+    SettingDefinition("factors.seniority_step_penalty", 50, whole_number(0, 100)),
+    SettingDefinition("factors.recency_decay_months", 60, whole_number(1, 600)),
+    SettingDefinition("factors.gap_months", 6, whole_number(1, 120)),
+    SettingDefinition("factors.gap_penalty", 20, whole_number(0, 100)),
+    SettingDefinition("factors.short_stint_months", 12, whole_number(1, 120)),
+    SettingDefinition("factors.short_stints_flagged", 3, whole_number(1, 50)),
+    SettingDefinition("factors.changes_window_years", 5, whole_number(1, 50)),
+    SettingDefinition("factors.change_penalty", 20, whole_number(0, 100)),
+    SettingDefinition("factors.confidence_high", 100, whole_number(0, 100)),
+    SettingDefinition("factors.confidence_medium", 60, whole_number(0, 100)),
+    SettingDefinition("factors.confidence_low", 20, whole_number(0, 100)),
     SettingDefinition("requirements.max_total", 30, whole_number(1, 200)),
     SettingDefinition("requirements.max_length", 120, whole_number(20, 500)),
     SettingDefinition("requirements.weight_default", 3, whole_number(1, 10)),

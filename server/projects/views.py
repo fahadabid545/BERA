@@ -8,6 +8,8 @@ from signin.company_views import CompanyObjectView
 
 from .deletion import delete_project
 from .extraction import suggest_requirements
+from .factor_settings import describe as describe_factors
+from .factor_settings import save_factor_settings
 from .listing import list_projects
 from .models import Project
 from .requirements import list_requirements, near_duplicates, save_requirements
@@ -17,6 +19,7 @@ from .serializers import (
     CreateProjectSerializer,
     DeleteProjectSerializer,
     EditProjectSerializer,
+    FactorSettingsSerializer,
     ListProjectsSerializer,
     SaveRequirementsSerializer,
     ScoringSettingsSerializer,
@@ -166,4 +169,22 @@ class ProjectScoringSettingsView(ProjectView):
         serializer.is_valid(raise_exception=True)
         return Response(
             save_scoring_settings(project.pk, project.company_id, serializer.validated_data)
+        )
+
+
+class ProjectFactorSettingsView(ProjectView):
+    """The project's extra scoring factors, read and saved as a whole."""
+
+    def permitted_roles(self):
+        return roles_allowed("project.view" if self.request.method == "GET" else "project.edit")
+
+    def get(self, request, id):
+        return Response(describe_factors(self.get_object()))
+
+    def put(self, request, id):
+        project = self.get_object()
+        serializer = FactorSettingsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            save_factor_settings(project.pk, project.company_id, serializer.validated_data)
         )

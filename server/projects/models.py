@@ -96,3 +96,19 @@ class ProjectScoringSettings(CompanyOwnedModel):
             ),
             models.CheckConstraint(condition=Q(top_n__gte=1), name="scoring_top_n_is_positive"),
         ]
+
+
+class ProjectFactorSettings(CompanyOwnedModel):
+    """Which extra scoring factors a project uses and how much each counts, plus what the job
+    expects (the three optional fields the experience, education and seniority factors compare a
+    CV with). A project with no row has every factor switched off. Checked in
+    `factor_settings.py`; `factors` holds `{factor: {"enabled": bool, "weight": 0-100}}`."""
+
+    project = models.OneToOneField(
+        Project, on_delete=models.PROTECT, related_name="factor_settings"
+    )
+    required_years = models.PositiveSmallIntegerField(null=True)
+    required_education = models.CharField(max_length=20, null=True)
+    seniority = models.CharField(max_length=20, null=True)
+    factors = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(auto_now=True)

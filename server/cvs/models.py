@@ -182,3 +182,15 @@ class AtsScore(CompanyOwnedModel):
                 condition=models.Q(score__lte=100), name="ats_score_is_at_most_100"
             ),
         ]
+
+
+class ExtraFactorValues(CompanyOwnedModel):
+    """The extra scoring factors of one candidate (see `extra_factors.py`): for each factor a
+    whole number from 0 to 100 or null for "Not found", with a short explanation. All are stored,
+    switched on or not. `basis_hash` says which job expectations they were measured against."""
+
+    candidate = models.OneToOneField(Candidate, on_delete=models.CASCADE, related_name="factors")
+    values = models.JSONField(default=dict)
+    basis_hash = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)

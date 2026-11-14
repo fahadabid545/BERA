@@ -66,7 +66,7 @@ def _normal(word):
     return word[:-1] if len(word) > 3 and word.endswith("s") and not word.endswith("ss") else word
 
 
-def _tokens(text):
+def tokens(text):
     return [_normal(token) for token in TOKEN.findall(unicodedata.normalize("NFKC", text).lower())]
 
 
@@ -76,11 +76,11 @@ def job_keywords(job_description):
     shortest = get_setting("ats.keyword_min_length")
     counted = Counter(
         token
-        for token in _tokens(job_description)
+        for token in tokens(job_description)
         if len(token) >= shortest and token not in STOPWORDS and not token.isdigit()
     )
     first_seen = {
-        token: position for position, token in enumerate(dict.fromkeys(_tokens(job_description)))
+        token: position for position, token in enumerate(dict.fromkeys(tokens(job_description)))
     }
     ranked = sorted(counted, key=lambda token: (-counted[token], first_seen[token]))
     return ranked[: get_setting("ats.keyword_count")]
@@ -90,7 +90,7 @@ def _keyword_part(text, job_description):
     keywords = job_keywords(job_description)
     if not keywords:
         return PART_SCORE_MAX, []  # nothing to miss
-    present = set(_tokens(text))
+    present = set(tokens(text))
     missing = [word for word in keywords if word not in present]
     score = PART_SCORE_MAX * (len(keywords) - len(missing)) / len(keywords)
     if not missing:
@@ -137,7 +137,7 @@ def _readable_share(text):
     return 100 * readable / len(visible)
 
 
-def _readability_part(text):
+def readability_part(text):
     each = PART_SCORE_MAX / CHECKS_PER_READABILITY_PART
     words = len(text.split())
     lines = [line.split() for line in text.splitlines() if line.strip()]
@@ -187,7 +187,7 @@ def score_cv(text, job_description, layout=None):
     parts = (
         ("ats.weight_keywords", _keyword_part(text, job_description)),
         ("ats.weight_sections", _section_part(text)),
-        ("ats.weight_readability", _readability_part(text)),
+        ("ats.weight_readability", readability_part(text)),
         ("ats.weight_formatting", _formatting_part(layout or Layout())),
     )
     weights = [get_setting(name) for name, _ in parts]

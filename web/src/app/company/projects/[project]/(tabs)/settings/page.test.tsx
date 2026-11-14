@@ -14,13 +14,22 @@ const SCORING = {
   top_n_cap: 20,
 };
 
+const FACTORS = {
+  required_years: null,
+  required_education: null,
+  seniority: null,
+  factors: {},
+  max_required_years: 60,
+};
+
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (path: string) => ({
       ok: true,
       status: 200,
-      json: async () => (path.endsWith("/scoring/") ? SCORING : PROJECT),
+      json: async () =>
+        path.endsWith("/scoring/") ? SCORING : path.endsWith("/factors/") ? FACTORS : PROJECT,
     })),
   );
 });
@@ -33,6 +42,7 @@ describe("ProjectSettingsPage", () => {
       const paths = vi.mocked(fetch).mock.calls.map((call) => call[0]);
       expect(paths).toContain("/api/company/projects/p1/");
       expect(paths).toContain("/api/company/projects/p1/scoring/");
+      expect(paths).toContain("/api/company/projects/p1/factors/");
     });
   });
 });

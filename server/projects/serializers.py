@@ -90,3 +90,31 @@ class ScoringSettingsSerializer(StrictSerializer):
     nice_weight_percent = serializers.IntegerField()
     recommendation_threshold = serializers.IntegerField()
     top_n = serializers.IntegerField(max_value=1_000_000)
+
+
+class TypedWholeNumber(serializers.IntegerField):
+    """A number typed as a number: not "5", not 5.5, not true."""
+
+    def to_internal_value(self, data):
+        if isinstance(data, bool) or not isinstance(data, int):
+            self.fail("invalid")
+        return super().to_internal_value(data)
+
+
+class FactorSerializer(StrictSerializer):
+    enabled = serializers.BooleanField()
+    weight = TypedWholeNumber(min_value=-1_000_000, max_value=1_000_000)
+
+
+class FactorSettingsSerializer(StrictSerializer):
+    """Every value is sent every time; what is possible is checked when saving."""
+
+    required_years = TypedWholeNumber(allow_null=True, min_value=-1, max_value=1_000_000)
+    required_education = serializers.CharField(allow_null=True, max_length=20)
+    seniority = serializers.CharField(allow_null=True, max_length=20)
+    factors = serializers.DictField(child=FactorSerializer())
+
+    def validate_factors(self, value):
+        if len(value) > 50:
+            raise serializers.ValidationError("Too many factors.")
+        return {name: dict(setting) for name, setting in value.items()}

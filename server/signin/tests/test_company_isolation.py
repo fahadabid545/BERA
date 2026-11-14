@@ -54,6 +54,8 @@ KINDS_NAMED_IN_THE_TICKET = {
 # Candidate: cvs/tests/test_candidate_record.py (TestAnotherCompany).
 # RequirementResult: cvs/tests/test_requirement_evaluation.py (TestAnotherCompany).
 # AtsScore: cvs/tests/test_ats_score.py (TestAnotherCompany).
+# ExtraFactorValues: cvs/tests/test_extra_factors.py (TestAnotherCompany).
+# ProjectFactorSettings: projects/tests/test_factor_settings.py (TestAnotherCompany).
 # UsagePeriod, UsageCounter, CvUsage: usage/tests/test_usage_counting.py (kept apart per company).
 REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Invitation",
@@ -73,6 +75,8 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Candidate",
     "RequirementResult",
     "AtsScore",
+    "ExtraFactorValues",
+    "ProjectFactorSettings",
 }
 
 

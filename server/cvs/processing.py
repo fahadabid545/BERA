@@ -54,6 +54,7 @@ SLOTS = (
     "candidate_record",
     "ats_score",
     "requirement_evaluation",
+    "extra_factors",
     "scoring",
 )
 READING, SCORING = CvFile.Status.READING, CvFile.Status.SCORING
@@ -64,6 +65,7 @@ SLOT_STATUS = {
     "candidate_record": READING,
     "ats_score": SCORING,
     "requirement_evaluation": SCORING,
+    "extra_factors": SCORING,
     "scoring": SCORING,
 }
 STEPS = {}

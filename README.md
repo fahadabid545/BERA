@@ -1060,6 +1060,32 @@ come from the PDF pages); only the score and generic reasons are stored. English
 - The score is made again only when the job description changed or the rules version did.
 - Showing it next to the AI score comes with the ranked list and candidate detail tickets.
 
+## Extra scoring factors
+
+Optional factors that enrich the picture of a candidate (`cvs/extra_factors.py`, settings in
+`projects/factor_settings.py`, route `GET`/`PUT /api/company/projects/<id>/factors/`, the form on
+the project's Settings tab). Each of the seven factors (experience years match, education match,
+seniority fit, recency of relevant work, career gaps and job changes, CV readability, confidence
+level) can be switched on or off per project and weighted from 0 to 100%. With no saved settings
+every factor is off. The three job fields (years of experience, education level, seniority) are
+optional and entered by the user; a factor whose job field is empty is "Not found".
+
+- The `extra_factors` slot (no AI) runs after `requirement_evaluation` and stores, per candidate,
+  all seven factors (`ExtraFactorValues`): a whole number from 0 to 100, or null for "Not found",
+  with a short explanation. They are worked out from the saved profile (years, degrees, job titles
+  and dates), the ATS readability and the AI's confidence in the requirement results.
+- Missing information is never zero: if the job or the CV does not say, the value is null and the
+  explanation starts "Not found".
+- Gaps and frequent short jobs only lower a number a project may weight, with an explanation that
+  they have valid reasons and never reject a candidate. Nothing in the pipeline rejects, hides or
+  excludes anyone because of them.
+- Switching or weighting a factor never changes the stored values; changing a job field works the
+  stored values out again from the profiles (no AI). Combining the factors into the final score is
+  the Score calculation ticket; saving calls the same recalculation stand-in as the scoring settings.
+- Platform settings (`factors.*`): the default weight, the words that show an education level or a
+  seniority, the penalties, the gap and short-job limits, how fast recency fades and the confidence
+  values.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

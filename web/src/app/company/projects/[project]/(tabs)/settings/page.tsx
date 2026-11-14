@@ -1,3 +1,4 @@
+import { ExtraFactors } from "@/components/company/ExtraFactors";
 import { ProjectSettings } from "@/components/company/ProjectSettings";
 import { ScoringSettings } from "@/components/company/ScoringSettings";
 
@@ -11,6 +12,7 @@ export default async function ProjectSettingsPage({
     <div className="page-stack">
       <ProjectSettings projectId={project} />
       <ScoringSettings projectId={project} />
+      <ExtraFactors projectId={project} />
     </div>
   );
 }
