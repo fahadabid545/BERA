@@ -17,9 +17,11 @@ from .downloads import cv_file_response
 from .estimate import confirm, estimate
 from .file_checks import check_cv_file, check_name_and_size
 from .models import Candidate, CandidateScore, CvFile
+from .notes import add_note, change_note, remove_note
 from .processing import cancel_unstarted, project_processing, retry_failed
 from .ranking import ranked_list
 from .service import upload_cvs, upload_rules
+from .stages import change_stage
 from .text_reading import CvTextUnreadable, read_text
 
 
@@ -173,7 +175,7 @@ class CandidateDetail(CandidateDataView):
         candidate = self.get_object()
         if str(candidate.project_id) != str(id):
             raise Http404
-        return Response(candidate_detail(candidate))
+        return Response(candidate_detail(candidate, request.user.user_id))
 
 
 class CandidateCvFile(CandidateDataView):
@@ -195,6 +197,70 @@ class CandidateCvFile(CandidateDataView):
         return cv_file_response(
             candidate.cv_file, download=request.query_params.get("download") == "1"
         )
+
+
+class CandidateStages(CandidateDataView):
+    """Moves one candidate or many (`candidate_ids`) of the project to a stage, all or nothing."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("candidate.change_stage")
+
+    def post(self, request, id):
+        project = self.get_object()
+        return Response(
+            change_stage(
+                project,
+                request.user.user_id,
+                request.data.get("candidate_ids"),
+                request.data.get("stage"),
+            )
+        )
+
+
+class CandidateNotes(CandidateDataView):
+    """Adds a note to a candidate of this project."""
+
+    queryset = Candidate.objects.all()
+    lookup_url_kwarg = "candidate_id"
+
+    def permitted_roles(self):
+        return roles_allowed("candidate.write_note")
+
+    def post(self, request, id, candidate_id):
+        candidate = self.get_object()
+        if str(candidate.project_id) != str(id):
+            raise Http404
+        return Response(
+            add_note(candidate, request.user.user_id, request.data.get("text")), status=201
+        )
+
+
+class CandidateNoteItem(CandidateDataView):
+    """Changes or removes a note; only its author may."""
+
+    queryset = Candidate.objects.all()
+    lookup_url_kwarg = "candidate_id"
+
+    def permitted_roles(self):
+        return roles_allowed("candidate.write_note")
+
+    def _candidate(self, id):
+        candidate = self.get_object()
+        if str(candidate.project_id) != str(id):
+            raise Http404
+        return candidate
+
+    def patch(self, request, id, candidate_id, note_id):
+        candidate = self._candidate(id)
+        return Response(
+            change_note(candidate, request.user.user_id, note_id, request.data.get("text"))
+        )
+
+    def delete(self, request, id, candidate_id, note_id):
+        remove_note(self._candidate(id), request.user.user_id, note_id)
+        return Response(status=204)
 
 
 class CandidateRecommendation(CandidateDataView):

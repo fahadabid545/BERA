@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { Button, Checkbox, Dialog, Input } from "@/components/ui";
 
+import { STAGES } from "./stages";
+
 /** The filters, as the values of the address. A list value holds its choices separated by commas. */
 export type Filters = Record<string, string>;
 export type RequirementChoice = { id: string; text: string; kind: "must" | "nice" };
@@ -32,7 +34,6 @@ const LABELS = [
   { value: "possible", label: "Possible" },
   { value: "not_recommended", label: "Not recommended" },
 ];
-const STAGES = [{ value: "new", label: "New" }];
 const RANGES = [
   { name: "score", label: "AI score" },
   { name: "ats", label: "ATS score" },

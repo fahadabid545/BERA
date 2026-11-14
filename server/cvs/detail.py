@@ -11,6 +11,8 @@ from projects.models import Requirement
 from .downloads import PREVIEW_TYPES
 from .extra_factors import stored_factors
 from .models import AtsScore, CandidateScore, RequirementResult
+from .notes import notes_of
+from .stages import history
 
 
 def _contact(candidate):
@@ -96,7 +98,7 @@ def _versions(candidate, results):
     }
 
 
-def candidate_detail(candidate):
+def candidate_detail(candidate, user_id):
     cv_file = candidate.cv_file
     results = list(RequirementResult.objects.filter(candidate=candidate))
     return {
@@ -111,7 +113,8 @@ def candidate_detail(candidate):
         "ats": _ats(candidate),
         "requirements": _results(candidate, results),
         "factors": _factors(candidate),
-        "notes": [],  # written by the notes ticket
+        "history": history(candidate),
+        "notes": notes_of(candidate, user_id),
         "models": _versions(candidate, results),
         "cv": {
             "file_type": cv_file.file_type,

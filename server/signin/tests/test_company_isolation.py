@@ -78,6 +78,8 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "AiCall",
     "CandidateScore",
     "ExtraFactorValues",
+    "StageChange",
+    "CandidateNote",
     "ProjectFactorSettings",
 }
 

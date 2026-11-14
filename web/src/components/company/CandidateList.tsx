@@ -2,10 +2,20 @@
 
 import { useEffect, useState } from "react";
 
-import { Button, Table, Tag, TextLink, type TagVariant } from "@/components/ui";
-import { getJson, type ApiError } from "@/lib/api";
+import {
+  Button,
+  Checkbox,
+  Dialog,
+  Select,
+  Table,
+  Tag,
+  TextLink,
+  type TagVariant,
+} from "@/components/ui";
+import { getJson, postJson, type ApiError } from "@/lib/api";
 
 import type { Filters, RequirementChoice } from "./CandidateFilters";
+import { STAGES, stageLabel } from "./stages";
 
 type SortKey = "rank" | "candidate" | "score" | "ats" | "label" | "stage" | "added";
 type Direction = "asc" | "desc";
@@ -88,6 +98,11 @@ export function CandidateList({
   const setPage = (next: number) => setPageOf({ filterQuery, page: next });
   const [shown, setShown] = useState<Page | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [targetStage, setTargetStage] = useState(STAGES[1].value);
+  const [confirming, setConfirming] = useState(false);
+  const [changeError, setChangeError] = useState<ApiError | null>(null);
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -108,13 +123,25 @@ export function CandidateList({
       stopped = true;
       clearTimeout(timer);
     };
-  }, [base, sort, direction, page, filterQuery, onRequirements]);
+  }, [base, sort, direction, page, filterQuery, onRequirements, version]);
 
   function sortBy(key: SortKey) {
     setPage(1);
     if (key === sort) return setDirection(direction === "asc" ? "desc" : "asc");
     setSort(key);
     setDirection(firstDirection(key));
+  }
+
+  async function applyStage() {
+    const result = await postJson(`${base}stage/`, {
+      candidate_ids: selected,
+      stage: targetStage,
+    });
+    if (result.ok) {
+      setSelected([]);
+      setChangeError(null);
+      setVersion((current) => current + 1);
+    } else setChangeError(result.error);
   }
 
   if (!shown) {
@@ -136,11 +163,56 @@ export function CandidateList({
       </div>
     ) : null;
   }
+  const selectable = shown.rows.filter((row) => row.candidate_id).map((row) => row.candidate_id!);
+  const allSelected = selectable.length > 0 && selectable.every((id) => selected.includes(id));
+  const toggle = (id: string, on: boolean) =>
+    setSelected((current) => (on ? [...current, id] : current.filter((item) => item !== id)));
   return (
     <div className="page-stack">
+      <div className="page-actions">
+        <Select
+          label="Move selected to"
+          value={targetStage}
+          onChange={(event) => setTargetStage(event.target.value)}
+          options={STAGES}
+        />
+        <Dialog
+          open={confirming}
+          onOpenChange={setConfirming}
+          trigger={
+            <Button variant="secondary" disabled={selected.length === 0}>
+              Change stage
+            </Button>
+          }
+          title="Change stage"
+          description={`Move ${selected.length} ${
+            selected.length === 1 ? "candidate" : "candidates"
+          } to ${stageLabel(targetStage)}?`}
+          confirmLabel="Change stage"
+          onConfirm={() => void applyStage()}
+        />
+      </div>
+      {changeError && (
+        <p className="ui-error" role="alert">
+          {changeError.message}
+        </p>
+      )}
       <Table label="Candidates">
         <thead>
           <tr>
+            <th scope="col">
+              <Checkbox
+                label={<span className="visually-hidden">Select all on this page</span>}
+                checked={allSelected}
+                disabled={selectable.length === 0}
+                onChange={(event) =>
+                  setSelected((current) => [
+                    ...current.filter((id) => !selectable.includes(id)),
+                    ...(event.target.checked ? selectable : []),
+                  ])
+                }
+              />
+            </th>
             {COLUMNS.map(({ key, label }) => (
               <th
                 key={key}
@@ -158,7 +230,13 @@ export function CandidateList({
         </thead>
         <tbody>
           {shown.rows.map((row) => (
-            <CandidateRow key={row.id} row={row} projectId={projectId} />
+            <CandidateRow
+              key={row.id}
+              row={row}
+              projectId={projectId}
+              checked={row.candidate_id ? selected.includes(row.candidate_id) : false}
+              onToggle={toggle}
+            />
           ))}
         </tbody>
       </Table>
@@ -185,10 +263,29 @@ export function CandidateList({
   );
 }
 
-function CandidateRow({ row, projectId }: { row: Row; projectId: string }) {
+function CandidateRow({
+  row,
+  projectId,
+  checked,
+  onToggle,
+}: {
+  row: Row;
+  projectId: string;
+  checked: boolean;
+  onToggle: (id: string, on: boolean) => void;
+}) {
   const status = STATUSES[row.status] ?? { label: row.status, variant: "neutral" as TagVariant };
   return (
     <tr>
+      <td>
+        {row.candidate_id && (
+          <Checkbox
+            label={<span className="visually-hidden">Select {row.file_name}</span>}
+            checked={checked}
+            onChange={(event) => onToggle(row.candidate_id!, event.target.checked)}
+          />
+        )}
+      </td>
       <td>{row.rank}</td>
       <td>
         {row.candidate_id ? (
@@ -216,7 +313,7 @@ function CandidateRow({ row, projectId }: { row: Row; projectId: string }) {
       <td>
         {row.label && LABELS[row.label]} {row.borderline && <Tag variant="neutral">Borderline</Tag>}
       </td>
-      <td>{row.stage && "New"}</td>
+      <td>{stageLabel(row.stage)}</td>
       <td>{row.added_at.slice(0, DATE_LENGTH)}</td>
     </tr>
   );

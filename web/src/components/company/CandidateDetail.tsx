@@ -2,9 +2,19 @@
 
 import { useEffect, useState } from "react";
 
-import { Card, Table, Tag } from "@/components/ui";
-import { getJson, type ApiError } from "@/lib/api";
+import { Button, Card, Dialog, Select, Table, Tag, Textarea } from "@/components/ui";
+import { deleteJson, getJson, patchJson, postJson, type ApiError } from "@/lib/api";
 
+import { STAGES, stageLabel } from "./stages";
+
+type Note = {
+  id: string;
+  text: string;
+  author: string;
+  mine: boolean;
+  created_at: string;
+  updated_at: string;
+};
 type Verdict = "met" | "partly_met" | "missing";
 type Detail = {
   id: string;
@@ -43,7 +53,8 @@ type Detail = {
     outdated: boolean;
     values: Record<string, { value: number | null; explanation: string }>;
   } | null;
-  notes: { id: string; text: string }[];
+  history: { from_stage: string; to_stage: string; by: string; at: string }[];
+  notes: Note[];
   models: {
     reading: { model: string; prompt_version: number };
     scoring: { model: string; prompt_version: number } | null;
@@ -70,7 +81,6 @@ const FACTORS: Record<string, string> = {
   readability: "CV readability",
   confidence: "Confidence level",
 };
-const STAGES: Record<string, string> = { new: "New" };
 const STATUSES: Record<string, string> = {
   awaiting_confirmation: "Awaiting confirmation",
   waiting: "Waiting",
@@ -107,18 +117,27 @@ export function CandidateDetail({
   const base = `/api/company/projects/${projectId}/candidates/${candidateId}/`;
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
+  const [version, setVersion] = useState(0);
+  const [stage, setStage] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const [problem, setProblem] = useState<ApiError | null>(null);
+  const reload = () => setVersion((current) => current + 1);
 
   useEffect(() => {
     let stopped = false;
     void getJson<Detail>(base).then((result) => {
       if (stopped) return;
-      if (result.ok) setDetail(result.data);
-      else setError(result.error);
+      if (result.ok) {
+        setDetail(result.data);
+        setStage((current) => current || result.data.stage);
+      } else setError(result.error);
     });
     return () => {
       stopped = true;
     };
-  }, [base]);
+  }, [base, version]);
 
   if (error) {
     return (
@@ -128,6 +147,26 @@ export function CandidateDetail({
     );
   }
   if (!detail) return null;
+
+  async function run(request: Promise<{ ok: boolean; error?: ApiError }>, done?: () => void) {
+    const result = await request;
+    if (result.ok) {
+      setProblem(null);
+      done?.();
+      reload();
+    } else setProblem(result.error ?? null);
+  }
+  const changeStage = () =>
+    run(
+      postJson(`/api/company/projects/${projectId}/candidates/stage/`, {
+        candidate_ids: [candidateId],
+        stage,
+      }),
+    );
+  const addNote = () => run(postJson(`${base}notes/`, { text: draft }), () => setDraft(""));
+  const saveNote = () =>
+    editing &&
+    run(patchJson(`${base}notes/${editing.id}/`, { text: editing.text }), () => setEditing(null));
 
   const { score, ats, contact } = detail;
   const contactLines = [contact.name, contact.email, contact.phone, contact.address].filter(
@@ -141,9 +180,27 @@ export function CandidateDetail({
           <div key={line}>{line}</div>
         ))}
         <div>
-          Stage: {STAGES[detail.stage] ?? detail.stage}. Added{" "}
-          {detail.added_at.slice(0, DATE_LENGTH)}.
+          Stage: {stageLabel(detail.stage)}. Added {detail.added_at.slice(0, DATE_LENGTH)}.
         </div>
+        <Select
+          label="Stage"
+          value={stage}
+          onChange={(event) => setStage(event.target.value)}
+          options={STAGES}
+        />
+        <Dialog
+          open={confirming}
+          onOpenChange={setConfirming}
+          trigger={
+            <Button variant="secondary" disabled={stage === detail.stage}>
+              Change stage
+            </Button>
+          }
+          title="Change stage"
+          description={`Move this candidate to ${stageLabel(stage)}?`}
+          confirmLabel="Change stage"
+          onConfirm={() => void changeStage()}
+        />
         {detail.status !== "done" && (
           <div>
             <Tag variant={detail.status === "failed" ? "danger" : "live"}>
@@ -247,14 +304,83 @@ export function CandidateDetail({
         </Table>
       )}
 
+      {problem && (
+        <p className="ui-error" role="alert">
+          {problem.fields ? Object.values(problem.fields).join(" ") : problem.message}
+        </p>
+      )}
+
+      <Card aria-label="Stage history">
+        <h2>Stage history</h2>
+        {detail.history.length === 0 ? (
+          <div>No changes.</div>
+        ) : (
+          <ul>
+            {detail.history.map((change) => (
+              <li key={change.at + change.to_stage}>
+                {stageLabel(change.from_stage)} to {stageLabel(change.to_stage)} by {change.by},{" "}
+                {change.at.slice(0, DATE_LENGTH)}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
       <Card aria-label="Notes">
         <h2>Notes</h2>
+        <Textarea
+          label="New note"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+        <Button disabled={!draft.trim()} onClick={() => void addNote()}>
+          Add note
+        </Button>
         {detail.notes.length === 0 ? (
           <div>No notes.</div>
         ) : (
           <ul>
             {detail.notes.map((note) => (
-              <li key={note.id}>{note.text}</li>
+              <li key={note.id}>
+                {editing?.id === note.id ? (
+                  <>
+                    <Textarea
+                      label="Edit note"
+                      value={editing.text}
+                      onChange={(event) => setEditing({ id: note.id, text: event.target.value })}
+                    />
+                    <Button onClick={() => void saveNote()}>Save note</Button>
+                    <Button variant="secondary" onClick={() => setEditing(null)}>
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div>{note.text}</div>
+                    <div>
+                      {note.author}, {note.created_at.slice(0, DATE_LENGTH)}
+                    </div>
+                    {note.mine && (
+                      <div className="page-actions">
+                        <Button
+                          variant="secondary"
+                          onClick={() => setEditing({ id: note.id, text: note.text })}
+                        >
+                          Edit note
+                        </Button>
+                        <Dialog
+                          trigger={<Button variant="secondary">Delete note</Button>}
+                          title="Delete note"
+                          description="Delete this note?"
+                          confirmLabel="Delete note"
+                          destructive
+                          onConfirm={() => void run(deleteJson(`${base}notes/${note.id}/`))}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+              </li>
             ))}
           </ul>
         )}

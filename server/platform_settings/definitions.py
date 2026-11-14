@@ -315,6 +315,9 @@ SETTINGS = [
     # The ranked candidate list (see cvs/ranking.py).
     SettingDefinition("candidates.page_size", 25, whole_number(1, 200)),
     SettingDefinition("candidates.search_max_length", 200, whole_number(1, 1000)),
+    # Stages and notes (see cvs/stages.py and cvs/notes.py).
+    SettingDefinition("candidates.bulk_max", 200, whole_number(1, 5000)),
+    SettingDefinition("notes.max_length", 2000, whole_number(1, 20000)),
     # AI outage handling (see ai/control.py): pause after this many failed calls in a row, for
     # this many minutes, then carry on by itself.
     SettingDefinition("ai.pause_after_failures", 5, whole_number(1, 1000)),

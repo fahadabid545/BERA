@@ -86,7 +86,7 @@ class TestCreated:
 
     def test_the_stage_starts_as_new(self, cv):
         assert candidates.create_candidate(cv).stage == "new"
-        assert [choice for choice, _ in Candidate.Stage.choices] == ["new"]
+        assert Candidate.Stage.values[0] == "new"
 
     def test_creating_again_gives_the_same_candidate(self, cv):
         first = candidates.create_candidate(cv)

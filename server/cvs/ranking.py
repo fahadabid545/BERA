@@ -10,12 +10,13 @@ the page's rows are read (and their names decrypted).
 - Whatever the sort, items without a score sit at the bottom.
 - Whatever the sort, ties are ordered by date added, then file name, then id, so the order
   never flickers.
+- Rejected candidates are left out unless the stage filter is used (`stages.py`).
 - Filters (`filters.py`) narrow the list first; the rank is then among the candidates that pass.
 - The CV's name is shown as initials (see `core/personal_data.py`). It is encrypted, so the
   candidate column sorts by the file name.
 """
 
-from django.db.models import Case, F, IntegerField, When, Window
+from django.db.models import Case, F, IntegerField, Q, When, Window
 from django.db.models.functions import RowNumber
 
 from core.errors import form_error
@@ -23,7 +24,7 @@ from core.personal_data import mask_name
 from platform_settings.service import get_setting
 
 from .filters import apply_filters, checked_filters, requirement_choices
-from .models import CvFile
+from .models import Candidate, CvFile
 
 SORTS = ("rank", "candidate", "score", "ats", "label", "stage", "added")
 DEFAULT_SORT, DEFAULT_DIRECTION = "score", "desc"
@@ -134,6 +135,9 @@ def ranked_list(project, params):
     size = get_setting("candidates.page_size")
     filters = checked_filters(params, project)
     rows = apply_filters(_base(project), filters)
+    if "stage" not in filters:
+        # A CV with no candidate yet has no stage and stays in the list.
+        rows = rows.filter(Q(stage_value__isnull=True) | ~Q(stage_value=Candidate.Stage.REJECTED))
     total = rows.count()
     pages = max(1, -(-total // size))
     page = min(page, pages)

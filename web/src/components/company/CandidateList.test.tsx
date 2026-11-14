@@ -69,6 +69,7 @@ describe("ranked candidate list", () => {
       .getAllByRole("cell")
       .map((cell) => cell.textContent);
     expect(cells).toEqual([
+      "Select jane.pdf",
       "1",
       "jane.pdfJ. E.",
       "82.5 (B) ",
@@ -91,6 +92,7 @@ describe("ranked candidate list", () => {
         .getAllByRole("columnheader")
         .map((header) => header.textContent),
     ).toEqual([
+      "Select all on this page",
       "Rank",
       "Candidate",
       "AI score",
@@ -265,5 +267,114 @@ describe("live arrival", () => {
       await vi.advanceTimersByTimeAsync(10000);
     });
     expect(fetchMock.mock.calls.length).toBe(calls);
+  });
+});
+
+describe("changing the stage of several candidates", () => {
+  const two = () =>
+    page([row(), row({ id: "c2", candidate_id: "k2", file_name: "omar.pdf", rank: 2 })]);
+  const posts = () => fetchMock.mock.calls.filter((call) => call[1]?.method === "POST");
+
+  async function open() {
+    serve(two());
+    render(<CandidateList projectId="p1" />);
+    await screen.findByRole("region", { name: "Candidates" });
+    return userEvent.setup();
+  }
+
+  it("shows each stage by its name", async () => {
+    serve(page([row({ stage: "interview" })]));
+    render(<CandidateList projectId="p1" />);
+    const table = await screen.findByRole("region", { name: "Candidates" });
+    expect(within(table).getByText("Interview")).toBeTruthy();
+  });
+
+  it("cannot change anything until someone is selected", async () => {
+    await open();
+    expect(
+      (screen.getByRole("button", { name: "Change stage" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it("asks before moving the selected candidates, then moves them", async () => {
+    const user = await open();
+    await user.click(screen.getByRole("checkbox", { name: "Select jane.pdf" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select omar.pdf" }));
+    await user.selectOptions(screen.getByLabelText("Move selected to"), "interview");
+    await user.click(screen.getByRole("button", { name: "Change stage" }));
+    const dialog = await screen.findByRole("dialog", { name: "Change stage" });
+    expect(dialog.textContent).toContain("Move 2 candidates to Interview?");
+    expect(posts()).toHaveLength(0);
+    await user.click(within(dialog).getByRole("button", { name: "Change stage" }));
+    await waitFor(() => expect(posts()).toHaveLength(1));
+    expect(posts()[0][0]).toBe(`${BASE}stage/`);
+    expect(JSON.parse(posts()[0][1].body)).toEqual({
+      candidate_ids: ["k1", "k2"],
+      stage: "interview",
+    });
+  });
+
+  it("cancelling changes nothing", async () => {
+    const user = await open();
+    await user.click(screen.getByRole("checkbox", { name: "Select jane.pdf" }));
+    await user.click(screen.getByRole("button", { name: "Change stage" }));
+    await user.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancel" }),
+    );
+    expect(posts()).toHaveLength(0);
+  });
+
+  it("select all picks the page, and a second click clears it", async () => {
+    const user = await open();
+    const all = screen.getByRole("checkbox", { name: "Select all on this page" });
+    await user.click(all);
+    expect(
+      (screen.getByRole("checkbox", { name: "Select omar.pdf" }) as HTMLInputElement).checked,
+    ).toBe(true);
+    await user.click(all);
+    expect(
+      (screen.getByRole("checkbox", { name: "Select omar.pdf" }) as HTMLInputElement).checked,
+    ).toBe(false);
+  });
+
+  it("the selection is cleared and the list looked at again after the change", async () => {
+    const user = await open();
+    await user.click(screen.getByRole("checkbox", { name: "Select jane.pdf" }));
+    await user.click(screen.getByRole("button", { name: "Change stage" }));
+    await user.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "Change stage" }),
+    );
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("checkbox", { name: "Select jane.pdf" }) as HTMLInputElement).checked,
+      ).toBe(false),
+    );
+    expect(paths().filter((path) => path.includes("sort=")).length).toBeGreaterThan(1);
+  });
+
+  it("a CV with no candidate yet cannot be selected", async () => {
+    serve(page([row({ id: "c3", candidate_id: null, status: "waiting", score: null })]));
+    render(<CandidateList projectId="p1" />);
+    await screen.findByRole("region", { name: "Candidates" });
+    expect(screen.queryByRole("checkbox", { name: "Select jane.pdf" })).toBeNull();
+  });
+
+  it("shows the server's message when the change fails", async () => {
+    const user = await open();
+    await user.click(screen.getByRole("checkbox", { name: "Select jane.pdf" }));
+    fetchMock.mockImplementation(async (_path: string, init?: { method?: string }) =>
+      init?.method === "POST"
+        ? {
+            ok: false,
+            status: 404,
+            json: async () => ({ error: { code: "not_found", message: "Not found." } }),
+          }
+        : { ok: true, status: 200, json: async () => two() },
+    );
+    await user.click(screen.getByRole("button", { name: "Change stage" }));
+    await user.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "Change stage" }),
+    );
+    expect((await screen.findByRole("alert")).textContent).toBe("Not found.");
   });
 });

@@ -1270,6 +1270,26 @@ page `/company/projects/<project>/candidates/<candidate>`).
 - Contact details (name, email, phone, address) are shown here only. Company members only; another
   company's or project's candidate is "Not found"; staff accounts are refused.
 
+## Stages and notes
+
+Tracking each candidate through hiring (`cvs/stages.py`, `cvs/notes.py`).
+
+- **Stages:** New, Shortlisted, Interview, Approved, Rejected. `POST /api/company/projects/<project>/candidates/stage/`
+  with `candidate_ids` and `stage` moves one candidate or many, all or nothing: a candidate that is not
+  in this project and company makes the whole request "not found" and changes nothing. At most
+  `candidates.bulk_max` at once. A candidate already at the stage is left alone and has no entry.
+  The list has a checkbox for each row and one for the page, and the detail page has its own Stage
+  box; both ask for confirmation in a popup first.
+- **History:** every change that moves a candidate is stored (`StageChange`: from, to, who, when),
+  never edited, and shown newest first on the candidate page. It goes with the candidate if the
+  candidate is removed.
+- **Rejected:** hidden from the default list and its count; the stage filter (for example
+  `?stage=rejected`) shows them. CVs still processing stay listed.
+- **Notes:** any team member adds notes (`POST .../candidates/<candidate>/notes/`), up to
+  `notes.max_length` (2000) characters; everyone in the company sees them, with author and date;
+  only the author can change (`PATCH`) or delete (`DELETE`) a note (403 `not_note_author`
+  otherwise). Note text is never logged.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

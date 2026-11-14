@@ -1,4 +1,5 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CandidateDetail } from "./CandidateDetail";
@@ -43,6 +44,7 @@ const detail = (over: object = {}) => ({
     outdated: false,
     values: { seniority: { value: 80, explanation: "Senior titles" }, recency: { value: null, explanation: "No dates" } },
   },
+  history: [],
   notes: [],
   models: { reading: { model: "gpt-read", prompt_version: 2 }, scoring: { model: "gpt-score", prompt_version: 7 } },
   cv: { file_type: "pdf", can_preview: true },
@@ -170,7 +172,20 @@ describe("candidate detail", () => {
   });
 
   it("shows notes", async () => {
-    serve(detail({ notes: [{ id: "n1", text: "Call on Monday" }] }));
+    serve(
+      detail({
+        notes: [
+          {
+            id: "n1",
+            text: "Call on Monday",
+            author: "Omar",
+            mine: false,
+            created_at: "2026-11-14T10:00:00Z",
+            updated_at: "2026-11-14T10:00:00Z",
+          },
+        ],
+      }),
+    );
     await open();
     expect(screen.getByText("Call on Monday")).toBeTruthy();
   });
@@ -223,5 +238,129 @@ describe("candidate detail", () => {
     serve({ error: { code: "internal_error", message: "Something went wrong." } }, false, 500);
     render(<CandidateDetail projectId="p1" candidateId="k1" />);
     expect((await screen.findByRole("alert")).textContent).toBe("Something went wrong.");
+  });
+});
+
+describe("stage, history and notes", () => {
+  const note = (over: object = {}) => ({
+    id: "n1",
+    text: "Call on Monday",
+    author: "Omar",
+    mine: true,
+    created_at: "2026-11-14T10:00:00Z",
+    updated_at: "2026-11-14T10:00:00Z",
+    ...over,
+  });
+  const sent = () =>
+    fetchMock.mock.calls.filter((call) => call[1]?.method && call[1].method !== "GET");
+
+  it("shows the history with who and when", async () => {
+    serve(
+      detail({
+        history: [
+          { from_stage: "new", to_stage: "shortlisted", by: "Omar", at: "2026-11-14T11:00:00Z" },
+        ],
+      }),
+    );
+    await open();
+    const card = screen.getByRole("region", { name: "Stage history" });
+    expect(card.textContent).toContain("New to Shortlisted by Omar, 2026-11-14");
+  });
+
+  it("says when nothing has changed yet", async () => {
+    serve(detail());
+    await open();
+    expect(screen.getByRole("region", { name: "Stage history" }).textContent).toContain(
+      "No changes.",
+    );
+  });
+
+  it("changes the stage after a confirmation", async () => {
+    serve(detail());
+    await open();
+    const user = userEvent.setup();
+    const button = screen.getByRole("button", { name: "Change stage" }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    await user.selectOptions(screen.getByLabelText("Stage"), "approved");
+    await user.click(button);
+    const dialog = await screen.findByRole("dialog", { name: "Change stage" });
+    expect(dialog.textContent).toContain("Move this candidate to Approved?");
+    expect(sent()).toHaveLength(0);
+    await user.click(within(dialog).getByRole("button", { name: "Change stage" }));
+    await waitFor(() => expect(sent()).toHaveLength(1));
+    expect(sent()[0][0]).toBe("/api/company/projects/p1/candidates/stage/");
+    expect(JSON.parse(sent()[0][1].body)).toEqual({ candidate_ids: ["k1"], stage: "approved" });
+  });
+
+  it("adds a note", async () => {
+    serve(detail());
+    await open();
+    const user = userEvent.setup();
+    const add = screen.getByRole("button", { name: "Add note" }) as HTMLButtonElement;
+    expect(add.disabled).toBe(true);
+    await user.type(screen.getByLabelText("New note"), "Strong referee");
+    await user.click(add);
+    await waitFor(() => expect(sent()).toHaveLength(1));
+    expect(sent()[0][0]).toBe(`${URL}notes/`);
+    expect(JSON.parse(sent()[0][1].body)).toEqual({ text: "Strong referee" });
+  });
+
+  it("shows who wrote a note and when", async () => {
+    serve(detail({ notes: [note({ mine: false })] }));
+    await open();
+    expect(screen.getByText("Omar, 2026-11-14")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Edit note" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete note" })).toBeNull();
+  });
+
+  it("the author can change a note", async () => {
+    serve(detail({ notes: [note()] }));
+    await open();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Edit note" }));
+    const box = screen.getByLabelText("Edit note");
+    await user.clear(box);
+    await user.type(box, "Call on Tuesday");
+    await user.click(screen.getByRole("button", { name: "Save note" }));
+    await waitFor(() => expect(sent()).toHaveLength(1));
+    expect(sent()[0][0]).toBe(`${URL}notes/n1/`);
+    expect(sent()[0][1].method).toBe("PATCH");
+    expect(JSON.parse(sent()[0][1].body)).toEqual({ text: "Call on Tuesday" });
+  });
+
+  it("the author can delete a note after a confirmation", async () => {
+    serve(detail({ notes: [note()] }));
+    await open();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Delete note" }));
+    expect(sent()).toHaveLength(0);
+    const dialog = await screen.findByRole("dialog", { name: "Delete note" });
+    await user.click(within(dialog).getByRole("button", { name: "Delete note" }));
+    await waitFor(() => expect(sent()).toHaveLength(1));
+    expect(sent()[0][1].method).toBe("DELETE");
+  });
+
+  it("shows the field message when a note is refused", async () => {
+    serve(detail());
+    await open();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("New note"), "x");
+    fetchMock.mockImplementation(async (_path: string, init?: { method?: string }) =>
+      init?.method
+        ? {
+            ok: false,
+            status: 400,
+            json: async () => ({
+              error: {
+                code: "validation_error",
+                message: "Check",
+                fields: { text: "The note is too long." },
+              },
+            }),
+          }
+        : { ok: true, status: 200, json: async () => detail() },
+    );
+    await user.click(screen.getByRole("button", { name: "Add note" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("The note is too long.");
   });
 });

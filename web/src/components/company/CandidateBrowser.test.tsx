@@ -164,4 +164,14 @@ describe("candidate filters", () => {
     rerender(<CandidateBrowser projectId="p1" />);
     await waitFor(() => expect(paths().at(-1)).toContain("page=1&grade=A"));
   });
+
+  it("lets the stage filter bring back rejected candidates", async () => {
+    render(<CandidateBrowser projectId="p1" />);
+    const { user, dialog } = await openFilters();
+    await user.click(within(dialog).getByRole("checkbox", { name: "Rejected" }));
+    await user.click(within(dialog).getByRole("button", { name: "Apply filters" }));
+    expect(replace).toHaveBeenCalledWith("/company/projects/p1/candidates?stage=rejected", {
+      scroll: false,
+    });
+  });
 });

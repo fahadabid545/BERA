@@ -117,6 +117,10 @@ class Candidate(CompanyOwnedModel):
 
     class Stage(models.TextChoices):
         NEW = "new"
+        SHORTLISTED = "shortlisted"
+        INTERVIEW = "interview"
+        APPROVED = "approved"
+        REJECTED = "rejected"
 
     project = models.ForeignKey(
         "projects.Project", on_delete=models.PROTECT, related_name="candidates"
@@ -240,5 +244,29 @@ class ExtraFactorValues(CompanyOwnedModel):
     candidate = models.OneToOneField(Candidate, on_delete=models.CASCADE, related_name="factors")
     values = models.JSONField(default=dict)
     basis_hash = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class StageChange(CompanyOwnedModel):
+    """One change of a candidate's stage: from where, to where, by whom and when. Never edited.
+    It goes with the candidate when the candidate is removed."""
+
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name="stage_changes")
+    from_stage = models.CharField(max_length=20, choices=Candidate.Stage.choices)
+    to_stage = models.CharField(max_length=20, choices=Candidate.Stage.choices)
+    changed_by = models.ForeignKey(
+        "companies.CompanyUser", on_delete=models.PROTECT, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class CandidateNote(CompanyOwnedModel):
+    """A note on a candidate, seen by the company's team. Only its author may change or remove
+    it. It goes with the candidate when the candidate is removed."""
+
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name="notes")
+    author = models.ForeignKey("companies.CompanyUser", on_delete=models.PROTECT, related_name="+")
+    text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
