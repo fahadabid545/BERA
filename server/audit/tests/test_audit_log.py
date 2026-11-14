@@ -27,7 +27,6 @@ class TestWhatAnEntryHolds:
         company, owner = team()
         admin = make_admin_user()
         record(
-            "admin.candidate_data_exception",
             "admin.role_changed",
             actor=admin,
             target=owner,
@@ -111,7 +110,6 @@ class TestTheWrittenReason:
         set_status(other.pk, "blocked", by=boss, reason=REASON)
         role, status = AuditEvent.objects.order_by("id")
         assert (role.kind, role.reason, role.actor_id, role.target_id) == (
-            "admin.candidate_data_exception",
             "admin.role_changed",
             REASON,
             boss.pk,
