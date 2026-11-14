@@ -23,7 +23,7 @@ CV_ID = uuid.uuid4()
 pytestmark = pytest.mark.django_db
 
 # Names of everything registered with register_project_data, one per kind of project data.
-EXPECTED_REGISTRATIONS = {"Requirement", "ProjectScoringSettings", "CvFile"}
+EXPECTED_REGISTRATIONS = {"Requirement", "ProjectScoringSettings", "CvFile", "Candidate"}
 # Work stoppers registered with register_work_stopper.
 EXPECTED_STOPPERS = {"CvProcessing"}
 # Models that mention a project on purpose and are kept: the usage ledger is history.

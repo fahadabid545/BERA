@@ -919,6 +919,24 @@ never reads the original `text`. It makes no AI call.
 - Tests: `cvs/tests/test_fairness_guard.py` runs a set of sample CVs and checks that none of
   their personal details remain while the work history does.
 
+## Candidate record
+
+When a CV has been read, the `candidate_record` step (`cvs/candidates.py`) creates its
+`Candidate`. The slot sits between `fairness_guard` and `scoring` in the pipeline, so the record
+exists before scoring and stays visible if scoring fails.
+
+- A candidate links its project, its original file (`CvFile`), its profile (`CvProfile`) and its
+  contact details (`CvContact`), and has a stage that starts as `new`. Other stages come with the
+  Stages and notes ticket. Scores and notes (later tickets) point at the candidate with a
+  cascading link.
+- One candidate per CV: a retry finds the existing record.
+- A CV that fails has no candidate. It stays in the project's file list from Background
+  processing, as a failed item with its reason and a Retry button.
+- `remove_candidate` removes the file from storage, the CV record, the profile, the contact
+  details and (by cascade) everything linked to the candidate; the usage history stays. Deleting a
+  project removes all its candidates the same way (registered in `projects/deletion.py`).
+- The ranked list and the detail screen come with their own tickets.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

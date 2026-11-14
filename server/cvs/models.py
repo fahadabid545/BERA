@@ -98,3 +98,22 @@ class CvContact(CompanyOwnedModel):
     phone = models.TextField(blank=True)
     address = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Candidate(CompanyOwnedModel):
+    """One person's CV in a project, created once the CV has been read (see `candidates.py`).
+    It ties together the original file, the profile used for scoring and the contact details,
+    and carries the stage. Scores and notes (later tickets) point at the candidate with a
+    cascading link, so removing the candidate removes them too."""
+
+    class Stage(models.TextChoices):
+        NEW = "new"
+
+    project = models.ForeignKey(
+        "projects.Project", on_delete=models.PROTECT, related_name="candidates"
+    )
+    cv_file = models.OneToOneField(CvFile, on_delete=models.CASCADE, related_name="candidate")
+    profile = models.OneToOneField(CvProfile, on_delete=models.CASCADE, related_name="candidate")
+    contact = models.OneToOneField(CvContact, on_delete=models.CASCADE, related_name="candidate")
+    stage = models.CharField(max_length=20, choices=Stage.choices, default=Stage.NEW)
+    created_at = models.DateTimeField(auto_now_add=True)
