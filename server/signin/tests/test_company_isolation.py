@@ -49,6 +49,7 @@ KINDS_NAMED_IN_THE_TICKET = {
 # Requirement: projects/tests/test_requirement_editor.py (TestAnotherCompany).
 # ProjectScoringSettings: projects/tests/test_scoring_settings.py (TestAnotherCompany).
 # CvFile: cvs/tests/test_cv_upload.py (TestAnotherCompany).
+# ProcessingTurn: cvs/tests/test_processing.py (fairness and TestJobsRunForTheRightCompany).
 # UsagePeriod, UsageCounter, CvUsage: usage/tests/test_usage_counting.py (kept apart per company).
 REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Invitation",
@@ -62,6 +63,7 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Requirement",
     "ProjectScoringSettings",
     "CvFile",
+    "ProcessingTurn",
 }
 
 

@@ -120,6 +120,19 @@ def mark_failed(company_id, cv_id):
         return True
 
 
+def reopen_cv(company_id, cv_id):
+    """A failed CV is tried again: it waits (and counts as waiting) once more. The caller has
+    checked that the month has room. Returns whether it was reopened."""
+    with transaction.atomic():
+        _lock(company_id)
+        entry = CvUsage.objects.get(company_id=company_id, cv_id=cv_id)
+        if entry.status != Status.FAILED:
+            return False
+        entry.status = Status.PENDING
+        entry.save(update_fields=["status"])
+        return True
+
+
 def add_tokens(
     company_id, tokens_in, tokens_out, estimated_cost, *, cv_id=None, project_id=None, now=None
 ):

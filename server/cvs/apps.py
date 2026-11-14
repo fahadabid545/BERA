@@ -6,4 +6,4 @@ class CvsConfig(AppConfig):
 
     def ready(self):
         # Registers what a project's deletion must remove (see projects/deletion.py).
-        from . import service  # noqa: F401
+        from . import service, steps  # noqa: F401

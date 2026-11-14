@@ -178,6 +178,15 @@ describe("uploadFiles", () => {
     expect(FakeRequest.last.withCredentials).toBe(true);
   });
 
+  it("sends extra fields beside the files", async () => {
+    const sent = uploadFiles("/api/x/", [new File(["a"], "a.pdf")], () => {}, {
+      fields: { batch: "abc" },
+    });
+    FakeRequest.last.onload?.();
+    await sent;
+    expect(FakeRequest.last.body?.get("batch")).toBe("abc");
+  });
+
   it("answers in the shared error shape when the server refuses", async () => {
     const sent = uploadFiles("/api/x/", [new File(["a"], "a.pdf")], () => {});
     FakeRequest.last.status = 409;

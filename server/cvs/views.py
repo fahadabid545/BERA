@@ -1,3 +1,6 @@
+import uuid
+
+from django.http import Http404
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
@@ -10,8 +13,19 @@ from projects.models import Project
 from signin.company_views import CompanyObjectView
 
 from .file_checks import check_cv_file, check_name_and_size
+from .models import CvFile
+from .processing import cancel_unstarted, project_processing, retry_failed
 from .service import upload_cvs, upload_rules
 from .text_reading import CvTextUnreadable, read_text
+
+
+def _batch_id(value):
+    """The id the upload area gives to everything dropped together; none, or anything that is
+    not an id, means this request is a batch of its own."""
+    try:
+        return uuid.UUID(str(value)) if value else None
+    except ValueError:
+        return None
 
 
 class ProjectCvUpload(CompanyObjectView):
@@ -40,7 +54,8 @@ class ProjectCvUpload(CompanyObjectView):
             raise form_error({"files": "Choose at least one file."})
         uploader = CompanyUser.objects.get(pk=request.user.user_id)
         files = [(file.name, file.size, file.read) for file in sent]
-        return Response({"results": upload_cvs(uploader, project, files)})
+        batch_id = _batch_id(request.data.get("batch"))
+        return Response({"results": upload_cvs(uploader, project, files, batch_id)})
 
 
 class ReadDescriptionFile(CompanyObjectView):
@@ -78,3 +93,46 @@ class ReadDescriptionFile(CompanyObjectView):
         except CvTextUnreadable as error:
             raise form_error({"file": error.message}) from error
         return Response({"text": read.text, "trimmed": read.trimmed, "notice": checked.notice})
+
+
+class ProjectProcessing(CompanyObjectView):
+    """What the project page shows about its CVs: counts per status and each CV's status."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("project.view")
+
+    def get(self, request, id):
+        return Response(project_processing(self.get_object()))
+
+
+class CancelUnstarted(CompanyObjectView):
+    """Skips the CVs that have not started, for the whole project or one upload (`batch`)."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("cv.upload")
+
+    def post(self, request, id):
+        project = self.get_object()
+        skipped = cancel_unstarted(project, _batch_id(request.data.get("batch")))
+        return Response({"skipped": skipped})
+
+
+class RetryFailedCv(CompanyObjectView):
+    """Puts one failed CV back in line. The CV must belong to this project and company."""
+
+    queryset = CvFile.objects.all()
+    lookup_url_kwarg = "cv_id"
+
+    def permitted_roles(self):
+        return roles_allowed("cv.upload")
+
+    def post(self, request, id, cv_id):
+        cv_file = self.get_object()
+        if str(cv_file.project_id) != str(id):
+            raise Http404
+        retry_failed(cv_file)
+        return Response({"status": CvFile.Status.WAITING})

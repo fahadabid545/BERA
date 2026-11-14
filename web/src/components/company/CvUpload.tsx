@@ -18,6 +18,7 @@ type FileResult = {
 type Entry = {
   id: number;
   file: File;
+  batch: string;
   state: "queued" | "uploading" | "added" | "skipped" | "refused" | "failed";
   progress: number;
   message: string;
@@ -69,8 +70,11 @@ export function CvUpload({ projectId }: { projectId: string }) {
 
   async function sendOne(entry: Entry) {
     update(entry.id, { state: "uploading", progress: 0, message: "" });
-    const result = await uploadFiles<{ results: FileResult[] }>(base, [entry.file], (fraction) =>
-      update(entry.id, { progress: Math.round(fraction * PERCENT) }),
+    const result = await uploadFiles<{ results: FileResult[] }>(
+      base,
+      [entry.file],
+      (fraction) => update(entry.id, { progress: Math.round(fraction * PERCENT) }),
+      { fields: { batch: entry.batch } },
     );
     if (!result.ok) {
       return update(entry.id, { state: "failed", message: result.error.message });
@@ -98,6 +102,7 @@ export function CvUpload({ projectId }: { projectId: string }) {
 
   function add(chosen: File[]) {
     if (!rules) return;
+    const batch = crypto.randomUUID(); // everything dropped together is one batch to cancel
     const fresh = chosen.map((file, position): Entry => {
       const id = nextId++;
       const tooMany = position >= rules.max_files_per_batch;
@@ -107,6 +112,7 @@ export function CvUpload({ projectId }: { projectId: string }) {
       return {
         id,
         file,
+        batch,
         progress: 0,
         state: problem ? "refused" : "queued",
         message: problem ?? "",

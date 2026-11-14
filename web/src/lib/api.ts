@@ -107,11 +107,13 @@ export function uploadFiles<T>(
   path: string,
   files: File[],
   onProgress: (fraction: number) => void,
-  mayRenew = true,
+  options: { mayRenew?: boolean; fields?: Record<string, string> } = {},
 ): Promise<ApiResult<T>> {
+  const { mayRenew = true, fields = {} } = options;
   return new Promise((resolve) => {
     const body = new FormData();
     for (const file of files) body.append("files", file);
+    for (const [name, value] of Object.entries(fields)) body.append(name, value);
     const xhr = new XMLHttpRequest();
     xhr.open("POST", path);
     xhr.withCredentials = true;
@@ -132,7 +134,9 @@ export function uploadFiles<T>(
       const error = (parsed as { error?: ApiError } | null)?.error;
       if (xhr.status === 401 && error?.code === NOT_SIGNED_IN) {
         if (mayRenew && (await renewSession())) {
-          return resolve(await uploadFiles<T>(path, files, onProgress, false));
+          return resolve(
+            await uploadFiles<T>(path, files, onProgress, { fields, mayRenew: false }),
+          );
         }
         sessionEnded();
       }

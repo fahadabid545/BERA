@@ -159,6 +159,13 @@ SETTINGS = [
     SettingDefinition("reading.min_characters", 30, whole_number(1, 1000)),
     SettingDefinition("reading.worker_timeout_seconds", 60, whole_number(1, 600)),
     SettingDefinition("reading.worker_memory_mb", 1024, whole_number(128, 16384)),
+    # Background processing of CVs: tries per CV, the waits between tries (seconds; the last
+    # one repeats), how long a CV may stay in one try before it counts as stuck, and how many
+    # CVs the project page lists at most.
+    SettingDefinition("processing.max_attempts", 3, whole_number(1, 10)),
+    SettingDefinition("processing.retry_waits_seconds", [30, 120], list_of_whole_numbers(1, 3600)),
+    SettingDefinition("processing.stuck_minutes", 5, whole_number(1, 120)),
+    SettingDefinition("processing.list_limit", 200, whole_number(10, 2000)),
     # Duplicate detection: two CVs with a phone number ending in the same digits (at least
     # this many) are likely the same person.
     SettingDefinition("duplicates.phone_digits", 9, whole_number(6, 15)),

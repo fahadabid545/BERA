@@ -12,6 +12,7 @@ export { Tabs } from "./Tabs";
 export { TabLinks } from "./TabLinks";
 export type { TabLinkItem } from "./TabLinks";
 export { Tag } from "./Tag";
+export type { TagVariant } from "./Tag";
 export { ThemeToggle } from "./ThemeToggle";
 export { TextLink } from "./TextLink";
 export { Textarea } from "./Textarea";

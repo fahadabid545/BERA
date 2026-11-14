@@ -212,6 +212,19 @@ describe("CV upload", () => {
     expect(screen.queryByRole("button", { name: "Try a.pdf again" })).toBeNull();
   });
 
+  it("everything chosen together shares one batch id, so it can be cancelled together", async () => {
+    uploadFiles.mockImplementation(async (_path, files: File[]) => accepted(files[0].name));
+    await ready();
+    await choose(pdf("a.pdf"), pdf("b.pdf"));
+    await waitFor(() => expect(uploadFiles).toHaveBeenCalledTimes(2));
+    const batches = uploadFiles.mock.calls.map((call) => call[3].fields.batch);
+    expect(batches[0]).toBeTruthy();
+    expect(batches[0]).toBe(batches[1]);
+    await choose(pdf("c.pdf"));
+    await waitFor(() => expect(uploadFiles).toHaveBeenCalledTimes(3));
+    expect(uploadFiles.mock.calls[2][3].fields.batch).not.toBe(batches[0]);
+  });
+
   it("files can be dropped", async () => {
     uploadFiles.mockImplementation(async (_path, files: File[]) => accepted(files[0].name));
     await ready();

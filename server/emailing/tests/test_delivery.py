@@ -110,7 +110,9 @@ class TestFailures:
                 run(email)
         assert email.status == "failed" and email.attempts == 4
         assert provider.attempts == 4  # the first try and three retries
-        assert Schedule.objects.count() == 3  # no fourth retry
+        assert (
+            Schedule.objects.filter(name__startswith="email-retry-").count() == 3
+        )  # no fourth retry
         assert "was not sent after 4 attempts" in caplog.text
         assert (email.to_address, email.text_body, email.html_body) == ("", "", "")
 
@@ -179,7 +181,7 @@ class TestBounces:
         email = run(queue())
         assert email.status == "failed" and email.last_error == "SMTPRecipientsRefused"
         assert BouncedAddress.objects.filter(address_lookup=ADDRESS).count() == 1
-        assert not Schedule.objects.exists()
+        assert not Schedule.objects.filter(name__startswith="email-retry-").exists()
 
     def test_later_emails_to_a_bounced_address_are_not_sent_in_any_spelling(self, provider):
         record_bounce("jo.reader@example.test", BouncedAddress.Kind.HARD_BOUNCE)

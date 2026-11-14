@@ -828,6 +828,49 @@ file (no route and no page for CVs). It returns `CvText(text, trimmed)`.
   box. The file is never stored and nothing is counted; it uses the upload allowance. Problems
   come back as a `file` field message.
 
+## Background processing
+
+`cvs/processing.py`. Accepted CVs are processed in the background (Django-Q workers), so people
+can leave the page. Statuses: `waiting`, `reading`, `scoring`, `done`, `failed` (and `cancelled`).
+
+- **The queue is the database.** A CV is a `CvFile` row; a restart loses nothing. Workers are woken
+  by a task per accepted file (`processing.tick`), and a sweep scheduled **once a minute**
+  (`processing.sweep`) wakes them for anything waiting, which covers work whose task was lost.
+  The schedules (this one, and the once-a-day `core.periodic.purge_rate_limit_counters`, which
+  clears old rate limit counters) are created by migrations, so every deployment has them.
+- **Nothing runs twice.** A worker claims a CV atomically with a fresh `claim_token` (rows another
+  worker holds are skipped); only the token's holder can change the CV, so a worker replaced after a
+  timeout or restart can neither run its steps nor overwrite the new worker.
+- **Fair.** Each claim goes to the company that waited longest for a turn (`ProcessingTurn`), then
+  to its oldest CV, one CV per task, so a large batch cannot hold up other companies.
+- **Retries.** A step that fails with an unexpected error is tried again after
+  `processing.retry_waits_seconds` (30 s, then 120 s) up to `processing.max_attempts` (3) tries,
+  then the CV is `failed` with a plain reason ("We could not process this file after several tries.
+  You can retry it."). A CV stuck in one try longer than `processing.stuck_minutes` (5) is taken
+  from its worker by the sweep and counts as a failed try. A file that can never work
+  (`PermanentFailure`, such as no readable text) fails at once. Error messages and CV text are never
+  logged or shown; only the kind of error is logged.
+- **Counting.** A failed or cancelled CV is not counted (`usage.mark_failed`); Retry
+  (`POST /api/company/projects/<id>/cvs/<cv>/retry/`) counts it again, so the month's limit is
+  checked (409 with the Upgrade prompt when full; archived projects refuse). Done does not itself
+  count a CV: the scoring step calls `usage.mark_scored` (only when
+  `duplicates.counts_toward_limits` is true).
+- **Cancel.** `POST /api/company/projects/<id>/cvs/cancel/` (optionally `{"batch": id}`; the upload
+  area gives everything dropped together one batch id) skips every CV that has not started and
+  gives its allowance back; running ones finish.
+- **The project page.** `GET /api/company/projects/<id>/processing/` returns a count per status
+  and each CV with its status, reason and `can_retry`, plus `refresh_seconds`
+  (`live_updates.max_delay_seconds`) for how often the page looks again; Live updates will replace the
+  polling. The Overview tab shows it under the upload area.
+- **Deleting a project** stops its processing first (registered stopper `CvProcessing`): unfinished
+  CVs lose their claim, so a worker still busy with one changes nothing.
+- **Steps plug into named slots**, in order: `text_reading`, `ai_reading`, `fairness_guard`,
+  `scoring`. A slot with no step is skipped. A ticket adds its step with
+  `processing.register_step(slot, function)`; the function gets a `StepContext` (the CV, its
+  company and project, and a `state` dict that carries results to later steps of the same try). Add
+  the slot to `EXPECTED_STEPS` in `cvs/tests/test_processing.py` with your test. Plugged in so far:
+  `text_reading` (`cvs/steps.py`: reads the text, then looks for a CV of the same person).
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

@@ -26,6 +26,7 @@ from usage import service as usage
 from .duplicates import DUPLICATE_FILE, DUPLICATE_FILE_MESSAGE, split_identical
 from .file_checks import TOO_MANY_FILES, FileCheck, check_cv_file, check_name_and_size
 from .models import CvFile
+from .processing import kick
 
 logger = logging.getLogger(__name__)
 
@@ -68,10 +69,11 @@ def upload_rules():
     }
 
 
-def upload_cvs(uploader, project, files):
+def upload_cvs(uploader, project, files, batch_id=None):
     """`files` are (name, size, read) triples in the order sent. Returns one result per file,
-    in the same order."""
+    in the same order. `batch_id` groups the files of one drop so it can be cancelled together."""
     require_editable(project)
+    batch_id = batch_id or uuid.uuid4()
     results = [None] * len(files)
     candidates = []
     room = get_setting("uploads.max_files_per_batch")
@@ -92,7 +94,7 @@ def upload_cvs(uploader, project, files):
             else:
                 candidates.append(_Candidate(index, name, data, checked))
     if candidates:
-        _accept(uploader, project, candidates, results)
+        _accept(uploader, project, candidates, results, batch_id)
     return results
 
 
@@ -125,7 +127,7 @@ def _discard(keys):
             logger.error("An unused file could not be removed: %s", key)
 
 
-def _accept(uploader, project, candidates, results):
+def _accept(uploader, project, candidates, results, batch_id):
     saved = _store(candidates, results, project)
     kept_keys = []
     try:
@@ -155,6 +157,7 @@ def _accept(uploader, project, candidates, results):
                     storage_key=candidate.key,
                     content_hash=candidate.content_hash,
                     uploaded_by=uploader,
+                    batch_id=batch_id,
                 )
                 usage.accept_cv(project.company_id, candidate.cv_id, project.pk)
                 kept_keys.append(candidate.key)
@@ -165,6 +168,7 @@ def _accept(uploader, project, candidates, results):
         _discard(candidate.key for candidate in saved)  # nothing was recorded
         raise
     _discard(candidate.key for candidate in saved if candidate.key not in kept_keys)
+    kick(len(kept_keys))  # outside the transaction, so workers find the rows
 
 
 def remove_cv_file(cv_file):

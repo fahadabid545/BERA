@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from core.models import CompanyOwnedModel
 
@@ -8,7 +9,14 @@ class CvFile(CompanyOwnedModel):
     kept by `cvs/storage.py` under `storage_key`; the name is only for showing to people."""
 
     class Status(models.TextChoices):
-        WAITING = "waiting"  # accepted; Background processing takes it from here
+        WAITING = "waiting"  # accepted (or waiting for another try); processing takes it next
+        READING = "reading"  # being read (text, then the AI)
+        SCORING = "scoring"
+        DONE = "done"
+        FAILED = "failed"  # gave up; `failure_reason` says why and the person can retry
+        CANCELLED = "cancelled"  # the batch was cancelled before this one started
+
+    ACTIVE_STATUSES = (Status.WAITING, Status.READING, Status.SCORING)
 
     class Review(models.TextChoices):
         NONE = "none"
@@ -30,6 +38,16 @@ class CvFile(CompanyOwnedModel):
     review = models.CharField(max_length=20, choices=Review.choices, default=Review.NONE)
     duplicate_of = models.ForeignKey("self", null=True, on_delete=models.SET_NULL, related_name="+")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.WAITING)
+    # Processing (see processing.py). A worker claims a CV by giving it a fresh `claim_token`
+    # and only the holder of that token may change it afterwards, so a worker that was
+    # replaced (after a restart or a timeout) can never overwrite the new one.
+    batch_id = models.UUIDField(null=True)  # the upload (drop) it arrived with
+    attempts = models.PositiveSmallIntegerField(default=0)
+    next_attempt_at = models.DateTimeField(default=timezone.now)
+    started_at = models.DateTimeField(null=True)
+    finished_at = models.DateTimeField(null=True)
+    claim_token = models.UUIDField(null=True)
+    failure_reason = models.TextField(blank=True)  # words for the person, never internals
     uploaded_by = models.ForeignKey(
         "companies.CompanyUser", on_delete=models.PROTECT, related_name="+"
     )
@@ -42,4 +60,17 @@ class CvFile(CompanyOwnedModel):
                 condition=models.Q(content_hash__isnull=False),
                 name="one_copy_of_a_file_per_project",
             ),
+        ]
+        indexes = [models.Index(fields=["status", "next_attempt_at"], name="cv_queue_lookup")]
+
+
+class ProcessingTurn(CompanyOwnedModel):
+    """When a company's CV last got a turn. The next turn goes to the company that waited the
+    longest, so one large batch cannot hold up everyone else."""
+
+    last_served_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["company"], name="one_processing_turn_per_company")
         ]

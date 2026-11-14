@@ -25,7 +25,7 @@ pytestmark = pytest.mark.django_db
 # Names of everything registered with register_project_data, one per kind of project data.
 EXPECTED_REGISTRATIONS = {"Requirement", "ProjectScoringSettings", "CvFile"}
 # Work stoppers registered with register_work_stopper.
-EXPECTED_STOPPERS = set()
+EXPECTED_STOPPERS = {"CvProcessing"}
 # Models that mention a project on purpose and are kept: the usage ledger is history.
 KEPT_FOR_HISTORY = {"UsageCounter", "CvUsage"}
 
