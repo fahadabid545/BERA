@@ -312,6 +312,10 @@ SETTINGS = [
         "Can you give an example from your recent work of: {requirement}?",
         short_text(300),
     ),
+    # AI outage handling (see ai/control.py): pause after this many failed calls in a row, for
+    # this many minutes, then carry on by itself.
+    SettingDefinition("ai.pause_after_failures", 5, whole_number(1, 1000)),
+    SettingDefinition("ai.auto_pause_minutes", 10, whole_number(1, 1440)),
     # The cost estimate shown before processing (see cvs/estimate.py). Averages only: the screen
     # always calls the figures approximate.
     SettingDefinition("estimate.cv_text_tokens", 2500, whole_number(1, 200000)),

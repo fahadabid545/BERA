@@ -15,7 +15,9 @@ const item = (over: object = {}) => ({
   can_retry: false,
   ...over,
 });
-const snapshot = (items: object[], counts: object = {}, refresh = 3) => ({
+const snapshot = (items: object[], counts: object = {}, refresh = 3, paused = false) => ({
+  ai_paused: paused,
+  ai_paused_message: paused ? "AI scoring is paused. We will resume automatically." : "",
   refresh_seconds: refresh,
   counts: {
     awaiting_confirmation: 0,
@@ -289,5 +291,22 @@ describe("cost estimate before processing", () => {
     render(<CvProcessing projectId="p1" />);
     await screen.findByText("Waiting 1");
     expect(screen.queryByRole("button", { name: "Review cost estimate" })).toBeNull();
+  });
+});
+
+describe("AI outage notice", () => {
+  it("tells users when AI scoring is paused", async () => {
+    answer(snapshot([item()], { waiting: 1 }, 3, true));
+    render(<CvProcessing projectId="p1" />);
+    expect((await screen.findByRole("status")).textContent).toBe(
+      "AI scoring is paused. We will resume automatically.",
+    );
+  });
+
+  it("shows nothing about it while AI work runs", async () => {
+    answer(snapshot([item()], { waiting: 1 }));
+    render(<CvProcessing projectId="p1" />);
+    await screen.findByText("Waiting 1");
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });

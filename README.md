@@ -1185,6 +1185,28 @@ How scored candidates are brought up to date when a project changes (`cvs/rescor
   carry on.
 - The estimate uses the `estimate.*` platform settings.
 
+## AI outage handling and kill switch
+
+Keeps the system calm when the AI provider fails (`ai/control.py`).
+
+- **Retries:** a CV whose AI call fails is tried again up to `processing.max_attempts` (3) times,
+  with the waits in `processing.retry_waits_seconds`. A CV that still fails is marked Failed (with
+  the Retry button) and flagged as failed by the AI provider. Failed CVs are never counted against
+  the plan's limits and use no tokens.
+- **Automatic pause:** when `ai.pause_after_failures` (5) AI calls fail in a row, all AI work
+  pauses for `ai.auto_pause_minutes` (10) and then carries on by itself (the once-a-minute sweep
+  ends it). Counting starts again afterwards. Users see "AI scoring is paused. We will resume
+  automatically." on the project page.
+- **While paused:** no CV is picked up and no try is used up. A CV in the middle of work goes back
+  to waiting without losing a try. Waiting CVs keep their order and carry on when AI resumes.
+  Requirement suggestions say it is paused.
+- **When AI resumes** (automatically or by the switch) the CVs that failed only because of the
+  provider go back in line, oldest first. One that no longer fits the month's limit, or whose
+  project is archived, stays Failed with its Retry button.
+- **Super admin switch:** Advanced > AI controls (`/api/admin/ai/controls/`, `pause/`, `resume/`)
+  pauses or resumes all AI work at once. It is super admin only, needs a written reason, and is
+  audited (`admin.ai_paused`, `admin.ai_resumed`). Resuming also ends an automatic pause.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

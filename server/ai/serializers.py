@@ -90,3 +90,7 @@ class CompareSerializer(StrictSerializer):
     kind = PromptKind()
     left = PromptNumber()
     right = PromptNumber()
+
+
+class AiSwitchSerializer(StrictSerializer):
+    reason = SafeTextField(max_length=MAX_REASON_LENGTH)

@@ -1,29 +1,31 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import AiControlsPage from "./page";
 
-describe("AI controls page", () => {
-  it("shows its buttons and nothing else", () => {
-    const { container } = render(<AiControlsPage />);
-    expect(screen.getByRole("button", { name: "Pause all AI" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Resume AI" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
-    expect(container.querySelectorAll("button, a, input, select, textarea")).toHaveLength(3);
-  });
-
-  it("does nothing when a button is pressed", async () => {
-    const { container } = render(<AiControlsPage />);
-    const before = container.innerHTML;
-    for (const button of screen.getAllByRole("button")) await userEvent.click(button);
-    expect(container.innerHTML).toBe(before);
-  });
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        paused: false,
+        paused_by_admin: false,
+        paused_automatically: false,
+        resumes_at: null,
+        message: "",
+      }),
+    }),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
 });
 
-it("gives Pause all AI the danger style", () => {
+it("shows the AI switch", async () => {
   render(<AiControlsPage />);
-  expect(screen.getByRole("button", { name: "Pause all AI" }).className).toContain(
-    "ui-button--danger",
-  );
+  expect(await screen.findByRole("button", { name: "Pause all AI" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Resume AI" })).toBeTruthy();
 });

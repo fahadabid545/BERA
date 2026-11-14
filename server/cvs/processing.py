@@ -31,9 +31,12 @@ from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Count, F, OuterRef, Subquery
+from django.db.models.functions import Greatest
 from django.utils import timezone
 from django_q.tasks import async_task
 
+from ai import control
+from ai.client import AiPaused, AiUnavailable
 from companies.models import Company
 from core.errors import AppError
 from core.jobs import logged_job
@@ -71,6 +74,7 @@ SLOT_STATUS = {
 STEPS = {}
 
 TICK_JOB = "cvs.processing.tick"
+AI_DOWN_REASON = "The AI service could not be reached. This will be tried again when it is back."
 GAVE_UP_REASON = "We could not process this file after several tries. You can retry it."
 TOO_LONG_REASON = "Processing this file took too long. You can retry it."
 NOT_FAILED_CODE = "not_failed"
@@ -113,6 +117,8 @@ def claim_next(now=None):
     """The next CV to work on, fairly: the company that waited longest for a turn, then its
     oldest CV. Returns the claimed CV (now reading, with a new `claim_token`) or None."""
     now = now or _now()
+    if control.is_paused(now):
+        return None  # AI work is paused: CVs wait in order and no try is used up
     turn = ProcessingTurn.objects.filter(company_id=OuterRef("company_id")).values(
         "last_served_at"
     )[:1]
@@ -147,9 +153,10 @@ def _wait_before_try(attempt):
     return timedelta(seconds=waits[min(attempt, len(waits)) - 1])
 
 
-def _give_up(item, reason, now):
+def _give_up(item, reason, now, ai_failure=False):
     updated = _holds(item).update(
         status=CvFile.Status.FAILED,
+        ai_failure=ai_failure,
         failure_reason=reason,
         finished_at=now,
         claim_token=None,
@@ -159,13 +166,26 @@ def _give_up(item, reason, now):
     return updated
 
 
-def _try_again_or_give_up(item, reason, now):
-    """After a failed try: wait and try again, or fail for good when the tries are used up."""
+def _try_again_or_give_up(item, reason, now, ai_failure=False):
+    """After a failed try: wait and try again, or fail when the tries are used up. A CV that
+    failed only because the AI did not answer is marked so it is retried when the AI is back."""
     if item.attempts >= get_setting("processing.max_attempts"):
-        return _give_up(item, reason, now)
+        return _give_up(item, reason, now, ai_failure)
     return _holds(item).update(
         status=CvFile.Status.WAITING,
         next_attempt_at=now + _wait_before_try(item.attempts),
+        started_at=None,
+        claim_token=None,
+    )
+
+
+def _hand_back(item, now):
+    """AI work was paused while this CV was being processed: it goes back to waiting and the
+    try it was on does not count."""
+    return _holds(item).update(
+        status=CvFile.Status.WAITING,
+        attempts=Greatest(F("attempts") - 1, 0),
+        next_attempt_at=now,
         started_at=None,
         claim_token=None,
     )
@@ -185,10 +205,16 @@ def run_item(item):
         except PermanentFailure as failure:
             _give_up(item, str(failure), _now())
             return
+        except AiPaused:
+            _hand_back(item, _now())
+            return
         except Exception as error:
             # The kind of error is logged (never its message or the CV): it can hold CV text.
             logger.error("Processing step %s failed with %s.", slot, type(error).__name__)
-            _try_again_or_give_up(item, GAVE_UP_REASON, _now())
+            if isinstance(error, AiUnavailable):
+                _try_again_or_give_up(item, AI_DOWN_REASON, _now(), ai_failure=True)
+            else:
+                _try_again_or_give_up(item, GAVE_UP_REASON, _now())
             return
     _holds(item).update(status=CvFile.Status.DONE, finished_at=_now(), claim_token=None)
 
@@ -210,6 +236,7 @@ def sweep():
     it when its tries are used up), and wakes the workers if CVs are waiting, which also covers
     work whose task was lost in a restart."""
     now = _now()
+    control.end_expired_pause(now)  # an automatic pause that is over: resume by itself
     cutoff = now - timedelta(minutes=get_setting("processing.stuck_minutes"))
     with transaction.atomic():
         stuck = CvFile.objects.select_for_update(skip_locked=True, of=("self",)).filter(
@@ -250,12 +277,35 @@ def retry_failed(cv_file):
             check_cvs_this_month(item.company_id).raise_if_blocked()
         usage.reopen_cv(item.company_id, item.pk)
         item.status, item.attempts, item.failure_reason = CvFile.Status.WAITING, 0, ""
-        item.next_attempt_at, item.finished_at = _now(), None
+        item.next_attempt_at, item.finished_at, item.ai_failure = _now(), None, False
         item.save(
-            update_fields=["status", "attempts", "failure_reason", "next_attempt_at", "finished_at"]
+            update_fields=[
+                "status",
+                "attempts",
+                "failure_reason",
+                "next_attempt_at",
+                "finished_at",
+                "ai_failure",
+            ]
         )
     kick(1)
     return item
+
+
+def retry_after_outage():
+    """AI work resumed: the CVs that failed only because the AI did not answer go back in line,
+    oldest first. One that no longer fits the month's limit, or whose project is archived, stays
+    failed with its Retry button."""
+    failed = CvFile.objects.filter(status=CvFile.Status.FAILED, ai_failure=True)
+    for item in failed.order_by("finished_at", "created_at"):
+        try:
+            retry_failed(item)
+        except AppError:
+            continue
+    kick(1)
+
+
+control.register_resume_hook(retry_after_outage)
 
 
 def project_processing(project):
@@ -269,7 +319,10 @@ def project_processing(project):
     items = CvFile.objects.filter(project=project).order_by("-created_at")[
         : get_setting("processing.list_limit")
     ]
+    paused = control.describe()
     return {
+        "ai_paused": paused["paused"],
+        "ai_paused_message": paused["message"],
         "refresh_seconds": get_setting("live_updates.max_delay_seconds"),
         "counts": {status: counts.get(status, 0) for status in CvFile.Status.values},
         "items": [

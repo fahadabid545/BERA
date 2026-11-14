@@ -27,6 +27,7 @@ SUPPORT_MAY_NOT = [
     "plan.change",
     "price.change",
     "model.change",
+    "ai.control",
     "prompt.change",
     "settings.change",
     "limit.change",

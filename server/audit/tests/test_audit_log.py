@@ -66,6 +66,8 @@ class TestTheWrittenReason:
     def test_the_actions_that_change_another_account_or_a_company_need_one(self):
         needing = {name for name, kind in KINDS.items() if kind.reason_required}
         assert needing == {
+            "admin.ai_paused",
+            "admin.ai_resumed",
             "admin.candidate_data_exception",
             "admin.model_changed",
             "admin.models_selected",

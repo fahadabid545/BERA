@@ -19,6 +19,7 @@ from django.db import transaction
 from platform_settings.service import get_setting
 from usage import service as usage
 
+from . import control
 from .costs import price_call
 from .models import AiCall
 
@@ -27,6 +28,10 @@ logger = logging.getLogger(__name__)
 
 class AiUnavailable(Exception):
     """The AI could not give an answer (no key, provider down, timeout, refused)."""
+
+
+class AiPaused(AiUnavailable):
+    """AI work is paused (automatically or by a super admin). No call was made."""
 
 
 @dataclass(frozen=True)
@@ -106,6 +111,8 @@ def call_ai(
         "cv_id": cv_id,
         "candidate_id": candidate_id,
     }
+    if control.is_paused():
+        raise AiPaused(control.PAUSED_MESSAGE)
     started = time.monotonic()
     try:
         answer = _send(
@@ -118,6 +125,7 @@ def call_ai(
     except AiUnavailable as error:
         logger.warning("The AI call failed.")
         _record(company_id, started, result=AiCall.Result.FAILED, failure=str(error), **ids)
+        control.note_failure()
         raise
     cost = price_call(model, answer.tokens_in, answer.tokens_out)
     with transaction.atomic():

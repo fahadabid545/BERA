@@ -17,7 +17,13 @@ type Estimate = {
   blocked: boolean;
   message: string;
 };
-type Processing = { refresh_seconds: number; counts: Record<Status, number>; items: Item[] };
+type Processing = {
+  ai_paused: boolean;
+  ai_paused_message: string;
+  refresh_seconds: number;
+  counts: Record<Status, number>;
+  items: Item[];
+};
 
 const STATUSES: { status: Status; label: string; variant: TagVariant }[] = [
   { status: "awaiting_confirmation", label: "Awaiting confirmation", variant: "neutral" },
@@ -97,6 +103,7 @@ export function CvProcessing({ projectId }: { projectId: string }) {
   if (total === 0) return null;
   return (
     <div className="page-stack">
+      {processing.ai_paused && <p role="status">{processing.ai_paused_message}</p>}
       <ul className="cv-upload-list" aria-label="CV status counts">
         {STATUSES.filter(({ status }) => processing.counts[status] > 0).map(({ status, label }) => (
           <li key={status}>

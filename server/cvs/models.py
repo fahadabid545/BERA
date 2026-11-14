@@ -47,6 +47,9 @@ class CvFile(CompanyOwnedModel):
     # replaced (after a restart or a timeout) can never overwrite the new one.
     batch_id = models.UUIDField(null=True)  # the upload (drop) it arrived with
     attempts = models.PositiveSmallIntegerField(default=0)
+    # True when the CV failed only because the AI provider did not answer, so it is put back in
+    # line by itself when AI work resumes (see `ai/control.py`).
+    ai_failure = models.BooleanField(default=False)
     next_attempt_at = models.DateTimeField(default=timezone.now)
     started_at = models.DateTimeField(null=True)
     finished_at = models.DateTimeField(null=True)

@@ -97,6 +97,8 @@ EXPECTED_DEFAULTS = {
     "scoring.points_missing": 0,
     "scoring.cap_on_missing_must_have": False,
     "scoring.missing_must_have_cap": 60,
+    "ai.pause_after_failures": 5,
+    "ai.auto_pause_minutes": 10,
     "estimate.cv_text_tokens": 2500,
     "estimate.reading_prompt_tokens": 600,
     "estimate.reading_output_tokens": 1200,

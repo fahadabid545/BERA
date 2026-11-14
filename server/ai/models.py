@@ -108,3 +108,21 @@ class AiCall(CompanyOwnedModel):
                 name="aicall_failure_only_when_failed",
             ),
         ]
+
+
+class AiControl(models.Model):
+    """The one row that says whether AI work may run (see `control.py`). Two things can pause
+    it: the super admin's switch (`paused`) and an automatic pause after repeated failures
+    (`auto_paused_until`). `counting_from` is where the count of failures in a row starts, so a
+    pause that ended is not paused again by the failures that caused it."""
+
+    paused = models.BooleanField(default=False)
+    paused_changed_at = models.DateTimeField(null=True)
+    auto_paused_at = models.DateTimeField(null=True)
+    auto_paused_until = models.DateTimeField(null=True)
+    counting_from = models.DateTimeField(null=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(id=1), name="ai_control_is_one_row"),
+        ]

@@ -8,7 +8,7 @@ checked strictly; an unusable answer or an unavailable AI falls back to manual e
 import json
 import logging
 
-from ai.client import AiUnavailable, call_ai
+from ai.client import AiPaused, AiUnavailable, call_ai
 from ai.models import AiCall
 from plans.limits import check_ai_allowed
 from platform_settings.service import get_setting
@@ -61,8 +61,8 @@ def parse_answer(raw_text):
     return (language.strip().lower() if isinstance(language, str) else ""), cleaned
 
 
-def _fallback():
-    return {"requirements": [], "warnings": [], "fallback": True, "message": FALLBACK_MESSAGE}
+def _fallback(message=FALLBACK_MESSAGE):
+    return {"requirements": [], "warnings": [], "fallback": True, "message": message}
 
 
 def suggest_requirements(project):
@@ -79,6 +79,8 @@ def suggest_requirements(project):
             text=project.job_description,
             project_id=project.pk,
         )
+    except AiPaused as paused:
+        return _fallback(str(paused))
     except AiUnavailable:
         return _fallback()
     parsed = parse_answer(answer.text)

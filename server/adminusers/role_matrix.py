@@ -36,6 +36,7 @@ ROLES_ALLOWED = {
     "plan.change": SUPER_ONLY,
     "price.change": SUPER_ONLY,
     "model.change": SUPER_ONLY,
+    "ai.control": SUPER_ONLY,  # pause or resume all AI work
     "prompt.change": SUPER_ONLY,
     "settings.change": SUPER_ONLY,
     "limit.change": SUPER_ONLY,

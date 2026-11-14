@@ -51,6 +51,8 @@ KINDS = _kinds(
     EventKind("admin.model_added"),
     EventKind("admin.model_changed", reason_required=True),
     EventKind("admin.models_selected", reason_required=True),
+    EventKind("admin.ai_paused", reason_required=True),
+    EventKind("admin.ai_resumed", reason_required=True),
     EventKind("admin.prompt_created"),
     EventKind("admin.prompt_made_current", reason_required=True),
     EventKind("admin.prompt_deleted", reason_required=True),
