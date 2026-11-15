@@ -124,7 +124,7 @@ def coverage(project):
     return {"candidates": scored, "requirements": entries}
 
 
-def _per_day(queryset, column, first, days):
+def per_day(queryset, column, first, days):
     counts = dict(
         queryset.filter(
             **{f"{column}__date__gte": first, f"{column}__date__lt": first + timedelta(days=days)}
@@ -136,7 +136,7 @@ def _per_day(queryset, column, first, days):
     return [counts.get(first + timedelta(days=offset), 0) for offset in range(days)]
 
 
-def _change(current, previous):
+def percent_change(current, previous):
     """Percent change against the previous period; None when there was nothing before."""
     return round((current - previous) * PERCENT / previous, 1) if previous else None
 
@@ -166,14 +166,14 @@ def trend(company_id, project, days):
         ("uploaded", uploads, "created_at"),
         ("scored", scores, "created_at"),
     ):
-        current = _per_day(queryset, column, start, days)
-        previous = _per_day(queryset, column, before, days)
+        current = per_day(queryset, column, start, days)
+        previous = per_day(queryset, column, before, days)
         metrics[name] = {
             "current": current,
             "previous": previous,
             "total": sum(current),
             "previous_total": sum(previous),
-            "change_percent": _change(sum(current), sum(previous)),
+            "change_percent": percent_change(sum(current), sum(previous)),
         }
     return {
         "days": days,

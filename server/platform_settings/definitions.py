@@ -323,6 +323,14 @@ SETTINGS = [
     SettingDefinition("charts.ranking_max_bars", 10, whole_number(1, 50)),
     SettingDefinition("charts.trend_days_choices", [7, 30, 90], list_of_whole_numbers(1, 365)),
     SettingDefinition("charts.trend_days_default", 7, whole_number(1, 365)),
+    # The company dashboard (see cvs/dashboard.py).
+    SettingDefinition("dashboard.period_choices_days", [1, 7, 30], list_of_whole_numbers(1, 365)),
+    SettingDefinition("dashboard.period_default_days", 30, whole_number(1, 365)),
+    SettingDefinition("dashboard.sparkline_days", 7, whole_number(2, 90)),
+    SettingDefinition("dashboard.top_candidates_count", 5, whole_number(1, 20)),
+    SettingDefinition("dashboard.activity_limit", 8, whole_number(1, 50)),
+    SettingDefinition("dashboard.detail_limit", 20, whole_number(1, 200)),
+    SettingDefinition("dashboard.expiring_link_days", 3, whole_number(1, 90)),
     # Comparing candidates (see cvs/comparison.py).
     SettingDefinition("comparison.min_candidates", 2, whole_number(2, 10)),
     SettingDefinition("comparison.max_candidates", 4, whole_number(2, 10)),

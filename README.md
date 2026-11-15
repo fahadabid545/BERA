@@ -1387,6 +1387,44 @@ Code: `server/cvs/charts.py`, `web/src/components/charts/`; every chart is on th
   green only as fill, neutral surfaces, hatching for "partly", and every value written next to its
   mark so nothing depends on colour.
 
+## Company dashboard
+
+The company dashboard (Overview tab) answers one question per card, all counted from stored data
+when asked (no AI) and refreshed by the live-updates routine. Numbers for the chosen period (today,
+this week, this month) sit next to the period before it.
+
+| Card | Question | Opens |
+| --- | --- | --- |
+| CVs uploaded, CVs scored, Shortlisted, Average AI score | More or less than before? | The CVs or candidates counted |
+| Hiring pace, Match quality, Time to shortlist | Better or worse than before? | The same lists |
+| CVs by recommendation, Projects overview (donuts) | How are they split? | Who is in each part |
+| Screening progress (gauge) | How much is scored? | Projects with their counts |
+| Top candidates | Who is best? Pick two to four to compare | The candidate, the comparison page |
+| Quick actions | What is done most often? | Upload, new project, share report, export |
+| Pending actions | What waits for me? | The CVs or links waiting |
+| Funnel, Score distribution, Trend | Where do CVs drop out, how do scores spread, how is the pace? | Steps and grades as lists |
+| Live activity | What just happened? | The candidate or project |
+
+Every card and every mark of a chart shows its details on hover or keyboard focus. Where it makes
+sense it also opens a popup with the list behind it; every name in that list is a link to the page
+where it can be worked on. The project charts open the same popups, narrowed to their project.
+
+- `GET /api/company/dashboard/?days=&project=`: the cards. `days` is one of
+  `dashboard.period_choices_days`; `project` picks the top candidates (default: the most recent
+  project with scores).
+- `GET /api/company/dashboard/detail/?kind=&key=&days=&project=`: what is behind a card or mark
+  (`metric`, `insight`, `funnel`, `grade`, `recommendation`, `project_status`, `screening`,
+  `pending`), at most `dashboard.detail_limit` items with the real total.
+- `GET /api/company/dashboard/report/?days=`: the numbers as JSON for the printable page
+  (`/company/dashboard/print`), or `&as=csv` for the file. The report holds projects and counts,
+  never candidate names, and the CSV guards cells that look like formulas.
+- Platform settings: `dashboard.period_choices_days`, `dashboard.period_default_days`,
+  `dashboard.sparkline_days`, `dashboard.top_candidates_count`, `dashboard.activity_limit`,
+  `dashboard.detail_limit`, `dashboard.expiring_link_days`.
+- Candidate names are shown as initials, like in the lists.
+- The data colours (green, blue, violet, amber, coral, teal, grey) are tokens in `tokens.css`; the
+  light and dark pairs are checked in `design-rules.test.ts`. Dark mode keeps the original cards.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

@@ -18,14 +18,11 @@ const METRICS = [
   { value: "uploaded", label: "CVs uploaded" },
   { value: "scored", label: "CVs scored" },
 ];
-const DATE_LENGTH = 10;
 
 /** The trend chart with its two choices: what to count and over how many days. The days go to
  * the server (it picks the periods), so the parent reads them. */
 export function TrendCard({ trend, onDays }: { trend: TrendData; onDays: (days: number) => void }) {
   const [metric, setMetric] = useState<"uploaded" | "scored">("uploaded");
-  const end = new Date(trend.start);
-  end.setUTCDate(end.getUTCDate() + trend.days - 1);
   return (
     <ChartCard
       title="Trend"
@@ -48,8 +45,8 @@ export function TrendCard({ trend, onDays }: { trend: TrendData; onDays: (days: 
     >
       <Trend
         metric={trend.metrics[metric]}
-        startLabel={trend.start}
-        endLabel={end.toISOString().slice(0, DATE_LENGTH)}
+        start={trend.start}
+        label={METRICS.find((item) => item.value === metric)?.label ?? metric}
       />
     </ChartCard>
   );

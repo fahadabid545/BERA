@@ -32,6 +32,9 @@ function contrast(first: string, second: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+// The chart colours: each is a fill with its own text colour, and a soft tint for rows and tags.
+const DATA_COLOURS = ["blue", "violet", "amber", "coral", "teal"] as const;
+
 // [foreground token, background token]: readable text needs 4.5:1.
 const TEXT_PAIRS = [
   ["color-text", "color-bg"],
@@ -55,6 +58,12 @@ const TEXT_PAIRS = [
   ["color-admin-text", "color-admin-active"],
 ] as const;
 
+const DATA_TEXT_PAIRS = DATA_COLOURS.flatMap((name): [string, string][] => [
+  [`color-on-data-${name}`, `color-data-${name}`],
+  ["color-text", `color-data-${name}-soft`],
+  ["color-text-muted", `color-data-${name}-soft`],
+]);
+
 // Borders, focus rings and other parts needed to use a control: 3:1.
 const CONTROL_PAIRS = [
   ["color-control-border", "color-surface"],
@@ -75,9 +84,12 @@ describe.each(Object.entries(MODES))("%s mode colours", (_mode, tokens) => {
     expect(tokens["color-on-accent"]).toBe("#0d100c");
   });
 
-  it.each(TEXT_PAIRS)("text %s on %s is readable (4.5:1)", (foreground, background) => {
-    expect(contrast(tokens[foreground], tokens[background])).toBeGreaterThanOrEqual(4.5);
-  });
+  it.each([...TEXT_PAIRS, ...DATA_TEXT_PAIRS])(
+    "text %s on %s is readable (4.5:1)",
+    (foreground, background) => {
+      expect(contrast(tokens[foreground], tokens[background])).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 
   it.each(CONTROL_PAIRS)("%s against %s is clearly visible (3:1)", (foreground, background) => {
     expect(contrast(tokens[foreground], tokens[background])).toBeGreaterThanOrEqual(3);

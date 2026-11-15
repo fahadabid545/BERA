@@ -1,10 +1,10 @@
 "use client";
 
 import * as RadixTooltip from "@radix-ui/react-tooltip";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 /** Shows on hover and on keyboard focus. `children` must be a single focusable element. */
-export function Tooltip({ content, children }: { content: string; children: ReactElement }) {
+export function Tooltip({ content, children }: { content: ReactNode; children: ReactElement }) {
   return (
     <RadixTooltip.Provider delayDuration={200}>
       <RadixTooltip.Root>

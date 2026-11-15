@@ -126,25 +126,25 @@ describe("Trend", () => {
     ...over,
   });
   it("shows the total, the previous total and the change in words", () => {
-    render(<Trend metric={metric()} startLabel="2026-11-01" endLabel="2026-11-03" />);
+    render(<Trend metric={metric()} start="2026-11-01" label="CVs uploaded" />);
     expect(screen.getByText("4")).toBeTruthy();
     expect(screen.getByText("+33.3% against the previous period")).toBeTruthy();
     expect(screen.getByText("Previous period 3")).toBeTruthy();
-    expect(screen.getByRole("img").getAttribute("aria-label")).toBe(
-      "This period 4, previous period 3",
+    expect(screen.getAllByRole("img")[0].getAttribute("aria-label")).toBe(
+      "CVs uploaded: this period 4, previous period 3",
     );
-    expect(screen.getByText("2026-11-01")).toBeTruthy();
+    expect(screen.getAllByText(/1 Nov/).length).toBeGreaterThan(0);
   });
   it("shows a drop with its sign and says so when there was no earlier period", () => {
-    render(<Trend metric={metric({ change_percent: -75 })} startLabel="a" endLabel="b" />);
+    render(<Trend metric={metric({ change_percent: -75 })} start="2026-11-01" label="x" />);
     expect(screen.getByText("-75% against the previous period")).toBeTruthy();
     cleanup();
-    render(<Trend metric={metric({ change_percent: null })} startLabel="a" endLabel="b" />);
+    render(<Trend metric={metric({ change_percent: null })} start="2026-11-01" label="x" />);
     expect(screen.getByText("No earlier period")).toBeTruthy();
   });
   it("draws a flat chart for all zeros without breaking", () => {
     const zeros = metric({ current: [0, 0], previous: [0, 0], total: 0, previous_total: 0 });
-    const { container } = render(<Trend metric={zeros} startLabel="a" endLabel="b" />);
+    const { container } = render(<Trend metric={zeros} start="2026-11-01" label="x" />);
     expect(container.querySelector(".chart-trend__line")?.getAttribute("d")).not.toContain("NaN");
   });
 });

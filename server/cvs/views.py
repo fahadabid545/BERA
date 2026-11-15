@@ -1,6 +1,6 @@
 import uuid
 
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
@@ -14,6 +14,9 @@ from signin.company_views import CandidateDataView, CompanyObjectView
 
 from .charts import company_charts, project_charts
 from .comparison import matrix, side_by_side
+from .dashboard import dashboard, report_csv
+from .dashboard import detail as dashboard_detail
+from .dashboard import report as dashboard_report
 from .detail import candidate_detail
 from .downloads import cv_file_response
 from .estimate import confirm, estimate
@@ -391,6 +394,70 @@ class ProjectCharts(CandidateDataView):
 
     def get(self, request, id):
         return Response(project_charts(self.get_object(), request.query_params.get("days")))
+
+
+class CompanyDashboard(CandidateDataView):
+    """The company dashboard's cards (`?days=` picks the period, `?project=` the top list)."""
+
+    queryset = Project.objects.all()
+
+    def get_throttles(self):
+        return [throttle() for throttle in live()]
+
+    def permitted_roles(self):
+        return roles_allowed("project.view")
+
+    def get(self, request):
+        self.get_queryset()  # checks the role and the company
+        return Response(
+            dashboard(
+                request.user.company_id,
+                request.query_params.get("days"),
+                request.query_params.get("project"),
+            )
+        )
+
+
+class CompanyDashboardDetail(CandidateDataView):
+    """What is behind one card or mark of the dashboard, for its popup."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("project.view")
+
+    def get(self, request):
+        self.get_queryset()
+        params = request.query_params
+        return Response(
+            dashboard_detail(
+                request.user.company_id,
+                params.get("kind"),
+                params.get("key"),
+                params.get("days"),
+                params.get("project"),
+            )
+        )
+
+
+class CompanyDashboardReport(CandidateDataView):
+    """The dashboard's numbers as a table: JSON for the printable page, CSV for the file."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("project.view")
+
+    def get(self, request):
+        self.get_queryset()
+        data = dashboard_report(request.user.company_id, request.query_params.get("days"))
+        if request.query_params.get("as") != "csv":
+            return Response(data)
+        response = HttpResponse(report_csv(data), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = (
+            f'attachment; filename="bera-report-{data["generated_on"]}.csv"'
+        )
+        return response
 
 
 class CompanyCharts(CandidateDataView):

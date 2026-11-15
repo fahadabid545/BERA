@@ -2,8 +2,9 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { CompanyCharts } from "@/components/charts/CompanyCharts";
 import { Tabs } from "@/components/ui";
+
+import { CompanyDashboard } from "./CompanyDashboard";
 
 export const DASHBOARD_TABS = [
   { value: "overview", label: "Overview" },
@@ -33,7 +34,7 @@ export function DashboardTabs() {
       }
       tabs={DASHBOARD_TABS.map((tab) => ({
         ...tab,
-        content: tab.value === "overview" ? <CompanyCharts /> : null,
+        content: tab.value === "overview" ? <CompanyDashboard /> : null,
       }))}
     />
   );

@@ -1,6 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("next/navigation", async (original) => ({
+  ...(await original<typeof import("next/navigation")>()),
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 import DesignSample from "./page";
 
 afterEach(() => vi.unstubAllEnvs());
@@ -13,6 +18,7 @@ describe("design sample page", () => {
       "Buttons",
       "Inputs, selects and checkboxes",
       "Charts",
+      "Dashboard",
       "Cards, tags and tooltips",
       "Table",
       "Tabs and popup",
@@ -24,8 +30,8 @@ describe("design sample page", () => {
     expect(screen.getByRole("tablist")).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "Sample pages" })).toBeTruthy();
     expect(screen.getByRole("table")).toBeTruthy();
-    expect(screen.getByRole("combobox")).toBeTruthy();
-    expect(screen.getAllByRole("checkbox")).toHaveLength(2);
+    expect(screen.getAllByRole("combobox").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("checkbox").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("textbox", { name: "Project name" })).toBeTruthy();
     for (const word of ["Strong match", "Missing must-have", "Not recommended", "Live"]) {
       expect(screen.getAllByText(word).length).toBeGreaterThan(0);

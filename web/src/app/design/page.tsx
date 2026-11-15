@@ -27,6 +27,7 @@ import { Ranking } from "@/components/charts/Ranking";
 import { Trend } from "@/components/charts/Trend";
 import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
 
+import { DashboardSample } from "./DashboardSample";
 import { DeleteConfirmation } from "./DeleteConfirmation";
 
 export const metadata = { title: "BERA design sample" };
@@ -162,12 +163,17 @@ export default function DesignSample() {
                   previous_total: 19,
                   change_percent: 52.6,
                 }}
-                startLabel="2026-11-01"
-                endLabel="2026-11-07"
+                start="2026-11-01"
+                label="CVs uploaded"
               />
             </ChartCard>
           </div>
         </div>
+      </section>
+
+      <section className="sample-section" aria-labelledby="sample-dashboard">
+        <h2 id="sample-dashboard">Dashboard</h2>
+        <DashboardSample />
       </section>
 
       <section className="sample-section" aria-labelledby="sample-cards">
