@@ -1108,6 +1108,9 @@ The final score is worked out by the system's own rules (`cvs/scoring.py`), neve
   whether the cap applied) by the pipeline's `scoring` slot.
 - The pipeline now loads every step at start-up (the ATS, extra-factor and scoring steps had been
   loaded only by tests).
+- **Counting:** the scoring step counts a CV against the month's limit once, when it is scored
+  (`usage.mark_scored`); re-scoring never counts it again. A CV flagged as a likely duplicate is
+  counted only when the person keeps it.
 
 ## Recommendation and insights
 

@@ -24,7 +24,9 @@ from decimal import ROUND_HALF_UP, Decimal
 from platform_settings.service import get_setting
 from projects.models import Requirement
 from projects.scoring_settings import effective_settings
+from usage import service as usage
 
+from .duplicates import counts_toward_limits
 from .models import Candidate, CandidateScore, RequirementResult
 from .processing import StepContext, register_step
 from .recommendation import recommend
@@ -180,8 +182,13 @@ def recalculate_project(project):
 
 def calculate_the_score(context: StepContext):
     """Slot `scoring`: the final score from the results the evaluation step saved."""
-    if score_candidate(context.cv_file.candidate) is None:
+    cv_file = context.cv_file
+    if score_candidate(cv_file.candidate) is None:
         raise ResultsOutOfDate
+    # A scored CV counts against the month once. One waiting for a duplicate decision does not
+    # yet; it is counted when the person keeps it (`duplicates.keep_flagged_cv`).
+    if counts_toward_limits(cv_file):
+        usage.mark_scored(cv_file.company_id, cv_file.pk)
 
 
 register_step("scoring", calculate_the_score)

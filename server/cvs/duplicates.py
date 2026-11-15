@@ -116,6 +116,8 @@ def keep_flagged_cv(cv_file):
         _flagged(cv_file)
         cv_file.review = CvFile.Review.KEPT
         cv_file.save(update_fields=["review"])
+        if cv_file.status == CvFile.Status.DONE:  # it was scored while waiting: count it now
+            usage.mark_scored(cv_file.company_id, cv_file.pk)
     return cv_file
 
 
