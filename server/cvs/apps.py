@@ -15,5 +15,6 @@ class CvsConfig(AppConfig):
             profile_reading,
             scoring,
             service,
+            shared_reports,
             steps,
         )

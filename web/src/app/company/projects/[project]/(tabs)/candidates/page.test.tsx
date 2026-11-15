@@ -12,11 +12,14 @@ vi.mock("next/navigation", () => ({
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockResolvedValue({
+    vi.fn().mockImplementation(async (path: string) => ({
       ok: true,
       status: 200,
-      json: async () => ({ page: 1, pages: 1, count: 0, refresh_seconds: 3, rows: [] }),
-    }),
+      json: async () =>
+        path.includes("/reports/")
+          ? { days: { choices: [1, 7, 30], default: 7 }, reports: [] }
+          : { page: 1, pages: 1, count: 0, refresh_seconds: 3, rows: [] },
+    })),
   );
 });
 afterEach(() => {
@@ -35,7 +38,7 @@ describe("ProjectCandidatesPage", () => {
   it("asks for the candidates of the project it was opened for", async () => {
     render(await ProjectCandidatesPage({ params: Promise.resolve({ project: "p1" }) }));
     await vi.waitFor(() =>
-      expect(vi.mocked(fetch).mock.calls[0][0]).toBe(
+      expect(vi.mocked(fetch).mock.calls.map((call) => call[0])).toContain(
         "/api/company/projects/p1/candidates/?sort=score&direction=desc&page=1",
       ),
     );

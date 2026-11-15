@@ -1325,6 +1325,28 @@ its scoring settings (platform default `scoring.top_n` 10, held at the plan's `m
 - When N is larger than the number of scored candidates, all of them are in. Each list row has a
   `top` flag.
 
+## Share report
+
+A read-only link to the project's top candidates for people without an account. Buttons **Share
+report** and **Shared links** on the Candidates tab (any team role: `report.share`). Code:
+`server/cvs/shared_reports.py`.
+
+- Create: `POST /api/company/projects/<id>/reports/` with `days` (one of
+  `sharing.report_link_choices_days`, default `sharing.report_link_default_days`) and
+  `hide_contact`. It copies the project's current top N (ties included, see Top-N list) as it is
+  at that moment: rank, score, grade, strengths and risks; later scoring or stage changes never
+  change it. Nothing scored yet answers `nothing_to_share`. The answer holds the token once
+  (`token_urlsafe(32)`); only its SHA-256 is stored, so a link cannot be found again.
+- Contact details: unless hidden, name, email and phone are kept in the report (encrypted
+  column); when hidden they are not stored in it at all and the page shows "Candidate <rank>".
+- List and revoke: `GET .../reports/` (status active, expired or revoked, views, expiry, and the
+  expiry choices), `POST .../reports/<report_id>/revoke/`. Both are written to the activity log
+  (kind `share`, no link in it).
+- The public page is `/r/<token>`, served from the public route `GET /api/reports/<token>/`
+  (on the public route list with its reason). Unknown, expired and revoked links all answer 404
+  `report_unavailable` with "This report is no longer available." Every successful view adds to
+  the report's view count. The answer is never cached and the page is kept out of search engines.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

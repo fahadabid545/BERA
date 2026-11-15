@@ -22,6 +22,7 @@ from .notes import add_note, change_note, remove_note
 from .processing import cancel_unstarted, project_processing, retry_failed
 from .ranking import ranked_list
 from .service import upload_cvs, upload_rules
+from .shared_reports import create_report, describe, reports_of, revoke_report
 from .stages import change_stage
 from .text_reading import CvTextUnreadable, read_text
 
@@ -331,3 +332,37 @@ class CandidateMatrix(CandidateDataView):
 
     def get(self, request, id):
         return Response(matrix(self.get_object(), request.query_params))
+
+
+class ProjectReports(CandidateDataView):
+    """The project's shared report links: list them, or make one for the top candidates."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("report.share")
+
+    def get(self, request, id):
+        return Response(reports_of(self.get_object()))
+
+    def post(self, request, id):
+        report, token = create_report(
+            self.get_object(),
+            request.user,
+            request.data.get("days"),
+            request.data.get("hide_contact"),
+        )
+        # The token is in this answer and nowhere else; it cannot be looked up again.
+        return Response({**describe(report), "token": token}, status=201)
+
+
+class ProjectReportRevoke(CandidateDataView):
+    """Stops a report link at once."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("report.share")
+
+    def post(self, request, id, report_id):
+        return Response(revoke_report(self.get_object(), request.user, report_id))

@@ -30,3 +30,21 @@ def in_top(top, score, stage):
     if score is None or stage == Candidate.Stage.REJECTED:
         return False
     return top["cutoff"] is None or score >= top["cutoff"]
+
+
+def top_scores(project):
+    """The candidates in the top as their scores, best first (ties by date added, then file name,
+    like the list's rank), with the CV and contact read in the same query."""
+    top = top_list(project)
+    scored = (
+        CandidateScore.objects.filter(company_id=project.company_id, candidate__project=project)
+        .exclude(candidate__stage=Candidate.Stage.REJECTED)
+        .select_related("candidate__cv_file", "candidate__contact")
+    )
+    if top["cutoff"] is not None:
+        scored = scored.filter(score__gte=top["cutoff"])
+    return list(
+        scored.order_by(
+            "-score", "candidate__cv_file__created_at", "candidate__cv_file__original_name", "pk"
+        )
+    )

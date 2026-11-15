@@ -81,6 +81,7 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "StageChange",
     "CandidateNote",
     "ProjectFactorSettings",
+    "SharedReport",
 }
 
 

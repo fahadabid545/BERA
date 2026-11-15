@@ -26,6 +26,7 @@ pytestmark = pytest.mark.django_db
 EXPECTED_REGISTRATIONS = {
     "Requirement",
     "ProjectScoringSettings",
+    "SharedReport",
     "CvFile",
     "Candidate",
     "ProjectFactorSettings",

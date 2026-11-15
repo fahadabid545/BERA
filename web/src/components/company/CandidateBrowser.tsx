@@ -12,6 +12,7 @@ import {
   type RequirementChoice,
 } from "./CandidateFilters";
 import { CandidateList } from "./CandidateList";
+import { SharedReports } from "./SharedReports";
 
 /** The Candidates tab: the buttons and the ranked list. The filters live in the address, so a
  * link or a return visit shows the same result. */
@@ -46,6 +47,7 @@ export function CandidateBrowser({ projectId }: { projectId: string }) {
         <TextLink href={matrixQuery ? `${compareBase}?${matrixQuery}` : compareBase}>
           Matrix
         </TextLink>
+        <SharedReports projectId={projectId} />
         <Button>Upload CVs</Button>
         <Button variant="secondary">Download all</Button>
       </div>

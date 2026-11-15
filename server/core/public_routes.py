@@ -31,6 +31,14 @@ class PublicRoute:
 
 PUBLIC_ROUTES = [
     PublicRoute(
+        route="api/reports/<str:token>/",
+        category="shared_report",
+        reason="A shared report is for people without an account. The long random token in the "
+        "address is the credential; it shows only the chosen candidates' rank, score, grade, "
+        "strengths and risks (and contact details only if the sharer left them in), and an "
+        "unknown, expired or revoked link all answer the same.",
+    ),
+    PublicRoute(
         route="api/health/",
         category="health_check",
         reason="Monitoring must be able to check that the server is up without an account.",

@@ -9,6 +9,8 @@ urlpatterns = [
     path("<str:id>/cvs/cancel/", views.CancelUnstarted.as_view()),
     path("<str:id>/cvs/<str:cv_id>/retry/", views.RetryFailedCv.as_view()),
     path("<str:id>/candidates/", views.ProjectCandidates.as_view()),
+    path("<str:id>/reports/", views.ProjectReports.as_view()),
+    path("<str:id>/reports/<str:report_id>/revoke/", views.ProjectReportRevoke.as_view()),
     path("<str:id>/compare/", views.CandidateComparison.as_view()),
     path("<str:id>/matrix/", views.CandidateMatrix.as_view()),
     path("<str:id>/candidates/stage/", views.CandidateStages.as_view()),

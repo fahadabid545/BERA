@@ -270,3 +270,26 @@ class CandidateNote(CompanyOwnedModel):
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class SharedReport(CompanyOwnedModel):
+    """A read-only link to a frozen copy of a project's top candidates (see `shared_reports.py`).
+    The link's token is shown once and only its hash is kept. `entries` holds what the page
+    shows and nothing else; the contact details of the candidates are kept apart and encrypted,
+    and are empty when the report hides them."""
+
+    project = models.ForeignKey(
+        "projects.Project", on_delete=models.PROTECT, related_name="shared_reports"
+    )
+    created_by = models.ForeignKey(
+        "companies.CompanyUser", on_delete=models.PROTECT, related_name="+"
+    )
+    token_hash = models.CharField(max_length=64, unique=True)
+    project_title = models.TextField()
+    entries = models.JSONField()
+    contacts = EncryptedTextField(purpose="shared_report.contacts", blank=True)
+    hide_contact = models.BooleanField()
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True)
+    views = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)

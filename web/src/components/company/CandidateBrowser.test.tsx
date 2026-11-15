@@ -29,13 +29,28 @@ const body = (over: object = {}) => ({
   rows: [],
   ...over,
 });
-const paths = () => fetchMock.mock.calls.map((call) => call[0] as string);
+const NO_REPORTS = { days: { choices: [1, 7, 30], default: 7 }, reports: [] };
+const paths = () =>
+  fetchMock.mock.calls
+    .map((call) => call[0] as string)
+    .filter((path) => !path.includes("/reports/"));
+function serveList(listBody: object) {
+  fetchMock.mockImplementation(async (path: string) => ({
+    ok: true,
+    status: 200,
+    json: async () => (path.includes("/reports/") ? NO_REPORTS : listBody),
+  }));
+}
 
 beforeEach(() => {
   search = "";
   replace.mockReset();
   fetchMock.mockReset();
-  fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => body() });
+  fetchMock.mockImplementation(async (path: string) => ({
+    ok: true,
+    status: 200,
+    json: async () => (path.includes("/reports/") ? NO_REPORTS : body()),
+  }));
   vi.stubGlobal("fetch", fetchMock);
 });
 afterEach(() => {
@@ -128,11 +143,7 @@ describe("candidate filters", () => {
 
   it("an empty result says so and offers Clear all", async () => {
     search = "score_min=99";
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => body({ filtered: true }),
-    });
+    serveList(body({ filtered: true }));
     render(<CandidateBrowser projectId="p1" />);
     expect(await screen.findByText("No candidates match these filters.")).toBeTruthy();
     await userEvent.setup().click(screen.getByRole("button", { name: "Clear all" }));
@@ -153,11 +164,7 @@ describe("candidate filters", () => {
         borderline: false, stage: "new", added_at: "2026-11-14T10:00:00Z",
       },
     ]; // prettier-ignore
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => body({ count: 40, pages: 2, rows }),
-    });
+    serveList(body({ count: 40, pages: 2, rows }));
     const { rerender } = render(<CandidateBrowser projectId="p1" />);
     await userEvent.setup().click(await screen.findByRole("button", { name: "Next page" }));
     await waitFor(() => expect(paths().some((p) => p.includes("page=2"))).toBe(true));
@@ -212,11 +219,12 @@ describe("comparison links", () => {
       added_at: "2026-11-14T10:00:00Z",
     };
     const second = { ...row, id: "c2", candidate_id: "k2", file_name: "omar.pdf" };
-    fetchMock.mockResolvedValue({
+    fetchMock.mockImplementation(async (path: string) => ({
       ok: true,
       status: 200,
-      json: async () => body({ count: 2, rows: [row, second] }),
-    });
+      json: async () =>
+        path.includes("/reports/") ? NO_REPORTS : body({ count: 2, rows: [row, second] }),
+    }));
     render(<CandidateBrowser projectId="p1" />);
     const user = userEvent.setup();
     await user.click(await screen.findByRole("checkbox", { name: "Select jane.pdf" }));
