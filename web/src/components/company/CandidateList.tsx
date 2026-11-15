@@ -34,6 +34,7 @@ type Row = {
   label: "strong_match" | "possible" | "not_recommended" | null;
   borderline: boolean;
   stage: string | null;
+  top: boolean;
   added_at: string;
 };
 type Page = {
@@ -43,6 +44,7 @@ type Page = {
   filtered: boolean;
   requirements: RequirementChoice[];
   compare_limits?: { min: number; max: number };
+  top?: { n: number; included: number; tied: boolean };
   refresh_seconds: number;
   rows: Row[];
 };
@@ -204,6 +206,12 @@ export function CandidateList({
           onConfirm={() => void applyStage()}
         />
       </div>
+      {shown.top?.tied && (
+        <p role="status">
+          The top {shown.top.n} shows {shown.top.included} candidates because of a tie at the
+          cut-off score.
+        </p>
+      )}
       {tooManyToCompare && (
         <p role="status">You can compare up to {limits.max} candidates at a time. Choose fewer.</p>
       )}
@@ -311,6 +319,7 @@ function CandidateRow({
           row.file_name
         )}
         {row.name && <div>{row.name}</div>}
+        {row.top && <Tag variant="success">Top</Tag>}
       </td>
       <td>
         {row.score ? (

@@ -11,6 +11,7 @@ the page's rows are read (and their names decrypted).
 - Whatever the sort, ties are ordered by date added, then file name, then id, so the order
   never flickers.
 - Rejected candidates are left out unless the stage filter is used (`stages.py`).
+- The top N candidates are marked (`top_list.py`); ties at the cut-off are all marked.
 - Filters (`filters.py`) narrow the list first; the rank is then among the candidates that pass.
 - The CV's name is shown as initials (see `core/personal_data.py`). It is encrypted, so the
   candidate column sorts by the file name.
@@ -25,6 +26,7 @@ from platform_settings.service import get_setting
 
 from .filters import apply_filters, checked_filters, requirement_choices
 from .models import Candidate, CvFile
+from .top_list import in_top, top_list
 
 SORTS = ("rank", "candidate", "score", "ats", "label", "stage", "added")
 DEFAULT_SORT, DEFAULT_DIRECTION = "score", "desc"
@@ -108,7 +110,7 @@ def checked_query(params):
     return sort, direction, page
 
 
-def _row(item):
+def _row(item, top):
     scored = item.score_value is not None
     return {
         "id": str(item.pk),
@@ -125,6 +127,7 @@ def _row(item):
         "label": item.label_value,
         "borderline": bool(item.borderline_value),
         "stage": item.stage_value,
+        "top": in_top(top, item.score_value, item.stage_value),
         "added_at": item.created_at.isoformat(),
     }
 
@@ -149,7 +152,9 @@ def ranked_list(project, params):
     pages = max(1, -(-total // size))
     page = min(page, pages)
     window = rows.order_by(*ordering(sort, direction))[(page - 1) * size : page * size]
+    top = top_list(project)
     return {
+        "top": {"n": top["n"], "included": top["included"], "tied": top["tied"]},
         "sort": sort,
         "direction": direction,
         "page": page,
@@ -163,5 +168,5 @@ def ranked_list(project, params):
             "max": get_setting("comparison.max_candidates"),
         },
         "refresh_seconds": get_setting("live_updates.max_delay_seconds"),
-        "rows": [_row(item) for item in window],
+        "rows": [_row(item, top) for item in window],
     }

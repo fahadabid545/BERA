@@ -1311,6 +1311,20 @@ the stored results (no AI call). Role `candidate.view`.
 - Settings: `comparison.min_candidates` (2), `comparison.max_candidates` (4),
   `comparison.matrix_page_size` (50). Code: `server/cvs/comparison.py`.
 
+## Top-N list
+
+The best candidates are tagged **Top** on the Candidates tab. N is the project's top-list size in
+its scoring settings (platform default `scoring.top_n` 10, held at the plan's `max_top_n`).
+
+- The top is taken among the project's scored candidates that are not rejected, best AI score
+  first, from the stored scores on every look (the list refreshes every few seconds), and does not
+  depend on the filters. Code: `server/cvs/top_list.py`.
+- Ties at the cut-off: everyone with the N-th best score is in, so more than N may be tagged. The
+  list's `top` block (`n`, `included`, `tied`) feeds the note "The top N shows M candidates because
+  of a tie at the cut-off score."
+- When N is larger than the number of scored candidates, all of them are in. Each list row has a
+  `top` flag.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

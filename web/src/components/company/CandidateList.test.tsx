@@ -22,6 +22,7 @@ const row = (over: object = {}) => ({
   label: "strong_match",
   borderline: false,
   stage: "new",
+  top: false,
   added_at: "2026-11-14T10:00:00Z",
   ...over,
 });
@@ -412,6 +413,28 @@ describe("choosing candidates to compare", () => {
     expect(compareButton().disabled).toBe(true);
     expect(screen.getByRole("status").textContent).toBe(
       "You can compare up to 4 candidates at a time. Choose fewer.",
+    );
+  });
+});
+
+describe("the top candidates", () => {
+  it("tags the rows in the top", async () => {
+    serve(
+      page([row({ top: true }), row({ id: "c2", candidate_id: "k2", file_name: "omar.pdf" })], {
+        top: { n: 1, included: 1, tied: false },
+      }),
+    );
+    render(<CandidateList projectId="p1" />);
+    const table = await screen.findByRole("region", { name: "Candidates" });
+    expect(within(table).getAllByText("Top")).toHaveLength(1);
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("explains a tie at the cut-off", async () => {
+    serve(page([row({ top: true })], { top: { n: 2, included: 4, tied: true } }));
+    render(<CandidateList projectId="p1" />);
+    expect((await screen.findByRole("status")).textContent).toBe(
+      "The top 2 shows 4 candidates because of a tie at the cut-off score.",
     );
   });
 });
