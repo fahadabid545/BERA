@@ -1364,6 +1364,29 @@ list, the matrix and the usage meter.
   Screens keep what they show, wait longer between tries (up to 8 times the normal delay), and
   ask at once when the browser says it is back online, so they catch up on their own.
 
+## Dashboard charts
+
+Each chart answers one question and is counted from stored data (no AI), kept up to date by the
+live updates routine. The project's Overview tab shows all five above the upload area; the company
+dashboard's Overview tab shows the funnel, the distribution and the trend for all projects together.
+Code: `server/cvs/charts.py`, `web/src/components/charts/`; every chart is on the `/design` page.
+
+| Question | Chart | Notes |
+| --- | --- | --- |
+| How far do CVs get? | Funnel | Uploaded, read, scored, shortlisted, interview, approved. The last three count scored candidates that ever reached the stage (from the stage history), so each step is a part of the one before. |
+| How are scores spread? | Score distribution | A column for each grade A to E, counts written above. |
+| Who is at the top? | Ranking (project) | The Top-N list, at most `charts.ranking_max_bars` (10) bars, names as initials. |
+| How well are requirements met? | Requirement coverage (project) | Met, partly met, missing, not judged for each requirement; a verdict for older wording counts as not judged. |
+| More or less than before? | Trend | CVs uploaded or scored per day for the last N days against the N before, with the change in percent. N is one of `charts.trend_days_choices` (7, 30, 90; default `charts.trend_days_default`). |
+
+- API: `GET /api/company/projects/<id>/charts/?days=` and `GET /api/company/charts/?days=` (any
+  company role, live allowance, a wrong `days` is a form error). A fixed number of queries
+  however many candidates there are.
+- Look: the shapes follow the owner's reference images (progress-style bars, a funnel, an area
+  chart with a previous-period line, a headline number with its change) in the BERA theme: accent
+  green only as fill, neutral surfaces, hatching for "partly", and every value written next to its
+  mark so nothing depends on colour.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

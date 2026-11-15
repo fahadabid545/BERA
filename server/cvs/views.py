@@ -12,6 +12,7 @@ from platform_settings.service import get_setting
 from projects.models import Project
 from signin.company_views import CandidateDataView, CompanyObjectView
 
+from .charts import company_charts, project_charts
 from .comparison import matrix, side_by_side
 from .detail import candidate_detail
 from .downloads import cv_file_response
@@ -375,3 +376,34 @@ class ProjectReportRevoke(CandidateDataView):
 
     def post(self, request, id, report_id):
         return Response(revoke_report(self.get_object(), request.user, report_id))
+
+
+class ProjectCharts(CandidateDataView):
+    """The numbers of the project's dashboard charts (`?days=` picks the trend period)."""
+
+    queryset = Project.objects.all()
+
+    def get_throttles(self):
+        return [throttle() for throttle in live()]
+
+    def permitted_roles(self):
+        return roles_allowed("project.view")
+
+    def get(self, request, id):
+        return Response(project_charts(self.get_object(), request.query_params.get("days")))
+
+
+class CompanyCharts(CandidateDataView):
+    """The numbers of the company dashboard's charts: all the company's projects together."""
+
+    queryset = Project.objects.all()
+
+    def get_throttles(self):
+        return [throttle() for throttle in live()]
+
+    def permitted_roles(self):
+        return roles_allowed("project.view")
+
+    def get(self, request):
+        self.get_queryset()  # checks the role and the company
+        return Response(company_charts(request.user.company_id, request.query_params.get("days")))

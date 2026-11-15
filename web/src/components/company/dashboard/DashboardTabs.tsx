@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+import { CompanyCharts } from "@/components/charts/CompanyCharts";
 import { Tabs } from "@/components/ui";
 
 export const DASHBOARD_TABS = [
@@ -30,7 +31,10 @@ export function DashboardTabs() {
       onValueChange={(tab) =>
         router.replace(`${pathname}?${TAB_PARAMETER}=${tab}`, { scroll: false })
       }
-      tabs={DASHBOARD_TABS.map((tab) => ({ ...tab, content: null }))}
+      tabs={DASHBOARD_TABS.map((tab) => ({
+        ...tab,
+        content: tab.value === "overview" ? <CompanyCharts /> : null,
+      }))}
     />
   );
 }

@@ -1098,3 +1098,230 @@ a.ui-tab {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
 }
+
+/* ---------- Dashboard charts ----------
+   Fills use the accent and neutral tokens; the parts of a chart also differ by surface (solid,
+   hatched, outlined) and every value is written next to its mark, never colour alone. */
+.chart-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+}
+.chart-grid__wide {
+  grid-column: 1 / -1;
+}
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.chart-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.chart-card__header h2 {
+  margin: 0;
+}
+.chart-card__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.chart-funnel,
+.chart-ranking,
+.chart-coverage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chart-funnel__step,
+.chart-ranking__row {
+  display: grid;
+  align-items: center;
+  gap: var(--space-3);
+}
+.chart-funnel__step {
+  grid-template-columns: 7rem 1fr 6rem;
+}
+.chart-ranking__row {
+  grid-template-columns: 1.5rem minmax(6rem, 10rem) 1fr auto;
+}
+.chart-funnel__track,
+.chart-ranking__track {
+  display: flex;
+  justify-content: center;
+  height: 1.25rem;
+  border-radius: var(--radius);
+  background: var(--color-surface-muted);
+  overflow: hidden;
+}
+.chart-ranking__track {
+  justify-content: flex-start;
+}
+.chart-funnel__bar,
+.chart-ranking__bar,
+.chart-histogram__bar {
+  display: block;
+  background: var(--color-accent);
+  border-radius: var(--radius);
+  transition:
+    width var(--transition),
+    height var(--transition);
+}
+.chart-funnel__value,
+.chart-ranking__value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.chart-funnel__kept {
+  color: var(--color-text-muted);
+}
+.chart-histogram {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chart-histogram__column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+.chart-histogram__track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 8rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.chart-histogram__bar {
+  width: 100%;
+  min-height: 2px;
+}
+.chart-coverage__title,
+.chart-coverage__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.chart-coverage__counts {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+.chart-coverage__bar {
+  display: flex;
+  height: 1.25rem;
+  margin: var(--space-2) 0;
+  border-radius: var(--radius);
+  background: var(--color-surface-muted);
+  overflow: hidden;
+}
+.chart-coverage__part--met {
+  background: var(--color-accent);
+}
+.chart-coverage__part--partly_met {
+  background-color: var(--color-accent-soft);
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 4px,
+    var(--color-text-muted) 4px 5px
+  );
+}
+.chart-coverage__part--missing {
+  background: var(--color-danger);
+}
+.chart-coverage__part--not_judged {
+  background-color: var(--color-surface-muted);
+  box-shadow: inset 0 0 0 1px var(--color-control-border);
+}
+.chart-trend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.chart-trend__headline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+.chart-trend__total {
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  line-height: 1;
+}
+.chart-trend__previous {
+  color: var(--color-text-muted);
+}
+.chart-trend__plot {
+  width: 100%;
+  height: 8rem;
+  overflow: visible;
+}
+.chart-trend__line,
+.chart-trend__previous-line {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.chart-trend__line {
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.chart-trend__previous-line {
+  stroke: var(--color-text-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+.chart-trend__area {
+  fill: var(--color-accent-soft);
+  stroke: none;
+}
+.chart-trend__frame {
+  position: relative;
+  margin-inline: var(--space-2);
+}
+/* A round marker on the latest value, placed over the stretched plot so it is never squashed. */
+.chart-trend__dot {
+  position: absolute;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid var(--color-text);
+  border-radius: 50%;
+  background: var(--color-accent);
+  transform: translate(-50%, -50%);
+}
+.chart-trend__axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+@media (max-width: 40rem) {
+  .chart-funnel__step {
+    grid-template-columns: 5.5rem 1fr 4.5rem;
+  }
+  .chart-ranking__row {
+    grid-template-columns: 1.25rem 1fr auto;
+  }
+  .chart-ranking__track {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-funnel__bar,
+  .chart-ranking__bar,
+  .chart-histogram__bar {
+    transition: none;
+  }
+}

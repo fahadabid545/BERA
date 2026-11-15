@@ -13,20 +13,39 @@ describe("project overview page", () => {
   it("shows the Upload CVs area for the project it was opened for", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          allowed_types: ["pdf"],
-          max_file_size_mb: 10,
-          max_files_per_batch: 50,
-        }),
-      }),
+      vi.fn().mockImplementation(async (path: string) => ({
+        ok: !path.includes("/charts/"),
+        status: path.includes("/charts/") ? 404 : 200,
+        json: async () =>
+          path.includes("/charts/")
+            ? { error: { code: "not_found", message: "Not found." } }
+            : { allowed_types: ["pdf"], max_file_size_mb: 10, max_files_per_batch: 50 },
+      })),
     );
     render(await ProjectOverviewPage({ params: Promise.resolve({ project: "p1" }) }));
     expect(screen.getByRole("button", { name: "Upload CVs" })).toBeTruthy();
     await vi.waitFor(() =>
-      expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/company/projects/p1/cvs/"),
+      expect(vi.mocked(fetch).mock.calls.map((call) => call[0])).toContain(
+        "/api/company/projects/p1/cvs/",
+      ),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("shows the project's charts above the upload area", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async () => ({
+        ok: false,
+        status: 404,
+        json: async () => ({ error: { code: "not_found", message: "Not found." } }),
+      })),
+    );
+    render(await ProjectOverviewPage({ params: Promise.resolve({ project: "p1" }) }));
+    await vi.waitFor(() =>
+      expect(vi.mocked(fetch).mock.calls.map((call) => call[0])).toContain(
+        "/api/company/projects/p1/charts/",
+      ),
     );
     vi.unstubAllGlobals();
   });

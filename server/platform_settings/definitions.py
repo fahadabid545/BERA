@@ -319,6 +319,10 @@ SETTINGS = [
     # Stages and notes (see cvs/stages.py and cvs/notes.py).
     SettingDefinition("candidates.bulk_max", 200, whole_number(1, 5000)),
     SettingDefinition("notes.max_length", 2000, whole_number(1, 20000)),
+    # Dashboard charts (see cvs/charts.py).
+    SettingDefinition("charts.ranking_max_bars", 10, whole_number(1, 50)),
+    SettingDefinition("charts.trend_days_choices", [7, 30, 90], list_of_whole_numbers(1, 365)),
+    SettingDefinition("charts.trend_days_default", 7, whole_number(1, 365)),
     # Comparing candidates (see cvs/comparison.py).
     SettingDefinition("comparison.min_candidates", 2, whole_number(2, 10)),
     SettingDefinition("comparison.max_candidates", 4, whole_number(2, 10)),

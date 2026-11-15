@@ -19,6 +19,12 @@ import {
   Tooltip,
 } from "@/components/ui";
 
+import { ChartCard } from "@/components/charts/ChartCard";
+import { Coverage } from "@/components/charts/Coverage";
+import { Funnel } from "@/components/charts/Funnel";
+import { Histogram } from "@/components/charts/Histogram";
+import { Ranking } from "@/components/charts/Ranking";
+import { Trend } from "@/components/charts/Trend";
 import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
 
 import { DeleteConfirmation } from "./DeleteConfirmation";
@@ -77,6 +83,89 @@ export default function DesignSample() {
           <div>
             <Checkbox label="Notify me when screening finishes" defaultChecked />
             <Checkbox label="Share a summary with my team" />
+          </div>
+        </div>
+      </section>
+
+      <section className="sample-section" aria-labelledby="sample-charts">
+        <h2 id="sample-charts">Charts</h2>
+        <div className="chart-grid">
+          <ChartCard title="Funnel">
+            <Funnel
+              steps={[
+                { step: "uploaded", count: 40 },
+                { step: "read", count: 36 },
+                { step: "scored", count: 30 },
+                { step: "shortlisted", count: 12 },
+                { step: "interview", count: 6 },
+                { step: "approved", count: 2 },
+              ]}
+            />
+          </ChartCard>
+          <ChartCard title="Score distribution">
+            <Histogram
+              grades={[
+                { grade: "A", count: 3 },
+                { grade: "B", count: 9 },
+                { grade: "C", count: 12 },
+                { grade: "D", count: 5 },
+                { grade: "E", count: 1 },
+              ]}
+            />
+          </ChartCard>
+          <ChartCard title="Ranking">
+            <Ranking
+              projectId="sample"
+              candidates={[
+                {
+                  rank: 1,
+                  candidate_id: "a",
+                  file_name: "a.pdf",
+                  name: "A. B.",
+                  score: "91.5",
+                  grade: "A",
+                },
+                {
+                  rank: 2,
+                  candidate_id: "b",
+                  file_name: "b.pdf",
+                  name: "C. D.",
+                  score: "78.0",
+                  grade: "C",
+                },
+              ]}
+            />
+          </ChartCard>
+          <ChartCard title="Requirement coverage">
+            <Coverage
+              candidates={10}
+              requirements={[
+                {
+                  requirement_id: "r",
+                  text: "Python",
+                  kind: "must",
+                  met: 5,
+                  partly_met: 2,
+                  missing: 2,
+                  not_judged: 1,
+                },
+              ]}
+            />
+          </ChartCard>
+          <div className="chart-grid__wide">
+            <ChartCard title="Trend">
+              <Trend
+                metric={{
+                  current: [1, 3, 2, 5, 4, 6, 8],
+                  previous: [2, 2, 3, 3, 2, 4, 3],
+                  total: 29,
+                  previous_total: 19,
+                  change_percent: 52.6,
+                }}
+                startLabel="2026-11-01"
+                endLabel="2026-11-07"
+              />
+            </ChartCard>
           </div>
         </div>
       </section>

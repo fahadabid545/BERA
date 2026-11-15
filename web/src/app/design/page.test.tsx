@@ -12,6 +12,7 @@ describe("design sample page", () => {
     for (const heading of [
       "Buttons",
       "Inputs, selects and checkboxes",
+      "Charts",
       "Cards, tags and tooltips",
       "Table",
       "Tabs and popup",

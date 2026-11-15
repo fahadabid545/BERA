@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DashboardTabs } from "./DashboardTabs";
 
@@ -16,7 +16,16 @@ vi.mock("next/navigation", () => ({
 beforeEach(() => {
   replace.mockClear();
   search = "";
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: { code: "not_found", message: "Not found." } }),
+    }),
+  );
 });
+afterEach(() => vi.unstubAllGlobals());
 
 const selectedTab = () =>
   screen.getAllByRole("tab").find((tab) => tab.getAttribute("aria-selected") === "true");
@@ -52,7 +61,11 @@ describe("DashboardTabs", () => {
     expect(replace).toHaveBeenCalledWith("/company?tab=candidates", { scroll: false });
   });
 
-  it("shows an empty area for the chosen tab", () => {
+  it("shows the company's charts on Overview and an empty area on the other tabs", async () => {
+    render(<DashboardTabs />);
+    await vi.waitFor(() => expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/company/charts/"));
+    cleanup();
+    search = "tab=usage";
     render(<DashboardTabs />);
     expect(screen.getByRole("tabpanel").textContent).toBe("");
   });
