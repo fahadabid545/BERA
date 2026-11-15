@@ -42,6 +42,7 @@ type Page = {
   count: number;
   filtered: boolean;
   requirements: RequirementChoice[];
+  compare_limits?: { min: number; max: number };
   refresh_seconds: number;
   rows: Row[];
 };
@@ -82,11 +83,13 @@ export function CandidateList({
   filters = {},
   onClearAll,
   onRequirements,
+  onCompare,
 }: {
   projectId: string;
   filters?: Filters;
   onClearAll?: () => void;
   onRequirements?: (requirements: RequirementChoice[]) => void;
+  onCompare?: (candidateIds: string[]) => void;
 }) {
   const base = `/api/company/projects/${projectId}/candidates/`;
   const [sort, setSort] = useState<SortKey>("score");
@@ -167,9 +170,18 @@ export function CandidateList({
   const allSelected = selectable.length > 0 && selectable.every((id) => selected.includes(id));
   const toggle = (id: string, on: boolean) =>
     setSelected((current) => (on ? [...current, id] : current.filter((item) => item !== id)));
+  const limits = shown.compare_limits ?? { min: 2, max: 4 };
+  const tooManyToCompare = selected.length > limits.max;
   return (
     <div className="page-stack">
       <div className="page-actions">
+        <Button
+          variant="secondary"
+          disabled={selected.length < limits.min || tooManyToCompare}
+          onClick={() => onCompare?.(selected)}
+        >
+          Compare
+        </Button>
         <Select
           label="Move selected to"
           value={targetStage}
@@ -192,6 +204,9 @@ export function CandidateList({
           onConfirm={() => void applyStage()}
         />
       </div>
+      {tooManyToCompare && (
+        <p role="status">You can compare up to {limits.max} candidates at a time. Choose fewer.</p>
+      )}
       {changeError && (
         <p className="ui-error" role="alert">
           {changeError.message}

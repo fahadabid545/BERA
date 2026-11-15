@@ -378,3 +378,40 @@ describe("changing the stage of several candidates", () => {
     expect((await screen.findByRole("alert")).textContent).toBe("Not found.");
   });
 });
+
+describe("choosing candidates to compare", () => {
+  const rows = [1, 2, 3, 4, 5].map((n) =>
+    row({ id: `c${n}`, candidate_id: `k${n}`, file_name: `cv${n}.pdf` }),
+  );
+  async function choose(count: number, onCompare = vi.fn()) {
+    serve(page(rows, { compare_limits: { min: 2, max: 4 } }));
+    render(<CandidateList projectId="p1" onCompare={onCompare} />);
+    await screen.findByRole("region", { name: "Candidates" });
+    const user = userEvent.setup();
+    for (let n = 1; n <= count; n += 1) {
+      await user.click(screen.getByRole("checkbox", { name: `Select cv${n}.pdf` }));
+    }
+    return { user, onCompare };
+  }
+  const compareButton = () => screen.getByRole("button", { name: "Compare" }) as HTMLButtonElement;
+
+  it("needs at least two", async () => {
+    await choose(1);
+    expect(compareButton().disabled).toBe(true);
+  });
+
+  it("hands over two to four chosen candidates", async () => {
+    const { user, onCompare } = await choose(4);
+    expect(compareButton().disabled).toBe(false);
+    await user.click(compareButton());
+    expect(onCompare).toHaveBeenCalledWith(["k1", "k2", "k3", "k4"]);
+  });
+
+  it("says so clearly when more than four are chosen", async () => {
+    await choose(5);
+    expect(compareButton().disabled).toBe(true);
+    expect(screen.getByRole("status").textContent).toBe(
+      "You can compare up to 4 candidates at a time. Choose fewer.",
+    );
+  });
+});

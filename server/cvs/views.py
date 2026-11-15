@@ -12,6 +12,7 @@ from platform_settings.service import get_setting
 from projects.models import Project
 from signin.company_views import CandidateDataView, CompanyObjectView
 
+from .comparison import matrix, side_by_side
 from .detail import candidate_detail
 from .downloads import cv_file_response
 from .estimate import confirm, estimate
@@ -306,3 +307,27 @@ class ProjectCandidates(CandidateDataView):
 
     def get(self, request, id):
         return Response(ranked_list(self.get_object(), request.query_params))
+
+
+class CandidateComparison(CandidateDataView):
+    """Two to four chosen candidates side by side (`?ids=a,b`)."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("candidate.view")
+
+    def get(self, request, id):
+        return Response(side_by_side(self.get_object(), request.query_params))
+
+
+class CandidateMatrix(CandidateDataView):
+    """The filtered candidates against all requirements; takes the candidate list's filters."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("candidate.view")
+
+    def get(self, request, id):
+        return Response(matrix(self.get_object(), request.query_params))

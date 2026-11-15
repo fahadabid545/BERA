@@ -6,10 +6,11 @@ import { CandidateBrowser } from "./CandidateBrowser";
 
 const fetchMock = vi.fn();
 const replace = vi.fn();
+const push = vi.fn();
 let search = "";
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace }),
+  useRouter: () => ({ replace, push }),
   usePathname: () => "/company/projects/p1/candidates",
   useSearchParams: () => new URLSearchParams(search),
 }));
@@ -173,5 +174,54 @@ describe("candidate filters", () => {
     expect(replace).toHaveBeenCalledWith("/company/projects/p1/candidates?stage=rejected", {
       scroll: false,
     });
+  });
+});
+
+describe("comparison links", () => {
+  it("opens the matrix with the filters of the address", () => {
+    search = "score_min=60&unknown=1";
+    render(<CandidateBrowser projectId="p1" />);
+    expect(screen.getByRole("link", { name: "Matrix" }).getAttribute("href")).toBe(
+      "/company/projects/p1/compare?score_min=60",
+    );
+  });
+
+  it("opens the matrix without filters when there are none", () => {
+    render(<CandidateBrowser projectId="p1" />);
+    expect(screen.getByRole("link", { name: "Matrix" }).getAttribute("href")).toBe(
+      "/company/projects/p1/compare",
+    );
+  });
+
+  it("opens the side by side page for the chosen candidates", async () => {
+    const row = {
+      id: "c1",
+      candidate_id: "k1",
+      file_name: "jane.pdf",
+      name: "",
+      status: "done",
+      reason: "",
+      rank: 1,
+      score: "80.0",
+      grade: "B",
+      outdated: false,
+      ats_score: 70,
+      label: "possible",
+      borderline: false,
+      stage: "new",
+      added_at: "2026-11-14T10:00:00Z",
+    };
+    const second = { ...row, id: "c2", candidate_id: "k2", file_name: "omar.pdf" };
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => body({ count: 2, rows: [row, second] }),
+    });
+    render(<CandidateBrowser projectId="p1" />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("checkbox", { name: "Select jane.pdf" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select omar.pdf" }));
+    await user.click(screen.getByRole("button", { name: "Compare" }));
+    expect(push).toHaveBeenCalledWith("/company/projects/p1/compare?ids=k1,k2");
   });
 });

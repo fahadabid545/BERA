@@ -1,9 +1,17 @@
-import { Select } from "@/components/ui";
+import { Suspense } from "react";
 
-export default function ProjectComparePage() {
+import { CandidateComparison } from "@/components/company/CandidateComparison";
+
+export default async function ProjectComparePage({
+  params,
+}: {
+  params: Promise<{ project: string }>;
+}) {
+  const { project } = await params;
   return (
-    <div className="page-form">
-      <Select label="Candidates" multiple options={[]} />
-    </div>
+    // useSearchParams needs a boundary so the page can still be built ahead of time.
+    <Suspense>
+      <CandidateComparison projectId={project} />
+    </Suspense>
   );
 }

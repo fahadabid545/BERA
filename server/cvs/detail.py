@@ -52,6 +52,11 @@ def _ats(candidate):
     return {"score": ats.score, "reasons": ats.reasons, "rules_version": ats.rules_version}
 
 
+def is_outdated(requirement, judged):
+    """Never judged, or judged against wording the requirement no longer has."""
+    return judged is None or judged.requirement_text != requirement.text
+
+
 def _results(candidate, results):
     """One entry for each requirement of the project, in the project's order. A requirement not
     judged yet has no verdict; one judged against older wording is marked outdated."""
@@ -70,7 +75,7 @@ def _results(candidate, results):
                 "verdict": judged.verdict if judged else None,
                 "evidence": judged.evidence if judged else "",
                 "confidence": judged.confidence if judged else None,
-                "outdated": judged is None or judged.requirement_text != requirement.text,
+                "outdated": is_outdated(requirement, judged),
             }
         )
     return entries

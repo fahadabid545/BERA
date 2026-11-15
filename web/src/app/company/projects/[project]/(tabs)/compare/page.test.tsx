@@ -1,13 +1,29 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import ProjectComparePage from "./page";
+import ComparePage from "./page";
 
-describe("project compare page", () => {
-  it("shows a multi-select candidate selector and nothing else", () => {
-    const { container } = render(<ProjectComparePage />);
-    const selector = screen.getByLabelText("Candidates") as HTMLSelectElement;
-    expect(selector.multiple).toBe(true);
-    expect(container.querySelectorAll("button, a, input, select, textarea")).toHaveLength(1);
+vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams("") }));
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: { code: "not_found", message: "Not found." } }),
+    }),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+describe("compare page", () => {
+  it("shows the matrix of the project named in the address", async () => {
+    render(await ComparePage({ params: Promise.resolve({ project: "p1" }) }));
+    await screen.findByRole("alert");
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/company/projects/p1/matrix/?page=1");
   });
 });

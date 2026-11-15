@@ -76,7 +76,7 @@ def _base(project):
     )
 
 
-def _ordering(sort, direction):
+def ordering(sort, direction):
     """Unscored items last, then the chosen column, then the fixed tie-breakers."""
     if sort == "rank":
         chosen = F("ranking").asc() if direction == ASC else F("ranking").desc()
@@ -129,19 +129,26 @@ def _row(item):
     }
 
 
-def ranked_list(project, params):
-    """One page of the project's ranked candidates, with the totals the page needs."""
-    sort, direction, page = checked_query(params)
-    size = get_setting("candidates.page_size")
+def filtered_rows(project, params):
+    """(rows, filters): the project's CVs that pass the request's filters, with the default
+    leaving out rejected candidates. The list and the comparison matrix both start here."""
     filters = checked_filters(params, project)
     rows = apply_filters(_base(project), filters)
     if "stage" not in filters:
         # A CV with no candidate yet has no stage and stays in the list.
         rows = rows.filter(Q(stage_value__isnull=True) | ~Q(stage_value=Candidate.Stage.REJECTED))
+    return rows, filters
+
+
+def ranked_list(project, params):
+    """One page of the project's ranked candidates, with the totals the page needs."""
+    sort, direction, page = checked_query(params)
+    size = get_setting("candidates.page_size")
+    rows, filters = filtered_rows(project, params)
     total = rows.count()
     pages = max(1, -(-total // size))
     page = min(page, pages)
-    window = rows.order_by(*_ordering(sort, direction))[(page - 1) * size : page * size]
+    window = rows.order_by(*ordering(sort, direction))[(page - 1) * size : page * size]
     return {
         "sort": sort,
         "direction": direction,
@@ -151,6 +158,10 @@ def ranked_list(project, params):
         "count": total,
         "filtered": bool(filters),
         "requirements": requirement_choices(project),
+        "compare_limits": {
+            "min": get_setting("comparison.min_candidates"),
+            "max": get_setting("comparison.max_candidates"),
+        },
         "refresh_seconds": get_setting("live_updates.max_delay_seconds"),
         "rows": [_row(item) for item in window],
     }

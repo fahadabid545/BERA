@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { Button } from "@/components/ui";
+import { Button, TextLink } from "@/components/ui";
 
 import {
   CandidateFilters,
@@ -32,6 +32,8 @@ export function CandidateBrowser({ projectId }: { projectId: string }) {
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
 
+  const compareBase = `/company/projects/${projectId}/compare`;
+  const matrixQuery = new URLSearchParams(filters).toString();
   return (
     <div className="page-stack">
       <div className="page-actions">
@@ -41,6 +43,9 @@ export function CandidateBrowser({ projectId }: { projectId: string }) {
           onApply={change}
           onClearAll={() => change({})}
         />
+        <TextLink href={matrixQuery ? `${compareBase}?${matrixQuery}` : compareBase}>
+          Matrix
+        </TextLink>
         <Button>Upload CVs</Button>
         <Button variant="secondary">Download all</Button>
       </div>
@@ -49,6 +54,7 @@ export function CandidateBrowser({ projectId }: { projectId: string }) {
         filters={filters}
         onClearAll={() => change({})}
         onRequirements={setRequirements}
+        onCompare={(ids) => router.push(`${compareBase}?ids=${ids.join(",")}`)}
       />
     </div>
   );

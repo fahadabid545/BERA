@@ -1293,6 +1293,24 @@ Tracking each candidate through hiring (`cvs/stages.py`, `cvs/notes.py`).
   only the author can change (`PATCH`) or delete (`DELETE`) a note (403 `not_note_author`
   otherwise). Note text is never logged.
 
+## Comparison view
+
+Two views on the project's **Compare** tab (`/company/projects/<id>/compare`), both read live from
+the stored results (no AI call). Role `candidate.view`.
+
+- **Side by side**: tick 2 to 4 candidates on the Candidates tab and press Compare. The page
+  (`?ids=a,b`) shows each candidate's AI score and grade, ATS score, recommendation, stage and, for
+  every requirement, the verdict with its evidence quote, marked Outdated when the wording changed
+  since it was judged. `GET /api/company/projects/<id>/compare/?ids=a,b`. More than the maximum
+  answers `too_many_to_compare` (the list also shows the message and disables Compare); fewer than
+  the minimum or a repeated id is a form error; a candidate of another project or company is 404.
+- **Matrix**: every candidate against every requirement, best score first, paged. It takes the
+  candidate list's filters (and the default of leaving rejected candidates out), so the Matrix link
+  on the Candidates tab carries them. It looks again every few seconds, so a new candidate or
+  requirement appears on its own. `GET /api/company/projects/<id>/matrix/?page=&<filters>`.
+- Settings: `comparison.min_candidates` (2), `comparison.max_candidates` (4),
+  `comparison.matrix_page_size` (50). Code: `server/cvs/comparison.py`.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)
