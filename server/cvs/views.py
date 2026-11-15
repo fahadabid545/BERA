@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from companies.models import CompanyUser
 from companies.role_matrix import roles_allowed
 from core.errors import form_error
-from core.throttles import DownloadThrottle, UploadThrottle, limited
+from core.throttles import DownloadThrottle, UploadThrottle, limited, live
 from platform_settings.service import get_setting
 from projects.models import Project
 from signin.company_views import CandidateDataView, CompanyObjectView
@@ -107,6 +107,9 @@ class ProjectProcessing(CandidateDataView):
     """What the project page shows about its CVs: counts per status and each CV's status."""
 
     queryset = Project.objects.all()
+
+    def get_throttles(self):
+        return [throttle() for throttle in live()]
 
     def permitted_roles(self):
         return roles_allowed("project.view")
@@ -303,6 +306,9 @@ class ProjectCandidates(CandidateDataView):
 
     queryset = Project.objects.all()
 
+    def get_throttles(self):
+        return [throttle() for throttle in live()]
+
     def permitted_roles(self):
         return roles_allowed("project.view")
 
@@ -326,6 +332,9 @@ class CandidateMatrix(CandidateDataView):
     """The filtered candidates against all requirements; takes the candidate list's filters."""
 
     queryset = Project.objects.all()
+
+    def get_throttles(self):
+        return [throttle() for throttle in live()]
 
     def permitted_roles(self):
         return roles_allowed("candidate.view")

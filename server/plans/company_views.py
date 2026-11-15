@@ -1,5 +1,6 @@
 from rest_framework.response import Response
 
+from core.throttles import live
 from signin.company_views import CompanyObjectView
 
 from .models import Subscription
@@ -12,6 +13,9 @@ class PlanAndUsage(CompanyObjectView):
 
     queryset = Subscription.objects.all()
     required_action = "billing.view"
+
+    def get_throttles(self):
+        return [throttle() for throttle in live()]
 
     def get(self, request):
         self.get_queryset()  # checks the role and the company

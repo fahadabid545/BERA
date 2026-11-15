@@ -40,6 +40,9 @@ UPLOADS = Rule("uploads", "rate_limits.upload_files_per_10_minutes", 600)
 DOWNLOADS = Rule("downloads", "rate_limits.downloads_per_minute", 60)
 CONTACT = Rule("contact", "rate_limits.contact_per_hour", 3600)
 OTHER_REQUESTS = Rule("other_requests", "rate_limits.other_requests_per_minute", 60)
+# The screens that look again every few seconds (see web/src/lib/live.ts) have their own
+# allowance, so open tabs never use up the general one.
+LIVE_UPDATES = Rule("live_updates", "rate_limits.live_updates_per_minute", 60)
 VIOLATIONS = "violations"
 
 
@@ -149,4 +152,5 @@ ALL_RULES = (
     DOWNLOADS,
     CONTACT,
     OTHER_REQUESTS,
+    LIVE_UPDATES,
 )

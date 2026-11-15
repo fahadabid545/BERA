@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 
 import { Dialog, Tag } from "@/components/ui";
 import { getJson } from "@/lib/api";
+import { startLive } from "@/lib/live";
 
 const USAGE_URL = "/api/company/usage/";
-const MILLISECONDS = 1000;
 
 type Measure = { used: number; limit: number; left: number; warning: number | null };
 
@@ -72,22 +72,16 @@ function Bar({ measure, label }: { measure: Measure; label: string }) {
 /** The company's plan and usage, re-read on the interval the server asks for. */
 export function usePlanAndUsage() {
   const [summary, setSummary] = useState<PlanAndUsage | null>(null);
-  const refreshSeconds = summary?.refresh_seconds;
-
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      const result = await getJson<PlanAndUsage>(USAGE_URL);
-      if (active && result.ok) setSummary(result.data);
-    };
-    void load();
-    if (refreshSeconds === undefined) return () => void (active = false);
-    const timer = setInterval(() => void load(), refreshSeconds * MILLISECONDS);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, [refreshSeconds]);
+  useEffect(
+    () =>
+      startLive(
+        () => getJson<PlanAndUsage>(USAGE_URL),
+        (result) => {
+          if (result.ok) setSummary(result.data);
+        },
+      ),
+    [],
+  );
 
   return summary;
 }

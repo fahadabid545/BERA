@@ -50,6 +50,7 @@ EXPECTED_DEFAULTS = {
     "rate_limits.downloads_per_minute": 60,
     "rate_limits.contact_per_hour": 3,
     "rate_limits.other_requests_per_minute": 120,
+    "rate_limits.live_updates_per_minute": 600,
     "rate_limits.violations_before_block": 5,
     "rate_limits.violation_window_minutes": 10,
     "rate_limits.block_minutes": 15,

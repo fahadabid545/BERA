@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { Button, Table, Tag, TextLink } from "@/components/ui";
 import { getJson, type ApiError } from "@/lib/api";
+import { startLive } from "@/lib/live";
 
 import { FILTER_KEYS } from "./CandidateFilters";
 import { stageLabel } from "./stages";
@@ -53,7 +54,6 @@ const LABELS = {
   possible: "Possible",
   not_recommended: "Not recommended",
 };
-const MILLISECONDS = 1000;
 
 function Verdicts({ cell }: { cell: Cell }) {
   return (
@@ -185,26 +185,17 @@ function Matrix({ projectId, filterQuery }: { projectId: string; filterQuery: st
   const [shown, setShown] = useState<MatrixBody | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    let stopped = false;
-    const load = async () => {
-      const query = `?page=${page}${filterQuery && `&${filterQuery}`}`;
-      const result = await getJson<MatrixBody>(
-        `/api/company/projects/${projectId}/matrix/${query}`,
-      );
-      if (stopped) return;
-      if (result.ok) {
-        setShown(result.data);
-        setError(null);
-        // New candidates join the matrix without a reload.
-        timer = setTimeout(load, result.data.refresh_seconds * MILLISECONDS);
-      } else setError(result.error);
-    };
-    void load();
-    return () => {
-      stopped = true;
-      clearTimeout(timer);
-    };
+    const query = `?page=${page}${filterQuery && `&${filterQuery}`}`;
+    // New candidates join the matrix without a reload.
+    return startLive(
+      () => getJson<MatrixBody>(`/api/company/projects/${projectId}/matrix/${query}`),
+      (result) => {
+        if (result.ok) {
+          setShown(result.data);
+          setError(null);
+        } else setError(result.error);
+      },
+    );
   }, [projectId, page, filterQuery]);
 
   if (error) {

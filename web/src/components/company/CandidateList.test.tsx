@@ -438,3 +438,33 @@ describe("the top candidates", () => {
     );
   });
 });
+
+describe("live updates of the list", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("keeps its rows while offline and catches up when the connection is back", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let state: "good" | "lost" | "back" = "good";
+    fetchMock.mockImplementation(async () => {
+      if (state === "lost") throw new TypeError("network");
+      const rows =
+        state === "back"
+          ? [row(), row({ id: "c2", candidate_id: "k2", file_name: "new.pdf" })]
+          : [row()];
+      return { ok: true, status: 200, json: async () => page(rows) };
+    });
+    render(<CandidateList projectId="p1" />);
+    await screen.findByText("jane.pdf");
+    state = "lost";
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3100);
+    });
+    expect(screen.getByText("jane.pdf")).toBeTruthy();
+    state = "back";
+    await act(async () => {
+      window.dispatchEvent(new Event("online"));
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    expect(await screen.findByText("new.pdf")).toBeTruthy();
+  });
+});

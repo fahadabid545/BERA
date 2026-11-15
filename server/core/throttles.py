@@ -113,6 +113,17 @@ class OtherRequestsThrottle(RuleThrottle):
     subject = staticmethod(account_subject)
 
 
+class LiveUpdatesThrottle(RuleThrottle):
+    rule = rate_limits.LIVE_UPDATES
+    subject = staticmethod(account_subject)
+
+
+def live():
+    """The throttles of a screen that looks again every few seconds: its own allowance instead of
+    the general one."""
+    return [LiveUpdatesThrottle]
+
+
 def limited(*throttles):
     """A view's throttles: the ones named plus the general limit every request has."""
     return [*throttles, OtherRequestsThrottle]

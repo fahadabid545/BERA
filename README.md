@@ -1347,6 +1347,23 @@ report** and **Shared links** on the Candidates tab (any team role: `report.shar
   `report_unavailable` with "This report is no longer available." Every successful view adds to
   the report's view count. The answer is never cached and the page is kept out of search engines.
 
+## Live updates
+
+Processing progress, the candidate list and matrix, scores and the usage counters update without a
+reload. Code: `web/src/lib/live.ts` (`startLive`), used by the CV processing panel, the candidate
+list, the matrix and the usage meter.
+
+- Each screen asks again after the `refresh_seconds` its answer carries (platform setting
+  `live_updates.max_delay_seconds`, 3). Waits are only ever shorter than that, never longer.
+- Many tabs: a hidden tab stops asking and asks once when shown again; no two asks of one screen
+  overlap; each wait is slightly shortened at random so tabs do not ask in step. These screens
+  have their own server allowance (`rate_limits.live_updates_per_minute`, 600 a minute per
+  person) so open tabs never use up the general one; the answers cost a fixed number of queries
+  however many candidates there are. A "too many requests" answer is waited out as the server says.
+- Lost connection: the top bar shows **Offline** (also when the browser reports it is offline).
+  Screens keep what they show, wait longer between tries (up to 8 times the normal delay), and
+  ask at once when the browser says it is back online, so they catch up on their own.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

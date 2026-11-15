@@ -13,6 +13,7 @@ import {
   type TagVariant,
 } from "@/components/ui";
 import { getJson, postJson, type ApiError } from "@/lib/api";
+import { startLive } from "@/lib/live";
 
 import type { Filters, RequirementChoice } from "./CandidateFilters";
 import { STAGES, stageLabel } from "./stages";
@@ -72,7 +73,6 @@ const STATUSES: Record<string, { label: string; variant: TagVariant }> = {
   done: { label: "Done", variant: "neutral" },
   failed: { label: "Failed", variant: "danger" },
 };
-const MILLISECONDS = 1000;
 const DATE_LENGTH = 10;
 const firstDirection = (key: SortKey): Direction =>
   NEWEST_OR_BEST_FIRST.includes(key) ? "desc" : "asc";
@@ -110,24 +110,17 @@ export function CandidateList({
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    let stopped = false;
-    const load = async () => {
-      const query = `?sort=${sort}&direction=${direction}&page=${page}${filterQuery && `&${filterQuery}`}`;
-      const result = await getJson<Page>(`${base}${query}`);
-      if (stopped) return;
-      if (result.ok) {
-        setShown(result.data);
-        onRequirements?.(result.data.requirements ?? []);
-        setError(null);
-        timer = setTimeout(load, result.data.refresh_seconds * MILLISECONDS);
-      } else setError(result.error);
-    };
-    void load();
-    return () => {
-      stopped = true;
-      clearTimeout(timer);
-    };
+    const query = `?sort=${sort}&direction=${direction}&page=${page}${filterQuery && `&${filterQuery}`}`;
+    return startLive(
+      () => getJson<Page>(`${base}${query}`),
+      (result) => {
+        if (result.ok) {
+          setShown(result.data);
+          onRequirements?.(result.data.requirements ?? []);
+          setError(null);
+        } else setError(result.error);
+      },
+    );
   }, [base, sort, direction, page, filterQuery, onRequirements, version]);
 
   function sortBy(key: SortKey) {

@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Button, Dialog, Table, Tag, type TagVariant } from "@/components/ui";
-import { getJson, postJson, type ApiError } from "@/lib/api";
+import { getJson, postJson, type ApiError, type ApiResult } from "@/lib/api";
+import { startLive } from "@/lib/live";
 
 type Status =
   "awaiting_confirmation" | "waiting" | "reading" | "scoring" | "done" | "failed" | "cancelled";
@@ -34,7 +35,6 @@ const STATUSES: { status: Status; label: string; variant: TagVariant }[] = [
   { status: "failed", label: "Failed", variant: "danger" },
   { status: "cancelled", label: "Cancelled", variant: "neutral" },
 ];
-const MILLISECONDS = 1000;
 /** Sent by the upload area when files were added, so the estimate opens at once. */
 export const CVS_HELD_EVENT = "cvs-held";
 
@@ -49,28 +49,16 @@ export function CvProcessing({ projectId }: { projectId: string }) {
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [estimateOpen, setEstimateOpen] = useState(false);
 
-  const load = useCallback(async () => {
-    const result = await getJson<Processing>(`${base}processing/`);
+  const show = useCallback((result: ApiResult<Processing>) => {
     if (result.ok) {
       setProcessing(result.data);
       setLoadError(null);
     } else setLoadError(result.error);
-    return result.ok ? result.data.refresh_seconds : null;
-  }, [base]);
+  }, []);
+  const read = useCallback(() => getJson<Processing>(`${base}processing/`), [base]);
+  const load = useCallback(async () => show(await read()), [read, show]);
 
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    let stopped = false;
-    const poll = async () => {
-      const seconds = await load();
-      if (!stopped && seconds) timer = setTimeout(poll, seconds * MILLISECONDS);
-    };
-    void poll();
-    return () => {
-      stopped = true;
-      clearTimeout(timer);
-    };
-  }, [load]);
+  useEffect(() => startLive(read, show), [read, show]);
 
   const reviewEstimate = useCallback(async () => {
     const result = await getJson<Estimate>(`${base}cvs/estimate/`);

@@ -218,6 +218,7 @@ SETTINGS = [
     SettingDefinition("rate_limits.downloads_per_minute", 60, whole_number(1, 10000)),
     SettingDefinition("rate_limits.contact_per_hour", 3, whole_number(1, 10000)),
     SettingDefinition("rate_limits.other_requests_per_minute", 120, whole_number(1, 100000)),
+    SettingDefinition("rate_limits.live_updates_per_minute", 600, whole_number(1, 100000)),
     # Repeated abuse: this many refused requests within the window block the source.
     SettingDefinition("rate_limits.violations_before_block", 5, whole_number(1, 1000)),
     SettingDefinition("rate_limits.violation_window_minutes", 10, whole_number(1, 1440)),
