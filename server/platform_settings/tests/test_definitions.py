@@ -81,6 +81,7 @@ EXPECTED_DEFAULTS = {
     "sharing.report_link_choices_days": [1, 7, 30],
     "sharing.report_link_default_days": 7,
     "sharing.download_package_link_hours": 24,
+    "downloads.background_over_files": 50,
     "usage.warning_percents": [80, 100],
     "billing.past_due_grace_days": 7,
     "account.deletion_grace_days": 14,

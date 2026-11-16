@@ -18,11 +18,16 @@ from .dashboard import dashboard, report_csv
 from .dashboard import detail as dashboard_detail
 from .dashboard import report as dashboard_report
 from .detail import candidate_detail
-from .downloads import cv_file_response
+from .download_packages import (
+    describe as describe_package,
+)
+from .download_packages import package_response, request_package, require_owner
+from .downloads import cv_file_response, log_download
 from .estimate import confirm, estimate
 from .file_checks import check_cv_file, check_name_and_size
 from .frontier import frontier
-from .models import Candidate, CandidateScore, CvFile
+from .list_export import export_response
+from .models import Candidate, CandidateScore, CvFile, DownloadPackage
 from .notes import add_note, change_note, remove_note
 from .processing import cancel_unstarted, project_processing, retry_failed
 from .ranking import ranked_list
@@ -204,9 +209,85 @@ class CandidateCvFile(CandidateDataView):
         candidate = self.get_object()
         if str(candidate.project_id) != str(id):
             raise Http404
-        return cv_file_response(
-            candidate.cv_file, download=request.query_params.get("download") == "1"
+        download = request.query_params.get("download") == "1"
+        response = cv_file_response(candidate.cv_file, download=download)
+        if download:  # showing a PDF in the page is not a download
+            log_download(request.user, candidate.project_id, "cv", 1)
+        return response
+
+
+class ProjectDownloads(CandidateDataView):
+    """Asks for a zip of CVs: those of the chosen candidates (`candidate_ids`) or every CV of the
+    project (`all`)."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("cv.download")
+
+    def get_throttles(self):
+        return [throttle() for throttle in limited(DownloadThrottle)]
+
+    def post(self, request, id):
+        project = self.get_object()
+        chosen = (
+            None if request.data.get("all") is True else request.data.get("candidate_ids") or []
         )
+        return Response(
+            describe_package(request_package(project, request.user, chosen)), status=201
+        )
+
+
+class ProjectListExport(CandidateDataView):
+    """The ranked list, with the list's filters and sort, as a spreadsheet or PDF (`?as=`)."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("report.download")
+
+    def get_throttles(self):
+        return [throttle() for throttle in limited(DownloadThrottle)]
+
+    def get(self, request, id):
+        return export_response(
+            self.get_object(), request.user, request.query_params, request.query_params.get("as")
+        )
+
+
+class DownloadPackageStatus(CandidateDataView):
+    """How a zip is doing: preparing, ready, failed or expired. Only for the person who asked."""
+
+    queryset = DownloadPackage.objects.all()
+    lookup_url_kwarg = "package_id"
+
+    def permitted_roles(self):
+        return roles_allowed("cv.download")
+
+    def get_throttles(self):
+        return [throttle() for throttle in live()]
+
+    def get(self, request, package_id):
+        package = self.get_object()
+        require_owner(package, request.user)
+        return Response(
+            {
+                **describe_package(package),
+                "refresh_seconds": get_setting("live_updates.max_delay_seconds"),
+            }
+        )
+
+
+class DownloadPackageFile(DownloadPackageStatus):
+    """The zip itself. The role and the owner are checked on every request."""
+
+    def get_throttles(self):
+        return [throttle() for throttle in limited(DownloadThrottle)]
+
+    def get(self, request, package_id):
+        package = self.get_object()
+        require_owner(package, request.user)
+        return package_response(request.user, package)
 
 
 class CandidateStages(CandidateDataView):

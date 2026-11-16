@@ -417,6 +417,31 @@ describe("choosing candidates to compare", () => {
   });
 });
 
+describe("downloading the selected CVs", () => {
+  const rows = [1, 2].map((n) =>
+    row({ id: `c${n}`, candidate_id: `k${n}`, file_name: `cv${n}.pdf` }),
+  );
+
+  it("needs someone to be selected", async () => {
+    serve(page(rows));
+    render(<CandidateList projectId="p1" />);
+    await screen.findByRole("region", { name: "Candidates" });
+    const button = screen.getByRole("button", { name: "Download selected" });
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("hands over the selected candidates", async () => {
+    serve(page(rows));
+    const onDownload = vi.fn();
+    render(<CandidateList projectId="p1" onDownload={onDownload} />);
+    await screen.findByRole("region", { name: "Candidates" });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("checkbox", { name: "Select cv2.pdf" }));
+    await user.click(screen.getByRole("button", { name: "Download selected" }));
+    expect(onDownload).toHaveBeenCalledWith(["k2"]);
+  });
+});
+
 describe("the top candidates", () => {
   it("tags the rows in the top", async () => {
     serve(

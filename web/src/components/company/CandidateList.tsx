@@ -86,12 +86,14 @@ export function CandidateList({
   onClearAll,
   onRequirements,
   onCompare,
+  onDownload,
 }: {
   projectId: string;
   filters?: Filters;
   onClearAll?: () => void;
   onRequirements?: (requirements: RequirementChoice[]) => void;
   onCompare?: (candidateIds: string[]) => void;
+  onDownload?: (candidateIds: string[]) => void;
 }) {
   const base = `/api/company/projects/${projectId}/candidates/`;
   const [sort, setSort] = useState<SortKey>("score");
@@ -176,6 +178,13 @@ export function CandidateList({
           onClick={() => onCompare?.(selected)}
         >
           Compare
+        </Button>
+        <Button
+          variant="secondary"
+          disabled={selected.length === 0}
+          onClick={() => onDownload?.(selected)}
+        >
+          Download selected
         </Button>
         <Select
           label="Move selected to"

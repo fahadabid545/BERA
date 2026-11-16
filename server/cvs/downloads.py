@@ -1,10 +1,13 @@
-"""Letting a person download a CV they are allowed to see. The Downloads ticket adds the route
-and buttons; this is the permission check and the link they use."""
+"""Letting a person download a CV they are allowed to see: the permission check, the file's
+response and the log entry every download leaves. Zips of CVs are in `download_packages.py`."""
 
 from django.http import HttpResponse
 from django.utils.http import content_disposition_header
 
 import privatefiles
+from activity.service import record
+from audit.security import watch_cv_downloads
+from companies.models import CompanyUser
 from companies.role_matrix import roles_allowed
 from core.errors import AppError
 from core.scoping import get_company_object
@@ -53,3 +56,18 @@ def cv_file_response(cv_file, download):
     response["X-Content-Type-Options"] = "nosniff"
     response["Cache-Control"] = "private, no-store"
     return response
+
+
+def log_download(user, project_id, scope, files):
+    """Writes the download to the company's activity log and counts its CVs toward the
+    unusual-volume alert. Details hold the kind and the number only, never a name."""
+    person = CompanyUser.objects.get(pk=user.user_id, company_id=user.company_id)
+    record(
+        "download",
+        company_id=person.company_id,
+        actor=person,
+        target_kind="project",
+        target_id=project_id,
+        details={"scope": scope, "files": files},
+    )
+    watch_cv_downloads(person, files)

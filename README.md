@@ -1488,6 +1488,38 @@ overview split their content into tabs so no page is one long scroll. `useTabPar
 tab in the address (`?tab=` or `?view=`), keeps the rest of the address, and falls back to the first
 tab for an unknown value. A tab opens (and loads its data) only when it is chosen.
 
+## Downloads
+
+Every download goes through a signed-in, role-checked route and is counted against the download
+rate limit (`rate_limits.downloads_per_minute`, 60 a minute per user). Nothing is a public or
+signed link: a package belongs to the person who asked for it and their company, and anyone else
+(also a colleague) gets "not found".
+
+- **One CV:** `GET /api/company/projects/<id>/candidates/<candidate>/cv/?download=1` (without
+  `download=1` a PDF is only shown in the page, which is not logged as a download).
+- **A zip of CVs:** `POST /api/company/projects/<id>/downloads/` with `{"candidate_ids": [...]}`
+  (the chosen candidates) or `{"all": true}` (every CV of the project that was not cancelled,
+  rejected candidates included). The answer is the package: `preparing`, `ready`, `failed` or
+  `expired`. Up to `downloads.background_over_files` files (50) the zip is made before the answer;
+  more is made by the background job `cvs.download_packages.build_package`, and the person gets the
+  `download_ready` email. The email says only that the package is ready and links to
+  `/company/downloads/<id>`, where they sign in and download; it holds no CV, name, file name or
+  file link. A missing file or a CV removed meanwhile fails the package (`failed`), and nothing is
+  emailed.
+- **Following a package:** `GET /api/company/downloads/<id>/` (status, polled while preparing) and
+  `GET /api/company/downloads/<id>/file/` (the zip; 409 while not ready, 410 once expired). The
+  zip is kept `sharing.download_package_link_hours` (24) after it is ready; the file is removed by
+  `cvs.download_packages.remove_expired_packages` (a periodic job, not scheduled yet) and is refused
+  from its expiry time on either way. Deleting a project removes its packages and files.
+- **The ranked list:** `GET /api/company/projects/<id>/candidates/export/?as=xlsx|pdf` with the
+  list's filters and sort (all rows, no paging): rank, candidate (initials), file name, stage,
+  scores, recommendation, status. No contact details. Spreadsheet cells that look like formulas are
+  quoted. The PDF uses the standard Helvetica font, so characters outside Latin text may not show.
+- **Logging:** each download writes a `download` entry to the company activity log with the kind
+  (`cv`, `package` or `list`) and a number, never a name or file name, and each downloaded CV counts
+  toward the unusual-volume alert (`security.download_alert_threshold`).
+- Libraries added: openpyxl (spreadsheet), reportlab (PDF).
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

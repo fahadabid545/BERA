@@ -5,7 +5,7 @@ KINDS = frozenset(
     {
         "upload",  # not built yet
         "stage_change",  # not built yet
-        "download",  # not built yet
+        "download",
         "share",
         "invite_sent",
         "invite_resent",

@@ -34,6 +34,7 @@ def sample_values(template_name):
             **shared,
             "what": "A sign-in token that had already been used was presented again.",
         },
+        "download_ready": {**shared, "expires_in": duration_text(24, "hour")},
         "payment_problem": {
             **shared,
             "message": "We could not take your last payment. Please update your payment method.",

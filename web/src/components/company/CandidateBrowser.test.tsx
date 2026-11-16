@@ -45,6 +45,7 @@ function serveList(listBody: object) {
 beforeEach(() => {
   search = "";
   replace.mockReset();
+  push.mockReset();
   fetchMock.mockReset();
   fetchMock.mockImplementation(async (path: string) => ({
     ok: true,
@@ -231,5 +232,54 @@ describe("comparison links", () => {
     await user.click(screen.getByRole("checkbox", { name: "Select omar.pdf" }));
     await user.click(screen.getByRole("button", { name: "Compare" }));
     expect(push).toHaveBeenCalledWith("/company/projects/p1/compare?ids=k1,k2");
+  });
+});
+
+describe("downloads", () => {
+  const link = (dialog: HTMLElement, name: string) =>
+    within(dialog).getByRole("link", { name }) as HTMLAnchorElement;
+  async function openDownload() {
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Download" }));
+    return { user, dialog: await screen.findByRole("dialog", { name: "Download" }) };
+  }
+
+  it("offers the ranked list as a spreadsheet and as a PDF, with the filters on screen", async () => {
+    search = "score_min=60&grade=A,B";
+    render(<CandidateBrowser projectId="p1" />);
+    const { dialog } = await openDownload();
+    expect(link(dialog, "Ranked list as spreadsheet").getAttribute("href")).toBe(
+      "/api/company/projects/p1/candidates/export/?score_min=60&grade=A%2CB&as=xlsx",
+    );
+    expect(link(dialog, "Ranked list as PDF").getAttribute("href")).toBe(
+      "/api/company/projects/p1/candidates/export/?score_min=60&grade=A%2CB&as=pdf",
+    );
+  });
+
+  it("asks for every CV and opens the page of the download", async () => {
+    render(<CandidateBrowser projectId="p1" />);
+    const { user, dialog } = await openDownload();
+    fetchMock.mockImplementation(async () => ({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: "pk1", status: "preparing" }),
+    }));
+    await user.click(within(dialog).getByRole("button", { name: "All CVs as zip" }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/company/downloads/pk1"));
+    const call = fetchMock.mock.calls.find((c) => c[0] === "/api/company/projects/p1/downloads/");
+    expect(JSON.parse(call![1].body)).toEqual({ all: true });
+  });
+
+  it("shows the server's message when the zip cannot be asked for", async () => {
+    render(<CandidateBrowser projectId="p1" />);
+    const { user, dialog } = await openDownload();
+    fetchMock.mockImplementation(async () => ({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: { code: "nothing_to_download", message: "Nothing here." } }),
+    }));
+    await user.click(within(dialog).getByRole("button", { name: "All CVs as zip" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("Nothing here.");
+    expect(push).not.toHaveBeenCalled();
   });
 });

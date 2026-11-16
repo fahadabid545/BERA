@@ -123,6 +123,17 @@ CATALOG = {
         button_label="Open Bera",
         variables=("name", "title", "message", "link"),
     ),
+    "download_ready": EmailTemplate(
+        subject="Your Bera download is ready",
+        heading="Your download is ready",
+        paragraphs=(
+            GREETING,
+            "The package of CVs you asked for is ready. Sign in to download it. It stays "
+            "available for {expires_in}.",
+        ),
+        button_label="Open the download",
+        variables=("name", "link", "expires_in"),
+    ),
     "payment_problem": EmailTemplate(
         subject="There is a problem with your Bera payment",
         heading="Payment problem",

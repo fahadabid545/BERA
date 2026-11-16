@@ -249,6 +249,8 @@ SETTINGS = [
     ),
     SettingDefinition("sharing.report_link_default_days", 7, whole_number(1, 365)),
     SettingDefinition("sharing.download_package_link_hours", 24, whole_number(1, 720)),
+    # A package of more CVs than this is prepared in the background and the person is emailed.
+    SettingDefinition("downloads.background_over_files", 50, whole_number(1, 100000)),
     # Reading text out of files: the most text kept (more is trimmed and flagged), the least a
     # readable file must hold, and the limits of the separate process that reads PDFs.
     SettingDefinition("reading.max_characters", 40000, whole_number(1000, 1000000)),

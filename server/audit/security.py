@@ -17,15 +17,16 @@ def record_security_event(kind, **details_of_the_entry):
     return entry
 
 
-def watch_cv_downloads(person):
-    """Called for every CV a user downloads. The first download beyond the limit in the hour
-    is an event of its own; the user is not stopped here (the download limits do that)."""
+def watch_cv_downloads(person, count=1):
+    """Called for the CVs a user downloads (`count` of them at once). The first download beyond
+    the limit in the hour is an event of its own; the user is not stopped here (the download
+    limits do that)."""
     window = get_setting("security.download_alert_window_minutes") * SECONDS_PER_MINUTE
     limit = get_setting("security.download_alert_threshold")
     total = rate_limits.count_in_window(
-        "cv-downloads", f"{person.__class__.__name__}:{person.pk}", window
+        "cv-downloads", f"{person.__class__.__name__}:{person.pk}", window, cost=count
     )
-    if total == limit + 1:  # once per window, not for every download after it
+    if total - count <= limit < total:  # once per window, not for every download after it
         record_security_event(
             "security.download_volume",
             actor=person,

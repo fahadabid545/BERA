@@ -170,3 +170,12 @@ def ranked_list(project, params):
         "refresh_seconds": get_setting("live_updates.max_delay_seconds"),
         "rows": [_row(item, top) for item in window],
     }
+
+
+def all_ranked_rows(project, params):
+    """Every row of the list as the request's filters and sort order give it, without paging;
+    for the downloads."""
+    sort, direction, _ = checked_query(params)
+    rows, _ = filtered_rows(project, params)
+    top = top_list(project)
+    return [_row(item, top) for item in rows.order_by(*ordering(sort, direction))]

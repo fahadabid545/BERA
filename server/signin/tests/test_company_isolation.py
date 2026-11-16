@@ -45,6 +45,7 @@ KINDS_NAMED_IN_THE_TICKET = {
 # ActivityEntry: activity/tests/test_activity_log.py (the list holds only the own company's).
 # Subscription: plans/tests/test_subscription_states.py (companies are kept apart).
 # LimitOverride: plans/tests/test_limits.py (read for one company only).
+# DownloadPackage: cvs/tests/test_download_packages.py (TestWhoMayDownload, TestSmallPackages).
 # Project: projects/tests/test_create_project.py (TestAnotherCompany).
 # Requirement: projects/tests/test_requirement_editor.py (TestAnotherCompany).
 # ProjectScoringSettings: projects/tests/test_scoring_settings.py (TestAnotherCompany).
@@ -82,6 +83,7 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "CandidateNote",
     "ProjectFactorSettings",
     "SharedReport",
+    "DownloadPackage",
 }
 
 

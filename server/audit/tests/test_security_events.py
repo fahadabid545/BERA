@@ -146,6 +146,15 @@ class TestEachKindIsRecorded:
         watch_cv_downloads(other)  # another user has their own count
         assert AuditEvent.objects.filter(kind="security.download_volume").count() == 1
 
+    def test_a_batch_that_crosses_the_limit_raises_the_alert_once(self):
+        setting("security.download_alert_threshold", 200)
+        user = make_company_user()
+        watch_cv_downloads(user, 150)
+        watch_cv_downloads(user, 100)  # 250: crosses the limit in one step
+        watch_cv_downloads(user, 10)  # 260: already raised
+        entry = AuditEvent.objects.get(kind="security.download_volume")
+        assert entry.details == {"downloads": 250, "limit": 200}
+
     def test_the_download_limit_follows_the_platform_setting(self):
         setting("security.download_alert_threshold", 3)
         user = make_company_user()

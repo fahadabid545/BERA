@@ -48,6 +48,10 @@ def key_for_cv(company_id, cv_id):
     return f"cvs/{company_id}/{cv_id}"
 
 
+def key_for_package(company_id, package_id):
+    return f"packages/{company_id}/{package_id}.zip"
+
+
 def save_file(key, data):
     _with_retries(lambda: _backend().save(key, data))
 
@@ -96,6 +100,7 @@ __all__ = [
     "delete_file",
     "download_link",
     "key_for_cv",
+    "key_for_package",
     "read_file",
     "read_for_link",
     "save_file",

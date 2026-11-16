@@ -293,3 +293,30 @@ class SharedReport(CompanyOwnedModel):
     revoked_at = models.DateTimeField(null=True)
     views = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class DownloadPackage(CompanyOwnedModel):
+    """A zip of CVs one person asked for (see `download_packages.py`). It belongs to that person
+    and company only. `cv_ids` is the list chosen when it was asked for; the zip is kept under
+    `storage_key` until `expires_at`, then the file is removed and the status turns to expired."""
+
+    class Status(models.TextChoices):
+        PREPARING = "preparing"
+        READY = "ready"
+        FAILED = "failed"
+        EXPIRED = "expired"
+
+    project = models.ForeignKey(
+        "projects.Project", on_delete=models.PROTECT, related_name="download_packages"
+    )
+    requested_by = models.ForeignKey(
+        "companies.CompanyUser", on_delete=models.SET_NULL, null=True, related_name="+"
+    )
+    cv_ids = models.JSONField()
+    file_count = models.PositiveIntegerField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PREPARING)
+    storage_key = models.TextField(blank=True)
+    size_bytes = models.PositiveBigIntegerField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    ready_at = models.DateTimeField(null=True)
+    expires_at = models.DateTimeField(null=True)  # set when the package is ready

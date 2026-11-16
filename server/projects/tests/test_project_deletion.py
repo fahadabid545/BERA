@@ -27,6 +27,7 @@ EXPECTED_REGISTRATIONS = {
     "Requirement",
     "ProjectScoringSettings",
     "SharedReport",
+    "DownloadPackage",
     "CvFile",
     "Candidate",
     "ProjectFactorSettings",

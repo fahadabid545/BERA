@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ProjectCandidatesPage from "./page";
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn() }),
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
   usePathname: () => "/company/projects/p1/candidates",
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -28,11 +28,11 @@ afterEach(() => {
 });
 
 describe("ProjectCandidatesPage", () => {
-  it("keeps its Filters, Upload CVs and Download all buttons", async () => {
+  it("keeps its Filters, Upload CVs and Download buttons", async () => {
     render(await ProjectCandidatesPage({ params: Promise.resolve({ project: "p1" }) }));
     expect(screen.getByRole("button", { name: "Filters" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Upload CVs" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Download all" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Download" })).toBeTruthy();
   });
 
   it("asks for the candidates of the project it was opened for", async () => {
