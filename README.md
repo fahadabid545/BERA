@@ -1547,6 +1547,28 @@ the company activity log below it: newest first, `activity.page_size` (50) entri
 - Each entry is a sentence made from its kind and short details (no names of candidates, no files);
   entries about a project link to it, except a deleted one.
 
+## Profile and company settings
+
+- **Profile** (`/company/settings/profile`): `GET`/`PATCH /api/company/profile/` read and change the
+  person's own name. The email is shown and changed in its own form: `POST /api/company/profile/email/`
+  with the new address and the current password (a wrong password counts toward the same pause as at
+  login). A link goes to the NEW address (`confirm_new_email`, `tokens.email_change_hours`, 24 hours,
+  only the newest works); the address changes only when `POST /api/auth/company/confirm-email-change/`
+  is called with it (the page `/confirm-email-change` does so on a button press). It is then marked
+  verified and the OLD address gets the existing "email changed" notice. The answer to the request is
+  the same whether or not the new address is already taken: a taken address gets the "you already have
+  an account" notice instead of a link, and a taken one found at confirmation is refused.
+- **Company** (`/company/settings/company`, owner only, `settings.change`): `GET`/`PATCH
+  /api/company/settings/` change the company name. The billing country is shown and locked (any other
+  field is refused).
+- **Retention** (`/company/advanced/retention`): the same route takes `retention_days`, one of the
+  platform's `retention.choices_days`, or `null` for `retention.default_days`. The activity list and the
+  purge job (`activity.service.purge_expired_entries`, still to be scheduled) follow each company's own
+  period; a stored choice the platform no longer offers falls back to the default. A shorter period
+  hides older entries at once, so the page asks before saving.
+- Name and retention changes are written to the activity log as `setting_changed`, with the setting
+  only, never the company name.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

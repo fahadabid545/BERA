@@ -14,6 +14,6 @@ KINDS = frozenset(
         "project_deleted",
         "member_removed",
         "ownership_transferred",
-        "setting_changed",  # not built yet
+        "setting_changed",
     }
 )

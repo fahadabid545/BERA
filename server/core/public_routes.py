@@ -114,6 +114,12 @@ PUBLIC_ROUTES = [
         "The single-use secret in it is the credential.",
     ),
     PublicRoute(
+        route="api/auth/company/confirm-email-change/",
+        category="email_verification",
+        reason="The link sent to the new address is opened from the inbox, and whoever is "
+        "signed in plays no part. The single-use secret in it is the credential.",
+    ),
+    PublicRoute(
         route="api/auth/company/verify-email/resend/",
         category="email_verification",
         reason="A person who cannot sign in until verified asks for a new link. It answers the "

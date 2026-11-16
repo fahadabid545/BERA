@@ -4,6 +4,7 @@ from datetime import UTC, datetime, time, timedelta
 
 from django.utils import timezone
 
+from companies.models import Company
 from core.jobs import logged_job
 from platform_settings.service import get_setting
 
@@ -41,10 +42,18 @@ def record(kind, *, company_id, actor, target_kind="", target_id="", details=Non
     )
 
 
-def retention_cutoff():
-    """Entries older than this are no longer listed or kept. Every company follows the
-    platform default until companies can choose their own."""
-    return timezone.now() - timedelta(days=get_setting("retention.default_days"))
+def retention_days(company_id):
+    """How long the company's entries are kept: its own choice while that is still one of the
+    platform's choices, otherwise the platform default."""
+    chosen = Company.objects.filter(pk=company_id).values_list("retention_days", flat=True).first()
+    if chosen in get_setting("retention.choices_days"):
+        return chosen
+    return get_setting("retention.default_days")
+
+
+def retention_cutoff(company_id):
+    """Entries older than this are no longer listed or kept."""
+    return timezone.now() - timedelta(days=retention_days(company_id))
 
 
 def list_entries(company_id, before=None, *, actor_id=None, since=None, until=None):
@@ -52,7 +61,7 @@ def list_entries(company_id, before=None, *, actor_id=None, since=None, until=No
     between two days (UTC, both inclusive): a page, and where the next page starts (the time of
     the last entry shown) or None."""
     entries = ActivityEntry.objects.filter(
-        company_id=company_id, created_at__gte=retention_cutoff()
+        company_id=company_id, created_at__gte=retention_cutoff(company_id)
     )
     if actor_id is not None:
         entries = entries.filter(actor_id=actor_id)
@@ -77,7 +86,9 @@ def people_in_log(company_id):
     most recently, sorted by name."""
     latest = (
         ActivityEntry.objects.filter(
-            company_id=company_id, created_at__gte=retention_cutoff(), actor_id__isnull=False
+            company_id=company_id,
+            created_at__gte=retention_cutoff(company_id),
+            actor_id__isnull=False,
         )
         .order_by("actor_id", "-created_at")
         .distinct("actor_id")
@@ -91,6 +102,11 @@ def people_in_log(company_id):
 
 @logged_job
 def purge_expired_entries():
-    """Deletes entries past the retention period; for a periodic job."""
-    deleted, _ = ActivityEntry.objects.filter(created_at__lt=retention_cutoff()).delete()
+    """Deletes each company's entries past its own retention period; for a periodic job."""
+    deleted = 0
+    for company_id in ActivityEntry.objects.values_list("company_id", flat=True).distinct():
+        removed, _ = ActivityEntry.objects.filter(
+            company_id=company_id, created_at__lt=retention_cutoff(company_id)
+        ).delete()
+        deleted += removed
     return deleted

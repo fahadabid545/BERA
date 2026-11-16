@@ -36,6 +36,7 @@ EXPECTED_DEFAULTS = {
     "email.retry_waits_seconds": [60, 300, 1800],
     "tokens.password_reset_hours": 1,
     "tokens.team_invite_days": 7,
+    "tokens.email_change_hours": 24,
     "signin.max_failed_attempts": 5,
     "signin.attempt_window_minutes": 15,
     "signin.lockout_minutes": 15,

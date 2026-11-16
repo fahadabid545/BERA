@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import team_views, views
+from . import account_views, team_views, views
 
 urlpatterns = [
     path("company/signup/", views.sign_up_company),
@@ -9,5 +9,6 @@ urlpatterns = [
     path("company/reset-password/", views.reset_company_password),
     path("company/accept-invite/", team_views.accept_company_invite),
     path("company/verify-email/", views.verify_company_email),
+    path("company/confirm-email-change/", account_views.confirm_company_email_change),
     path("company/verify-email/resend/", views.resend_company_verification),
 ]

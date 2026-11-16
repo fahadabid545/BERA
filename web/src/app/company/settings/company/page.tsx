@@ -1,12 +1,5 @@
-import { Button, Input } from "@/components/ui";
+import { CompanySettingsForm } from "@/components/company/CompanySettingsForm";
 
 export default function CompanySettingsPage() {
-  return (
-    <form className="page-form">
-      <Input label="Company name" autoComplete="organization" />
-      <div className="page-actions">
-        <Button>Save</Button>
-      </div>
-    </form>
-  );
+  return <CompanySettingsForm />;
 }

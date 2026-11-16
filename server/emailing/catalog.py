@@ -123,6 +123,18 @@ CATALOG = {
         button_label="Open Bera",
         variables=("name", "title", "message", "link"),
     ),
+    "confirm_new_email": EmailTemplate(
+        subject="Confirm your new email address for Bera",
+        heading="Confirm your new email address",
+        paragraphs=(
+            GREETING,
+            "You asked to use this address for your Bera account. The link works once and "
+            "expires in {expires_in}.",
+            "If you did not ask for this, ignore this email. Nothing changes.",
+        ),
+        button_label="Confirm email address",
+        variables=("name", "link", "expires_in"),
+    ),
     "download_ready": EmailTemplate(
         subject="Your Bera download is ready",
         heading="Your download is ready",

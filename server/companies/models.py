@@ -35,6 +35,9 @@ class Company(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     # When on, every member must have two-step verification (set up at their next login).
     require_two_step = models.BooleanField(default=False)
+    # How many days the company's activity log is kept: one of the platform's choices, or none
+    # for the platform default (see `activity/service.py`).
+    retention_days = models.PositiveIntegerField(null=True)
 
     objects = CompanyQuerySet.as_manager()
 
@@ -106,6 +109,15 @@ class CompanyUser(PersonAccount):
     def _would_leave_the_company_without_an_owner(self):
         was_owner = CompanyUser.objects.filter(pk=self.pk, role=self.Role.OWNER).exists()
         return was_owner and (self.role != self.Role.OWNER or self.status == self.Status.REMOVED)
+
+
+class PendingEmailChange(models.Model):
+    """The new address a person asked for, kept until they confirm it through that address. One
+    at a time: a newer request replaces the older one."""
+
+    person = models.OneToOneField(CompanyUser, on_delete=models.CASCADE, related_name="+")
+    new_email = models.EmailField(max_length=254)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 def new_token_subject():

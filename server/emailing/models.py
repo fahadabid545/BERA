@@ -52,6 +52,7 @@ class LinkToken(models.Model):
         VERIFY_EMAIL = "verify_email"
         RESET_PASSWORD = "reset_password"
         TEAM_INVITE = "team_invite"
+        CHANGE_EMAIL = "change_email"
 
     purpose = models.CharField(max_length=30, choices=Purpose.choices)
     # The person (or invitation) it is for; the purpose says which table that is.
@@ -64,7 +65,9 @@ class LinkToken(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=Q(purpose__in=["verify_email", "reset_password", "team_invite"]),
+                condition=Q(
+                    purpose__in=["verify_email", "reset_password", "team_invite", "change_email"]
+                ),
                 name="linktoken_purpose_is_known",
             ),
         ]

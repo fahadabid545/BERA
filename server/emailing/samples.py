@@ -34,6 +34,7 @@ def sample_values(template_name):
             **shared,
             "what": "A sign-in token that had already been used was presented again.",
         },
+        "confirm_new_email": {**shared, "expires_in": duration_text(24, "hour")},
         "download_ready": {**shared, "expires_in": duration_text(24, "hour")},
         "payment_problem": {
             **shared,
