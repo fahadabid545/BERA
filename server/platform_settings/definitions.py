@@ -331,6 +331,12 @@ SETTINGS = [
     SettingDefinition("dashboard.activity_limit", 8, whole_number(1, 50)),
     SettingDefinition("dashboard.detail_limit", 20, whole_number(1, 200)),
     SettingDefinition("dashboard.expiring_link_days", 3, whole_number(1, 90)),
+    # The admin overview (see adminusers/overview.py).
+    SettingDefinition("admin_dashboard.top_companies_count", 10, whole_number(1, 50)),
+    SettingDefinition("admin_dashboard.recent_companies_count", 8, whole_number(1, 50)),
+    SettingDefinition("admin_dashboard.expiring_grant_days", 7, whole_number(1, 90)),
+    SettingDefinition("admin_dashboard.failed_calls_hours", 24, whole_number(1, 720)),
+    SettingDefinition("admin_dashboard.margin_days", 30, whole_number(1, 365)),
     # Comparing candidates (see cvs/comparison.py).
     SettingDefinition("comparison.min_candidates", 2, whole_number(2, 10)),
     SettingDefinition("comparison.max_candidates", 4, whole_number(2, 10)),

@@ -6,6 +6,7 @@ const PERCENT = 100;
 /** A small line of the last days' values. It carries no numbers of its own: the card around it
  * says them. The end marker is an HTML dot so stretching the line never squashes it. */
 export function Sparkline({ values, colour }: { values: number[]; colour: string }) {
+  if (values.length < 2) return null;
   const top = Math.max(1, ...values);
   const step = values.length > 1 ? WIDTH / (values.length - 1) : 0;
   const points = values.map((value, index) => ({

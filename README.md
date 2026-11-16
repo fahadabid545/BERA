@@ -1446,6 +1446,48 @@ The comparison page (`/company/projects/<id>/compare?ids=a,b`) now reads at a gl
 - Every word that needs one has its meaning on hover or keyboard focus (`terms.tsx`), instead of
   text on the page. Setting: `comparison.frontier_max_points`.
 
+## Admin overview
+
+The admin dashboard (`/admin`) answers one question per tab, counted from stored data when asked and
+refreshed by the live-updates routine. The period (today, this week, this month, from
+`dashboard.period_choices_days`) sits next to the one before it. Like the company dashboard, every
+card and mark shows details on hover or focus, opens a popup listing the companies (or AI calls)
+behind it, and every name links to its company page. The chosen tab is kept in the address.
+
+| Tab | Shows | Who |
+| --- | --- | --- |
+| Overview | Companies, paying, suspended, monthly revenue; new companies, CVs scored, AI cost; the newest companies | both (money and AI cost: super only) |
+| Revenue | Revenue against AI cost with the margin; plan mix; subscriptions by state | super |
+| Usage | The pace of scoring and AI calls; the companies using the platform most | both (tokens, cost, AI calls: super only) |
+| AI | Token budget; calls by purpose and failure rate; cost by model; whether AI work is paused | super |
+| Attention | Past-due subscriptions, free grants ending soon, suspended companies, failed AI calls | both (failed AI calls: super only) |
+
+- `GET /api/admin/dashboard/?days=`: the cards. `GET /api/admin/dashboard/detail/?kind=&key=&days=`:
+  what is behind one (`metric`, `state`, `plan`, `pending`, `ai_purpose`, `ai_model`).
+  `GET /api/admin/dashboard/report/?days=` (JSON for `/admin/dashboard/print`, or `&as=csv`).
+- Support admins get the counts and usage only. The server leaves money and AI figures out of the
+  answer (`payment.view`, `ai.view`) and refuses the routes behind them; the page then has no
+  Revenue or AI tab.
+- "Revenue" is the estimated monthly revenue: the prices of the plans of paying subscriptions
+  (active, past due within grace, cancelled until the period ends; free grants bring nothing).
+  There are no payment records yet, so it is not money received and has no history. The margin is
+  that revenue against the AI cost of the last `admin_dashboard.margin_days` days.
+- The token budget is the tokens used in those days against the caps of the plans of the paying and
+  free subscriptions.
+- Platform settings: `admin_dashboard.top_companies_count`, `.recent_companies_count`,
+  `.expiring_grant_days`, `.failed_calls_hours`, `.margin_days` (the period choices and the list
+  size reuse `dashboard.*`). AI calls hold only ids, numbers and the purpose, so no CV text or
+  contact details reach this page.
+- The admin look stays apart: the ink platform card uses the admin sidebar's colours.
+
+## Tabs on the dashboards
+
+The company dashboard (Overview, Projects, Candidates, Usage, Activity), the candidate comparison
+(Overview, Requirements, Frontier, Evidence; Matrix and Frontier on the matrix page) and the admin
+overview split their content into tabs so no page is one long scroll. `useTabParam` keeps the chosen
+tab in the address (`?tab=` or `?view=`), keeps the rest of the address, and falls back to the first
+tab for an unknown value. A tab opens (and loads its data) only when it is chosen.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

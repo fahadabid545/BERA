@@ -51,7 +51,7 @@ def checked_period(raw):
     return days
 
 
-def _windows(days):
+def windows(days):
     """(start, previous_start, end): the last `days` days with today in them, and the same
     number of days before. `end` is the day after today."""
     today = timezone.now().date()
@@ -59,7 +59,7 @@ def _windows(days):
     return start, start - timedelta(days=days), today + timedelta(days=1)
 
 
-def _in_days(queryset, column, first, end):
+def in_days(queryset, column, first, end):
     return queryset.filter(**{f"{column}__date__gte": first, f"{column}__date__lt": end})
 
 
@@ -96,7 +96,7 @@ def _filled(values):
 
 def _daily_average(company_id, first, days):
     found = dict(
-        _in_days(_scores(company_id), "created_at", first, first + timedelta(days=days))
+        in_days(_scores(company_id), "created_at", first, first + timedelta(days=days))
         .annotate(day=TruncDate("created_at"))
         .values_list("day")
         .annotate(mean=Avg("score"))
@@ -111,7 +111,7 @@ def _daily_average(company_id, first, days):
     )
 
 
-def _card(current, previous, series, *, decimals=False):
+def card(current, previous, series, *, decimals=False):
     change = (
         None
         if previous is None or current is None
@@ -144,24 +144,24 @@ def _cards(company_id, start, before, end):
         for i in range(spark)
     ]
     return {
-        "uploaded": _card(
-            _in_days(uploads, "created_at", start, end).count(),
-            _in_days(uploads, "created_at", before, start).count(),
+        "uploaded": card(
+            in_days(uploads, "created_at", start, end).count(),
+            in_days(uploads, "created_at", before, start).count(),
             per_day(uploads, "created_at", spark_start, spark),
         ),
-        "scored": _card(
-            _in_days(scores, "created_at", start, end).count(),
-            _in_days(scores, "created_at", before, start).count(),
+        "scored": card(
+            in_days(scores, "created_at", start, end).count(),
+            in_days(scores, "created_at", before, start).count(),
             per_day(scores, "created_at", spark_start, spark),
         ),
-        "shortlisted": _card(
+        "shortlisted": card(
             len(_shortlisted_ids(company_id, start, end)),
             len(_shortlisted_ids(company_id, before, start)),
             shortlist_days,
         ),
-        "average_score": _card(
-            _average(_in_days(scores, "created_at", start, end)),
-            _average(_in_days(scores, "created_at", before, start)),
+        "average_score": card(
+            _average(in_days(scores, "created_at", start, end)),
+            _average(in_days(scores, "created_at", before, start)),
             _daily_average(company_id, spark_start, spark),
             decimals=True,
         ),
@@ -169,7 +169,7 @@ def _cards(company_id, start, before, end):
 
 
 def _strong_share(company_id, first, end):
-    scored = _in_days(_scores(company_id), "created_at", first, end)
+    scored = in_days(_scores(company_id), "created_at", first, end)
     total = scored.count()
     if not total:
         return None
@@ -374,7 +374,7 @@ def _activity(company_id):
 
 def dashboard(company_id, raw_days, raw_project=None):
     days = checked_period(raw_days)
-    start, before, end = _windows(days)
+    start, before, end = windows(days)
     cards = _cards(company_id, start, before, end)
     return {
         "refresh_seconds": get_setting("live_updates.max_delay_seconds"),
@@ -483,7 +483,7 @@ def _items_of(rows):
 def _metric_rows(company_id, key, start, end):
     if key == "uploaded":
         return (
-            _in_days(_uploads(company_id), "created_at", start, end)
+            in_days(_uploads(company_id), "created_at", start, end)
             .select_related("project")
             .order_by("-created_at")
         )
@@ -547,7 +547,7 @@ def detail(company_id, kind, key, raw_days, raw_project=None):
     the donut, a project group or a pending item. At most `dashboard.detail_limit` items."""
     limit = get_setting("dashboard.detail_limit")
     days = checked_period(raw_days)
-    start, _, end = _windows(days)
+    start, _, end = windows(days)
     project = _project_of(company_id, raw_project)
     rows = None
     if kind in ("metric", "insight"):
@@ -626,7 +626,7 @@ def _project_rows(company_id):
 
 def report(company_id, raw_days):
     days = checked_period(raw_days)
-    start, before, end = _windows(days)
+    start, before, end = windows(days)
     cards = _cards(company_id, start, before, end)
     labels = {
         "uploaded": "CVs uploaded",

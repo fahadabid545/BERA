@@ -2307,3 +2307,99 @@ button.chart-mark.ui-card {
     grid-row: 2;
   }
 }
+
+/* ---------- Admin overview ---------- */
+.admin-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius);
+  background: var(--color-admin-bg);
+  color: var(--color-admin-text);
+}
+.admin-hero h2 {
+  margin: 0;
+}
+.admin-hero__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.admin-hero .admin-hero__stat.chart-mark {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-admin-hover);
+  border-radius: var(--radius);
+  background: var(--color-admin-hover);
+  color: var(--color-admin-text);
+  font: inherit;
+  text-align: left;
+}
+.admin-hero .admin-hero__stat.chart-mark:hover {
+  background: var(--color-admin-hover);
+}
+.admin-hero button.admin-hero__stat.chart-mark:hover {
+  background: var(--color-admin-active);
+}
+.admin-hero__stat strong {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+}
+.revenue-card__row,
+.state-list__row {
+  display: grid;
+  grid-template-columns: 11rem 1fr 6rem;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+}
+.state-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.revenue-card__track {
+  display: block;
+  height: 0.875rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+  overflow: hidden;
+}
+.revenue-card__bar {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+}
+.revenue-card__bar--revenue {
+  background: var(--color-accent);
+}
+.revenue-card__bar--cost {
+  background: var(--color-data-amber);
+}
+.revenue-card__row strong,
+.state-list__row strong {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 40rem) {
+  .revenue-card__row,
+  .state-list__row {
+    grid-template-columns: 1fr 5rem;
+  }
+  .revenue-card__row .revenue-card__track,
+  .state-list__row .revenue-card__track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

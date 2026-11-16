@@ -22,11 +22,19 @@ export function Gauge({
   scored,
   uploaded,
   onOpen,
+  label = "CVs scored",
+  title = "Screening progress",
+  lines,
 }: {
   percent: number | null;
   scored: number;
   uploaded: number;
-  onOpen: () => void;
+  onOpen?: () => void;
+  /** Written under the number. */
+  label?: string;
+  title?: string;
+  /** The tooltip lines; by default the counts of scored and uploaded. */
+  lines?: string[];
 }) {
   const filled = percent === null ? 0 : Math.round((percent / PERCENT) * SEGMENTS);
   return (
@@ -35,11 +43,13 @@ export function Gauge({
       onOpen={onOpen}
       tip={
         <TipLines
-          title="Screening progress"
-          lines={[
-            `${scored} of ${uploaded} CVs scored`,
-            `${Math.max(0, uploaded - scored)} still to go`,
-          ]}
+          title={title}
+          lines={
+            lines ?? [
+              `${scored} of ${uploaded} CVs scored`,
+              `${Math.max(0, uploaded - scored)} still to go`,
+            ]
+          }
         />
       }
     >
@@ -53,7 +63,7 @@ export function Gauge({
         ))}
       </svg>
       <span className="gauge__value">{percent === null ? "No CVs" : `${percent}%`}</span>
-      <span className="gauge__label">CVs scored</span>
+      <span className="gauge__label">{label}</span>
     </ChartMark>
   );
 }

@@ -20,6 +20,7 @@ describe("design sample page", () => {
       "Charts",
       "Dashboard",
       "Comparison",
+      "Admin overview",
       "Cards, tags and tooltips",
       "Table",
       "Tabs and popup",

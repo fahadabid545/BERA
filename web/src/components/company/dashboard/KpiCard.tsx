@@ -12,6 +12,7 @@ export function KpiCard({
   colour,
   unit = "%",
   period,
+  format = String,
   onOpen,
 }: {
   label: string;
@@ -20,6 +21,8 @@ export function KpiCard({
   /** "%" for counts (a relative change) or " pts" for scores (a difference in points). */
   unit?: string;
   period: string;
+  /** How the figures are written, e.g. as money. */
+  format?: (value: number) => string;
   onOpen: () => void;
 }) {
   const { value, previous, change } = card;
@@ -31,8 +34,8 @@ export function KpiCard({
         <TipLines
           title={label}
           lines={[
-            `${value ?? "No data"} in ${period}`,
-            previous === null ? "Nothing before" : `${previous} in the period before`,
+            `${value === null ? "No data" : format(value)} in ${period}`,
+            previous === null ? "Nothing before" : `${format(previous)} in the period before`,
           ]}
         />
       }
@@ -49,7 +52,7 @@ export function KpiCard({
           </Tag>
         )}
       </span>
-      <span className="kpi-card__value">{value ?? "No data"}</span>
+      <span className="kpi-card__value">{value === null ? "No data" : format(value)}</span>
       <Sparkline values={card.series} colour={colour} />
     </ChartMark>
   );
