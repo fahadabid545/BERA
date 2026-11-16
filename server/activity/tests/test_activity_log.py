@@ -219,3 +219,97 @@ class TestPaging:
     def test_a_bad_before_value_is_refused(self):
         _, owner = team()
         assert client_of(owner).get(URL, {"before": "yesterday-ish"}).status_code == 400
+
+
+class TestFilters:
+    @pytest.fixture
+    def busy(self):
+        company, owner = team()
+        member = make_company_user(company, role="member", name="Mina Member")
+        mine = entry(company, owner, "upload", ago_days=1)
+        theirs = entry(company, member, "download", ago_days=5)
+        old = entry(company, member, "share", ago_days=20)
+        return company, owner, member, mine, theirs, old
+
+    def kinds(self, client, **query):
+        return [e["kind"] for e in listing(client, **query)["entries"]]
+
+    def test_by_person(self, busy):
+        _, owner, member, *_ = busy
+        client = client_of(owner)
+        assert self.kinds(client, actor=member.pk) == ["download", "share"]
+        assert self.kinds(client, actor=owner.pk) == ["upload"]
+
+    def test_by_date_both_ends_included(self, busy):
+        _, owner, *_ = busy
+        today = timezone.now().date()
+        day = lambda ago: (today - timedelta(days=ago)).isoformat()  # noqa: E731
+        client = client_of(owner)
+        assert self.kinds(client, since=day(5), until=day(1)) == ["upload", "download"]
+        assert self.kinds(client, since=day(2)) == ["upload"]
+        assert self.kinds(client, until=day(10)) == ["share"]
+
+    def test_a_day_covers_all_of_that_day(self):
+        company, owner = team()
+        made = entry(company, owner, "upload")
+        stamp = timezone.now().replace(hour=23, minute=59, second=59)
+        ActivityEntry.objects.filter(pk=made.pk).update(created_at=stamp)
+        day = stamp.date().isoformat()
+        assert self.kinds(client_of(owner), since=day, until=day) == ["upload"]
+
+    def test_filters_combine(self, busy):
+        _, owner, member, *_ = busy
+        since = (timezone.now().date() - timedelta(days=10)).isoformat()
+        assert self.kinds(client_of(owner), actor=member.pk, since=since) == ["download"]
+
+    def test_filters_work_with_paging(self, busy):
+        _, owner, member, *_ = busy
+        setting("activity.page_size", 1)
+        client = client_of(owner)
+        first = listing(client, actor=member.pk)
+        assert [e["kind"] for e in first["entries"]] == ["download"]
+        second = listing(client, actor=member.pk, before=first["next_before"])
+        assert [e["kind"] for e in second["entries"]] == ["share"]
+        assert second["next_before"] is None
+
+    def test_a_first_day_after_the_last_is_refused(self, busy):
+        _, owner, *_ = busy
+        response = client_of(owner).get(URL, {"since": "2030-02-01", "until": "2030-01-01"})
+        assert response.status_code == 400
+        assert "until" in response.json()["error"]["fields"]
+
+    @pytest.mark.parametrize("query", [{"actor": "x"}, {"since": "soon"}, {"until": "2030-13-01"}])
+    def test_bad_values_are_refused(self, busy, query):
+        _, owner, *_ = busy
+        assert client_of(owner).get(URL, query).status_code == 400
+
+    def test_another_companys_person_finds_nothing(self, busy):
+        _, owner, *_ = busy
+        other_company, other_owner = team()
+        entry(other_company, other_owner, "upload")
+        assert self.kinds(client_of(owner), actor=other_owner.pk) == []
+
+    def test_the_answer_lists_the_people_with_entries_by_name(self, busy):
+        _, owner, member, *_ = busy
+        people = listing(client_of(owner))["people"]
+        assert people == sorted(
+            [{"id": owner.pk, "name": owner.name}, {"id": member.pk, "name": "Mina Member"}],
+            key=lambda p: p["name"].lower(),
+        )
+
+    def test_people_are_only_this_companys_and_within_retention(self, busy):
+        company, owner, member, *_ = busy
+        other_company, other_owner = team()
+        CompanyUser.objects.filter(pk=other_owner.pk).update(name="Outsider Person")
+        entry(other_company, CompanyUser.objects.get(pk=other_owner.pk), "upload")
+        gone = make_company_user(company, role="member", name="Long Gone")
+        entry(company, gone, "upload", ago_days=400)
+        names = [p["name"] for p in listing(client_of(owner))["people"]]
+        assert "Long Gone" not in names and "Outsider Person" not in names
+
+    def test_a_person_shows_the_name_they_have_most_recently(self, busy):
+        company, owner, member, *_ = busy
+        CompanyUser.objects.filter(pk=member.pk).update(name="Mina Renamed")
+        entry(company, CompanyUser.objects.get(pk=member.pk), "upload")
+        people = listing(client_of(owner))["people"]
+        assert [p["name"] for p in people if p["id"] == member.pk] == ["Mina Renamed"]

@@ -17,8 +17,13 @@ class ActivityList(CompanyObjectView):
         self.get_queryset()  # checks the role and the company
         query = ListQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
+        asked = query.validated_data
         entries, next_before = service.list_entries(
-            request.user.company_id, query.validated_data.get("before")
+            request.user.company_id,
+            asked.get("before"),
+            actor_id=asked.get("actor"),
+            since=asked.get("since"),
+            until=asked.get("until"),
         )
         return Response(
             {
@@ -35,5 +40,6 @@ class ActivityList(CompanyObjectView):
                     for entry in entries
                 ],
                 "next_before": next_before,
+                "people": service.people_in_log(request.user.company_id),
             }
         )

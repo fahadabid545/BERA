@@ -1534,6 +1534,19 @@ period the counters use, not a calendar month; hours are UTC.
   included, while "CVs" counts scored ones only.
 - Platform setting: `usage.history_periods` (12): how many periods are listed.
 
+## Activity tab log
+
+The company dashboard's Activity tab shows the live activity card and, for the owner (`activity.view`),
+the company activity log below it: newest first, `activity.page_size` (50) entries at a time with an
+"Older" button, filtered by person and by day.
+
+- `GET /api/company/activity/?actor=<user id>&since=<date>&until=<date>&before=<time>`: `since` and
+  `until` are whole days (UTC, both included) and may not be reversed; the filters work with paging.
+  The answer also lists `people`: everyone with entries inside the retention period, by the name they
+  had most recently, for the person filter. A company sees only its own entries.
+- Each entry is a sentence made from its kind and short details (no names of candidates, no files);
+  entries about a project link to it, except a deleted one.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

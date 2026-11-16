@@ -1,6 +1,6 @@
 """Writing, reading and clearing a company's activity log."""
 
-from datetime import timedelta
+from datetime import UTC, datetime, time, timedelta
 
 from django.utils import timezone
 
@@ -47,18 +47,46 @@ def retention_cutoff():
     return timezone.now() - timedelta(days=get_setting("retention.default_days"))
 
 
-def list_entries(company_id, before=None):
-    """The company's newest entries within the retention period: a page, and where the next
-    page starts (the time of the last entry shown) or None."""
+def list_entries(company_id, before=None, *, actor_id=None, since=None, until=None):
+    """The company's newest entries within the retention period, optionally of one person and
+    between two days (UTC, both inclusive): a page, and where the next page starts (the time of
+    the last entry shown) or None."""
     entries = ActivityEntry.objects.filter(
         company_id=company_id, created_at__gte=retention_cutoff()
     )
+    if actor_id is not None:
+        entries = entries.filter(actor_id=actor_id)
+    if since is not None:
+        entries = entries.filter(created_at__gte=_day_start(since))
+    if until is not None:
+        entries = entries.filter(created_at__lt=_day_start(until + timedelta(days=1)))
     if before is not None:
         entries = entries.filter(created_at__lt=before)
     size = get_setting("activity.page_size")
     page = list(entries.order_by("-created_at", "-id")[: size + 1])
     next_before = page[size - 1].created_at if len(page) > size else None
     return page[:size], next_before
+
+
+def _day_start(day):
+    return datetime.combine(day, time.min, tzinfo=UTC)
+
+
+def people_in_log(company_id):
+    """Who has entries within the retention period, for the person filter: the name each had
+    most recently, sorted by name."""
+    latest = (
+        ActivityEntry.objects.filter(
+            company_id=company_id, created_at__gte=retention_cutoff(), actor_id__isnull=False
+        )
+        .order_by("actor_id", "-created_at")
+        .distinct("actor_id")
+        .values("actor_id", "actor_name")
+    )
+    return sorted(
+        ({"id": row["actor_id"], "name": row["actor_name"]} for row in latest),
+        key=lambda person: person["name"].lower(),
+    )
 
 
 @logged_job

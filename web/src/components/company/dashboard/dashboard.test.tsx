@@ -511,6 +511,24 @@ const route = (dashboard: DashboardData, extra: Record<string, unknown> = {}) =>
     if (url.includes("/dashboard/detail/")) return json(extra.detail ?? { total: 0, items: [] });
     if (url.includes("/api/company/dashboard/")) return json(dashboard);
     if (url.includes("/api/company/charts/")) return json(charts);
+    if (url.includes("/api/company/activity/"))
+      return json(
+        extra.log ?? {
+          entries: [
+            {
+              id: "e1",
+              kind: "upload",
+              actor_name: "Olu Owner",
+              target_kind: "",
+              target_id: "",
+              details: {},
+              created_at: "2030-01-05T09:30:12Z",
+            },
+          ],
+          next_before: null,
+          people: [{ id: 1, name: "Olu Owner" }],
+        },
+      );
     return json({});
   });
 
@@ -639,6 +657,8 @@ describe("CompanyDashboard", () => {
     route(data());
     show("activity");
     expect(await screen.findByRole("heading", { name: "Live activity" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Activity log" })).toBeTruthy();
+    expect(await screen.findByText("Uploaded CVs")).toBeTruthy();
   });
 
   it("asks again for the chosen period, on any tab", async () => {

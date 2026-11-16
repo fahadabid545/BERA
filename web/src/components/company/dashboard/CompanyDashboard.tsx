@@ -10,6 +10,7 @@ import { DetailDialog, type Detail } from "@/components/charts/DetailDialog";
 import { useLiveCharts } from "@/components/charts/useLiveCharts";
 import { Button, Card, SegmentedControl, Tabs } from "@/components/ui";
 
+import { ActivityLog } from "../ActivityLog";
 import { ActivityFeed } from "./ActivityFeed";
 import { Donut } from "./Donut";
 import { ExportDialog } from "./ExportDialog";
@@ -332,7 +333,12 @@ export function CompanyDashboard({
           {
             value: "activity",
             label: "Activity",
-            content: data ? <ActivityFeed events={data.activity} /> : unavailable,
+            content: (
+              <div className="dashboard__section">
+                {data ? <ActivityFeed events={data.activity} /> : unavailable}
+                <ActivityLog />
+              </div>
+            ),
           },
         ]}
       />
