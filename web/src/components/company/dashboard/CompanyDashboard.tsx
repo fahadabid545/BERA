@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { UsageHistory } from "../UsageHistory";
 import { UsageCard } from "./UsageCard";
 
 import { CompanyCharts } from "@/components/charts/CompanyCharts";
@@ -323,6 +324,7 @@ export function CompanyDashboard({
             content: (
               <div className="dashboard__section">
                 <UsageCard />
+                <UsageHistory />
                 <CompanyCharts show={["trend"]} />
               </div>
             ),

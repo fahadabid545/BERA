@@ -23,6 +23,7 @@ import { ChartCard } from "@/components/charts/ChartCard";
 import { Coverage } from "@/components/charts/Coverage";
 import { Funnel } from "@/components/charts/Funnel";
 import { Histogram } from "@/components/charts/Histogram";
+import { UploadHeatmap } from "@/components/charts/UploadHeatmap";
 import { Ranking } from "@/components/charts/Ranking";
 import { Trend } from "@/components/charts/Trend";
 import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
@@ -103,6 +104,15 @@ export default function DesignSample() {
                 { step: "interview", count: 6 },
                 { step: "approved", count: 2 },
               ]}
+            />
+          </ChartCard>
+          <ChartCard title="Uploads by weekday and hour">
+            <UploadHeatmap
+              grid={Array.from({ length: 7 }, (_, day) =>
+                Array.from({ length: 24 }, (_, hour) =>
+                  day < 5 && hour >= 8 && hour < 18 ? ((day + hour) % 4) + 1 : 0,
+                ),
+              )}
             />
           </ChartCard>
           <ChartCard title="Score distribution">

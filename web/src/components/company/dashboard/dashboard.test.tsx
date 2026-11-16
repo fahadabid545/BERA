@@ -577,6 +577,25 @@ describe("CompanyDashboard", () => {
     fetchMock.mockImplementation(async (url: string) => {
       if (url.includes("/api/company/dashboard/")) return json(data());
       if (url.includes("/api/company/charts/")) return json(charts);
+      if (url.includes("/api/company/usage/history/")) {
+        return json({
+          periods: [
+            {
+              id: "p1",
+              start: "2026-11-01T00:00:00Z",
+              end: "2026-12-01T00:00:00Z",
+              cvs: 4,
+              tokens_in: 1,
+              tokens_out: 2,
+              tokens: 3,
+              estimated_cost: "0.100000",
+            },
+          ],
+          selected: "p1",
+          projects: [],
+          uploads: [],
+        });
+      }
       if (url.includes("/api/company/usage/")) {
         return json({
           plan_name: "Growth",
@@ -599,6 +618,7 @@ describe("CompanyDashboard", () => {
     expect(screen.getByRole("link", { name: "Usage and billing" }).getAttribute("href")).toBe(
       "/company/billing",
     );
+    expect(await screen.findByRole("heading", { name: "Usage by period" })).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "Trend" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Funnel" })).toBeNull();
     cleanup();
@@ -612,6 +632,7 @@ describe("CompanyDashboard", () => {
     show("usage");
     expect(await screen.findByRole("heading", { name: "Trend" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Usage this period" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Usage by period" })).toBeNull();
   });
 
   it("Activity shows what just happened", async () => {

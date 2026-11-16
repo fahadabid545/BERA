@@ -273,6 +273,8 @@ SETTINGS = [
     SettingDefinition("storage.download_link_hours", 24, whole_number(1, 168)),
     # Usage and account lifecycle
     SettingDefinition("usage.warning_percents", [80, 100], list_of_whole_numbers(1, 100)),
+    # How many billing periods the Usage tab lists, newest first.
+    SettingDefinition("usage.history_periods", 12, whole_number(1, 120)),
     SettingDefinition("billing.past_due_grace_days", 7, whole_number(0, 90)),
     SettingDefinition("account.deletion_grace_days", 14, whole_number(0, 365)),
     # Scoring

@@ -1520,6 +1520,20 @@ signed link: a package belongs to the person who asked for it and their company,
   toward the unusual-volume alert (`security.download_alert_threshold`).
 - Libraries added: openpyxl (spreadsheet), reportlab (PDF).
 
+## Usage tab history
+
+The company dashboard's Usage tab (owner only, `billing.view`) adds, below the plan limits and above
+the trend: usage by billing period (CVs scored, tokens in and out, estimated cost), usage by project
+for a chosen period, and a weekday-by-hour grid of when CVs were uploaded. A period is the billing
+period the counters use, not a calendar month; hours are UTC.
+
+- `GET /api/company/usage/history/?period=<id>` (default: the newest period; an unknown or foreign
+  period is a form error). Every figure is read from `UsageCounter` and `CvUsage`, the same records
+  the limits use, so the tables always add up to them. A deleted project keeps its row with no title;
+  work with no project has its own row. The grid counts every CV accepted in the period, failed ones
+  included, while "CVs" counts scored ones only.
+- Platform setting: `usage.history_periods` (12): how many periods are listed.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)
