@@ -14,6 +14,7 @@ urlpatterns = [
     path("<str:id>/charts/", views.ProjectCharts.as_view()),
     path("<str:id>/compare/", views.CandidateComparison.as_view()),
     path("<str:id>/matrix/", views.CandidateMatrix.as_view()),
+    path("<str:id>/frontier/", views.ProjectFrontier.as_view()),
     path("<str:id>/candidates/stage/", views.CandidateStages.as_view()),
     path("<str:id>/candidates/<str:candidate_id>/", views.CandidateDetail.as_view()),
     path("<str:id>/candidates/<str:candidate_id>/notes/", views.CandidateNotes.as_view()),

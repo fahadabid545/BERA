@@ -335,6 +335,7 @@ SETTINGS = [
     SettingDefinition("comparison.min_candidates", 2, whole_number(2, 10)),
     SettingDefinition("comparison.max_candidates", 4, whole_number(2, 10)),
     SettingDefinition("comparison.matrix_page_size", 50, whole_number(1, 200)),
+    SettingDefinition("comparison.frontier_max_points", 200, whole_number(10, 2000)),
     # AI outage handling (see ai/control.py): pause after this many failed calls in a row, for
     # this many minutes, then carry on by itself.
     SettingDefinition("ai.pause_after_failures", 5, whole_number(1, 1000)),

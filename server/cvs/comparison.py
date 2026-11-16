@@ -21,6 +21,9 @@ from projects.models import Requirement
 from .detail import is_outdated
 from .models import AtsScore, Candidate, CandidateScore, RequirementResult
 from .ranking import filtered_rows, ordering
+from .scoring import verdict_points
+
+VERDICTS = ("met", "partly_met", "missing")
 
 
 def _requirements(project):
@@ -94,16 +97,90 @@ def side_by_side(project, params):
                 "label": score.label if score else None,
                 "borderline": bool(score and score.borderline),
                 "ats_score": ats.get(pk),
+                "must_score": _one_decimal(score.must_score if score else None),
+                "nice_score": _one_decimal(score.nice_score if score else None),
+                "capped": bool(score and score.capped),
                 "results": [
                     _cell(requirement, judged.get((pk, requirement.pk)), with_evidence=True)
                     for requirement in requirements
                 ],
             }
         )
+    for item in candidates:
+        item["summary"] = _summary(requirements, item["results"])
     return {
         "requirements": [_requirement_entry(item) for item in requirements],
         "candidates": candidates,
+        "insights": _insights(requirements, candidates),
+        "points": {key: float(value) for key, value in verdict_points().items()},
     }
+
+
+def _one_decimal(value):
+    return None if value is None else f"{value:.1f}"
+
+
+def _summary(requirements, results):
+    """For each group (must-have, nice-to-have): how many requirements were met, partly met,
+    missing, or not judged yet."""
+    summary = {kind: dict.fromkeys((*VERDICTS, "not_judged"), 0) for kind in ("must", "nice")}
+    for requirement, cell in zip(requirements, results, strict=True):
+        summary[requirement.kind][cell["verdict"] or "not_judged"] += 1
+    return summary
+
+
+def _insights(requirements, candidates):
+    """Plain facts about how the chosen candidates differ, as data (the page words them):
+
+    - lead: who has the highest AI score and by how many points over the next (or a tie).
+    - must_gap: a candidate with must-haves that are missing.
+    - best_on: requirements where one candidate is clearly the best (others are behind)."""
+    facts = []
+    scored = sorted(
+        (item for item in candidates if item["score"] is not None),
+        key=lambda item: float(item["score"]),
+        reverse=True,
+    )
+    if len(scored) >= 2:
+        top, next_best = float(scored[0]["score"]), float(scored[1]["score"])
+        if top == next_best:
+            tied = [item["id"] for item in scored if float(item["score"]) == top]
+            facts.append({"kind": "tie", "candidates": tied})
+        else:
+            facts.append(
+                {
+                    "kind": "lead",
+                    "candidate": scored[0]["id"],
+                    "over": scored[1]["id"],
+                    "points": round(top - next_best, 1),
+                }
+            )
+    for item in candidates:
+        gaps = [
+            str(requirement.pk)
+            for requirement, cell in zip(requirements, item["results"], strict=True)
+            if requirement.kind == "must" and cell["verdict"] == "missing"
+        ]
+        if gaps:
+            facts.append({"kind": "must_gap", "candidate": item["id"], "requirements": gaps})
+    if len(candidates) >= 2:
+        points = verdict_points()
+        best = {}
+        for index, requirement in enumerate(requirements):
+            values = {
+                item["id"]: points[item["results"][index]["verdict"]]
+                for item in candidates
+                if item["results"][index]["verdict"]
+            }
+            if len(values) < len(candidates) or len(set(values.values())) < 2:
+                continue
+            top = max(values.values())
+            winners = [key for key, value in values.items() if value == top]
+            if len(winners) == 1:
+                best.setdefault(winners[0], []).append(str(requirement.pk))
+        for candidate_id, ids in best.items():
+            facts.append({"kind": "best_on", "candidate": candidate_id, "requirements": ids})
+    return facts
 
 
 def _cell(requirement, judgement, *, with_evidence=False):
@@ -113,6 +190,7 @@ def _cell(requirement, judgement, *, with_evidence=False):
     }
     if with_evidence:
         cell["evidence"] = judgement.evidence if judgement else ""
+        cell["confidence"] = judgement.confidence if judgement else None
     return cell
 
 

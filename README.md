@@ -1425,6 +1425,27 @@ where it can be worked on. The project charts open the same popups, narrowed to 
 - The data colours (green, blue, violet, amber, coral, teal, grey) are tokens in `tokens.css`; the
   light and dark pairs are checked in `design-rules.test.ts`. Dark mode keeps the original cards.
 
+## Comparing candidates, part two
+
+The comparison page (`/company/projects/<id>/compare?ids=a,b`) now reads at a glance:
+
+- One card for each candidate (name, AI score, grade, ATS score, recommendation, stage, the highest
+  score marked). Each candidate keeps one colour on its card, its bars and its dot on the chart.
+- A sentence each for what stands out: who leads and by how many points (or a tie), who is missing a
+  must-have, who is clearly best on a requirement. The server sends these as facts
+  (`insights`), the page words them.
+- Requirement by requirement: a bar for every candidate, as long as the points its verdict earns
+  (the points come from the scoring settings), with the verdict written beside it. Clicking a bar,
+  or a verdict in the table, opens the requirement, the verdict, the confidence and the words from
+  the CV, with a link to the candidate.
+- The Pareto frontier: `GET /api/company/projects/<id>/frontier/?axes=ai_ats|must_nice` places the
+  candidates on two scores; the ones nobody beats on both are the frontier (the candidates worth
+  comparing). Every dot links to its candidate and says on hover who beats it. "Compare the
+  frontier" opens the comparison of the frontier candidates (within the compare limits). The
+  matrix page shows the same chart above the table.
+- Every word that needs one has its meaning on hover or keyboard focus (`terms.tsx`), instead of
+  text on the page. Setting: `comparison.frontier_max_points`.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

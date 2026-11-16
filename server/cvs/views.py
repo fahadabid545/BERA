@@ -21,6 +21,7 @@ from .detail import candidate_detail
 from .downloads import cv_file_response
 from .estimate import confirm, estimate
 from .file_checks import check_cv_file, check_name_and_size
+from .frontier import frontier
 from .models import Candidate, CandidateScore, CvFile
 from .notes import add_note, change_note, remove_note
 from .processing import cancel_unstarted, project_processing, retry_failed
@@ -345,6 +346,18 @@ class CandidateMatrix(CandidateDataView):
 
     def get(self, request, id):
         return Response(matrix(self.get_object(), request.query_params))
+
+
+class ProjectFrontier(CandidateDataView):
+    """The candidates set against two scores, with the ones nobody beats marked."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("candidate.view")
+
+    def get(self, request, id):
+        return Response(frontier(self.get_object(), request.query_params))
 
 
 class ProjectReports(CandidateDataView):

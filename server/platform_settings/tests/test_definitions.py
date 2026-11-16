@@ -105,6 +105,7 @@ EXPECTED_DEFAULTS = {
     "charts.ranking_max_bars": 10,
     "charts.trend_days_choices": [7, 30, 90],
     "charts.trend_days_default": 7,
+    "comparison.frontier_max_points": 200,
     "dashboard.period_choices_days": [1, 7, 30],
     "dashboard.period_default_days": 30,
     "dashboard.sparkline_days": 7,

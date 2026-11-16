@@ -19,6 +19,7 @@ describe("design sample page", () => {
       "Inputs, selects and checkboxes",
       "Charts",
       "Dashboard",
+      "Comparison",
       "Cards, tags and tooltips",
       "Table",
       "Tabs and popup",

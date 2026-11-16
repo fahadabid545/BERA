@@ -2,7 +2,7 @@ import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
-from cvs.models import Candidate, CvFile, RequirementResult
+from cvs.models import Candidate, CandidateScore, CvFile, RequirementResult
 from cvs.tests.test_processing import Tenant, make_plan, set_setting
 from cvs.tests.test_ranked_list import add
 from projects.models import Requirement
@@ -67,6 +67,7 @@ class TestSideBySide:
             "verdict": "met",
             "outdated": False,
             "evidence": "quote for a.pdf",
+            "confidence": "high",
         }
         assert first["results"][1]["verdict"] == "partly_met"
         assert (
@@ -75,7 +76,12 @@ class TestSideBySide:
 
     def test_a_requirement_not_judged_yet_has_no_verdict(self, tenant, trio):
         second = compare(tenant, trio[:2]).json()["candidates"][1]
-        assert second["results"][1] == {"verdict": None, "outdated": True, "evidence": ""}
+        assert second["results"][1] == {
+            "verdict": None,
+            "outdated": True,
+            "evidence": "",
+            "confidence": None,
+        }
 
     def test_a_requirement_edited_since_is_marked_outdated(self, tenant, trio):
         Requirement.objects.filter(text="Python").update(text="Python 3")
@@ -200,3 +206,59 @@ class TestMatrix:
 def test_the_candidate_list_tells_the_page_how_many_can_be_compared(tenant, trio):
     link = f"/api/company/projects/{tenant.project.pk}/candidates/"
     assert tenant.client.get(link).json()["compare_limits"] == {"min": 2, "max": 4}
+
+
+class TestScoresAndFacts:
+    def test_each_candidate_has_its_group_scores_and_counts(self, tenant, trio):
+        body = compare(tenant, trio).json()
+        first = body["candidates"][0]
+        assert first["must_score"] is None and first["capped"] is False
+        CandidateScore.objects.filter(candidate=trio[0].candidate).update(
+            must_score=88, nice_score=40, capped=True
+        )
+        again = compare(tenant, trio).json()["candidates"][0]
+        assert (again["must_score"], again["nice_score"], again["capped"]) == ("88.0", "40.0", True)
+        assert first["summary"]["must"] == {
+            "met": 1,
+            "partly_met": 0,
+            "missing": 0,
+            "not_judged": 0,
+        }
+        assert first["summary"]["nice"]["partly_met"] == 1
+        second = body["candidates"][1]
+        assert second["summary"]["must"]["missing"] == 1
+        assert second["summary"]["nice"]["not_judged"] == 1
+        assert body["candidates"][2]["summary"]["must"]["not_judged"] == 1
+
+    def test_the_points_of_each_verdict_come_from_the_scoring_settings(self, tenant, trio):
+        assert compare(tenant, trio[:2]).json()["points"] == {
+            "met": 100.0, "partly_met": 50.0, "missing": 0.0,
+        }  # fmt: skip
+        set_setting("scoring.points_partly_met", 40)
+        assert compare(tenant, trio[:2]).json()["points"]["partly_met"] == 40.0
+
+    def test_a_judged_cell_has_its_confidence(self, tenant, trio):
+        cells = compare(tenant, trio).json()["candidates"][0]["results"]
+        assert cells[0]["confidence"] == "high"
+        unjudged = compare(tenant, trio).json()["candidates"][2]["results"][0]
+        assert unjudged["confidence"] is None
+
+    def test_the_lead_names_who_is_ahead_and_by_how_much(self, tenant, trio):
+        facts = compare(tenant, trio).json()["insights"]
+        lead = next(item for item in facts if item["kind"] == "lead")
+        ids = [str(row.candidate.pk) for row in trio]
+        assert lead["candidate"] == ids[0] and lead["over"] == ids[1] and lead["points"] == 20.0
+
+    def test_equal_top_scores_are_a_tie(self, tenant):
+        rows = [add(tenant, f"{n}.pdf", 80, minutes=i) for i, n in enumerate("ab")]
+        facts = compare(tenant, rows).json()["insights"]
+        assert [item["kind"] for item in facts] == ["tie"]
+        assert len(facts[0]["candidates"]) == 2
+
+    def test_a_missing_must_have_is_a_gap_and_a_clear_win_is_best_on(self, tenant, trio):
+        facts = compare(tenant, trio[:2]).json()["insights"]
+        ids = [str(row.candidate.pk) for row in trio]
+        gap = next(item for item in facts if item["kind"] == "must_gap")
+        assert gap["candidate"] == ids[1] and len(gap["requirements"]) == 1
+        best = next(item for item in facts if item["kind"] == "best_on")
+        assert best["candidate"] == ids[0]

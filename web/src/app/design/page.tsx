@@ -27,6 +27,7 @@ import { Ranking } from "@/components/charts/Ranking";
 import { Trend } from "@/components/charts/Trend";
 import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
 
+import { ComparisonSample } from "./ComparisonSample";
 import { DashboardSample } from "./DashboardSample";
 import { DeleteConfirmation } from "./DeleteConfirmation";
 
@@ -174,6 +175,11 @@ export default function DesignSample() {
       <section className="sample-section" aria-labelledby="sample-dashboard">
         <h2 id="sample-dashboard">Dashboard</h2>
         <DashboardSample />
+      </section>
+
+      <section className="sample-section" aria-labelledby="sample-comparison">
+        <h2 id="sample-comparison">Comparison</h2>
+        <ComparisonSample />
       </section>
 
       <section className="sample-section" aria-labelledby="sample-cards">

@@ -62,7 +62,7 @@ class Outcome:
     capped: bool
 
 
-def _points():
+def verdict_points():
     return {
         MET: Decimal(get_setting("scoring.points_met")),
         PARTLY_MET: Decimal(get_setting("scoring.points_partly_met")),
@@ -92,7 +92,7 @@ def _group_score(entries, points):
 
 def combine(entries, must_percent, nice_percent, cap_missing_must_have):
     """The outcome for `entries`, a list of (kind, weight, verdict). None when there are none."""
-    points = _points()
+    points = verdict_points()
     must = _group_score([(w, v) for kind, w, v in entries if kind == MUST], points)
     nice = _group_score([(w, v) for kind, w, v in entries if kind == NICE], points)
     if must is None and nice is None:
