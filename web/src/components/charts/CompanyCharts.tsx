@@ -18,8 +18,17 @@ type CompanyChartData = {
   trend: TrendData;
 };
 
+type Part = "funnel" | "distribution" | "trend";
+
 /** The company's charts: the same questions, all the company's projects together. */
-export function CompanyCharts({ onOpen }: { onOpen?: (detail: Detail) => void }) {
+export function CompanyCharts({
+  show = ["funnel", "distribution", "trend"],
+  onOpen,
+}: {
+  /** Which charts to draw; each tab of the dashboard takes the ones that belong to it. */
+  show?: Part[];
+  onOpen?: (detail: Detail) => void;
+}) {
   const [days, setDays] = useState<number | null>(null);
   const { data, error } = useLiveCharts<CompanyChartData>(
     `/api/company/charts/${days === null ? "" : `?days=${days}`}`,
@@ -33,28 +42,34 @@ export function CompanyCharts({ onOpen }: { onOpen?: (detail: Detail) => void })
   }
   return (
     <div className="chart-grid">
-      <ChartCard title="Funnel">
-        <Funnel
-          steps={data.funnel}
-          onOpen={
-            onOpen &&
-            ((step) => onOpen({ kind: "funnel", key: step, title: `Funnel: ${stepName(step)}` }))
-          }
-        />
-      </ChartCard>
-      <ChartCard title="Score distribution">
-        <Histogram
-          grades={data.distribution}
-          onOpen={
-            onOpen &&
-            ((grade) =>
-              onOpen({ kind: "grade", key: grade, title: `Score distribution: grade ${grade}` }))
-          }
-        />
-      </ChartCard>
-      <div className="chart-grid__wide">
-        <TrendCard trend={data.trend} onDays={setDays} />
-      </div>
+      {show.includes("funnel") && (
+        <ChartCard title="Funnel">
+          <Funnel
+            steps={data.funnel}
+            onOpen={
+              onOpen &&
+              ((step) => onOpen({ kind: "funnel", key: step, title: `Funnel: ${stepName(step)}` }))
+            }
+          />
+        </ChartCard>
+      )}
+      {show.includes("distribution") && (
+        <ChartCard title="Score distribution">
+          <Histogram
+            grades={data.distribution}
+            onOpen={
+              onOpen &&
+              ((grade) =>
+                onOpen({ kind: "grade", key: grade, title: `Score distribution: grade ${grade}` }))
+            }
+          />
+        </ChartCard>
+      )}
+      {show.includes("trend") && (
+        <div className="chart-grid__wide">
+          <TrendCard trend={data.trend} onDays={setDays} />
+        </div>
+      )}
     </div>
   );
 }

@@ -2277,3 +2277,33 @@ button.chart-mark.ui-card {
     transform: translate(0, 16rem) rotate(-90deg);
   }
 }
+
+/* ---------- Dashboard tabs ---------- */
+.dashboard__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.usage-card__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.usage-card__row {
+  display: grid;
+  grid-template-columns: 7rem 1fr 9rem auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+@media (max-width: 40rem) {
+  .usage-card__row {
+    grid-template-columns: 1fr auto;
+  }
+  .usage-card__row .usage-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

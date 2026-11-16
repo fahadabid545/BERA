@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ComparePage from "./page";
 
-vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams("") }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  usePathname: () => "/company/projects/p1/compare",
+  useSearchParams: () => new URLSearchParams(""),
+}));
 
 beforeEach(() => {
   vi.stubGlobal(

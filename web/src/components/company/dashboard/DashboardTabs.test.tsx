@@ -61,7 +61,7 @@ describe("DashboardTabs", () => {
     expect(replace).toHaveBeenCalledWith("/company?tab=candidates", { scroll: false });
   });
 
-  it("shows the company's dashboard on Overview and an empty area on the other tabs", async () => {
+  it("shows the dashboard's numbers on Overview and other content on the other tabs", async () => {
     render(<DashboardTabs />);
     await vi.waitFor(() =>
       expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/company/dashboard/"),
@@ -69,6 +69,10 @@ describe("DashboardTabs", () => {
     cleanup();
     search = "tab=usage";
     render(<DashboardTabs />);
-    expect(screen.getByRole("tabpanel").textContent).toBe("");
+    await vi.waitFor(() =>
+      expect(vi.mocked(fetch).mock.calls.some(([url]) => url === "/api/company/charts/")).toBe(
+        true,
+      ),
+    );
   });
 });

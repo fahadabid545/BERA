@@ -6,7 +6,7 @@ import { DetailDialog } from "@/components/charts/DetailDialog";
 import { timeAgo } from "@/lib/timeAgo";
 
 import { ActivityFeed } from "./ActivityFeed";
-import { CompanyDashboard } from "./CompanyDashboard";
+import { CompanyDashboard, type DashboardSection } from "./CompanyDashboard";
 import { Donut } from "./Donut";
 import { ExportDialog } from "./ExportDialog";
 import { Gauge } from "./Gauge";
@@ -514,37 +514,116 @@ const route = (dashboard: DashboardData, extra: Record<string, unknown> = {}) =>
     return json({});
   });
 
+const onTab = vi.fn();
+const show = (tab: DashboardSection = "overview") =>
+  render(<CompanyDashboard tab={tab} onTab={onTab} />);
+
 describe("CompanyDashboard", () => {
-  it("shows every section from the live numbers", async () => {
+  it("has five tabs and shows only the chosen one", async () => {
     route(data());
-    render(<CompanyDashboard />);
-    for (const title of [
-      "CVs by recommendation",
-      "Projects overview",
-      "Screening progress",
-      "Top candidates",
-      "Quick actions",
-      "Pending actions",
-      "Funnel",
-      "Score distribution",
-      "Trend",
-      "Live activity",
-    ]) {
-      expect(await screen.findByRole("heading", { name: title })).toBeTruthy();
+    const user = userEvent.setup();
+    show("overview");
+    expect((await screen.findAllByRole("tab")).map((tab) => tab.textContent)).toEqual([
+      "Overview",
+      "Projects",
+      "Candidates",
+      "Usage",
+      "Activity",
+    ]);
+    expect(screen.getByRole("heading", { name: "Quick actions" })).toBeTruthy();
+    for (const other of ["Top candidates", "Projects overview", "Live activity", "Funnel"]) {
+      expect(screen.queryByRole("heading", { name: other })).toBeNull();
     }
+    await user.click(screen.getByRole("tab", { name: "Candidates" }));
+    expect(onTab).toHaveBeenCalledWith("candidates");
+  });
+
+  it("Overview shows the figures with their change, the insights and what waits", async () => {
+    route(data());
+    show("overview");
+    expect(await screen.findByRole("heading", { name: "Pending actions" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "This month" }).getAttribute("aria-pressed")).toBe(
       "true",
     );
     expect(screen.getByText("+17.8%")).toBeTruthy();
-    expect(screen.getByText("92.1%")).toBeTruthy();
     expect(screen.getByText("2.4 days")).toBeTruthy();
     expect(screen.getByText("Faster by 22.6 h")).toBeTruthy();
   });
 
-  it("asks again for the chosen period", async () => {
+  it("Projects shows how the projects stand and how much is scored", async () => {
     route(data());
-    render(<CompanyDashboard />);
-    await screen.findByRole("heading", { name: "Top candidates" });
+    show("projects");
+    for (const title of ["Projects overview", "Screening progress"]) {
+      expect(await screen.findByRole("heading", { name: title })).toBeTruthy();
+    }
+    expect(screen.getByText("92.1%")).toBeTruthy();
+  });
+
+  it("Candidates shows the best, the split by recommendation, the funnel and the grades", async () => {
+    route(data());
+    show("candidates");
+    for (const title of [
+      "Top candidates",
+      "CVs by recommendation",
+      "Funnel",
+      "Score distribution",
+    ]) {
+      expect(await screen.findByRole("heading", { name: title })).toBeTruthy();
+    }
+    expect(screen.queryByRole("heading", { name: "Trend" })).toBeNull();
+  });
+
+  it("Usage shows the plan's limits and the pace, and leaves the limits out without a plan", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("/api/company/dashboard/")) return json(data());
+      if (url.includes("/api/company/charts/")) return json(charts);
+      if (url.includes("/api/company/usage/")) {
+        return json({
+          plan_name: "Growth",
+          state: "active",
+          period_start: "2026-11-01",
+          period_end: "2026-11-30",
+          cvs: { used: 90, limit: 100, left: 10, warning: 90 },
+          tokens: { used: 5, limit: 10, left: 5, warning: null },
+          estimated_cost: "0.00",
+          projects: { used: 3, limit: 10 },
+          refresh_seconds: 3,
+        });
+      }
+      return json({});
+    });
+    show("usage");
+    expect(await screen.findByRole("heading", { name: "Usage this period" })).toBeTruthy();
+    expect(screen.getByRole("meter", { name: "CVs" }).getAttribute("aria-valuenow")).toBe("90");
+    expect(screen.getByText("90% used")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Usage and billing" }).getAttribute("href")).toBe(
+      "/company/billing",
+    );
+    expect(await screen.findByRole("heading", { name: "Trend" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Funnel" })).toBeNull();
+    cleanup();
+    fetchMock.mockImplementation(async (url: string) =>
+      url.includes("/api/company/usage/")
+        ? json({ error: { code: "forbidden", message: "No." } }, false)
+        : url.includes("/api/company/charts/")
+          ? json(charts)
+          : json(data()),
+    );
+    show("usage");
+    expect(await screen.findByRole("heading", { name: "Trend" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Usage this period" })).toBeNull();
+  });
+
+  it("Activity shows what just happened", async () => {
+    route(data());
+    show("activity");
+    expect(await screen.findByRole("heading", { name: "Live activity" })).toBeTruthy();
+  });
+
+  it("asks again for the chosen period, on any tab", async () => {
+    route(data());
+    show("overview");
+    await screen.findByRole("heading", { name: "Pending actions" });
     await userEvent.click(screen.getByRole("button", { name: "This week" }));
     await vi.waitFor(() =>
       expect(fetchMock.mock.calls.some(([url]) => url === "/api/company/dashboard/?days=7")).toBe(
@@ -555,7 +634,7 @@ describe("CompanyDashboard", () => {
 
   it("asks again for another project's top candidates", async () => {
     route(data());
-    render(<CompanyDashboard />);
+    show("candidates");
     await screen.findByRole("heading", { name: "Top candidates" });
     await userEvent.selectOptions(screen.getByLabelText("Project"), "p2");
     await vi.waitFor(() =>
@@ -565,39 +644,46 @@ describe("CompanyDashboard", () => {
     );
   });
 
-  it("opens what is behind a card, a donut part, the gauge, a funnel step and a pending row", async () => {
+  it("opens what is behind a card and a pending row (Overview)", async () => {
     route(data());
     const user = userEvent.setup();
-    render(<CompanyDashboard />);
-    await screen.findByRole("heading", { name: "Top candidates" });
+    show("overview");
+    await screen.findByRole("heading", { name: "Pending actions" });
     const asked = () => String(fetchMock.mock.calls.at(-1)?.[0]);
     await user.click(screen.getByRole("button", { name: /^CVs uploaded/ }));
     await vi.waitFor(() => expect(asked()).toContain("kind=metric&key=uploaded&days=30"));
-    await user.click(await screen.findByRole("button", { name: "Close" }));
-    await user.click(screen.getByRole("button", { name: /Possible/ }));
-    await vi.waitFor(() => expect(asked()).toContain("kind=recommendation&key=possible"));
-    await user.click(await screen.findByRole("button", { name: "Close" }));
-    await user.click(screen.getByRole("button", { name: /Not started/ }));
-    await vi.waitFor(() => expect(asked()).toContain("kind=project_status&key=not_started"));
-    await user.click(await screen.findByRole("button", { name: "Close" }));
-    await user.click(screen.getByRole("button", { name: /92.1%/ }));
-    await vi.waitFor(() => expect(asked()).toContain("kind=screening"));
-    await user.click(await screen.findByRole("button", { name: "Close" }));
-    await user.click(screen.getByRole("button", { name: /Interview/ }));
-    await vi.waitFor(() => expect(asked()).toContain("kind=funnel&key=interview"));
     await user.click(await screen.findByRole("button", { name: "Close" }));
     await user.click(screen.getAllByRole("button", { name: "Review" })[1]);
     await vi.waitFor(() => expect(asked()).toContain("kind=pending&key=failed"));
   });
 
-  it("opens a grade from the score distribution", async () => {
+  it("opens a part of a donut and the gauge (Projects)", async () => {
     route(data());
-    render(<CompanyDashboard />);
+    const user = userEvent.setup();
+    show("projects");
+    await screen.findByRole("heading", { name: "Projects overview" });
+    const asked = () => String(fetchMock.mock.calls.at(-1)?.[0]);
+    await user.click(screen.getByRole("button", { name: /Not started/ }));
+    await vi.waitFor(() => expect(asked()).toContain("kind=project_status&key=not_started"));
+    await user.click(await screen.findByRole("button", { name: "Close" }));
+    await user.click(screen.getByRole("button", { name: /92.1%/ }));
+    await vi.waitFor(() => expect(asked()).toContain("kind=screening"));
+  });
+
+  it("opens a recommendation, a funnel step and a grade (Candidates)", async () => {
+    route(data());
+    const user = userEvent.setup();
+    show("candidates");
     await screen.findByRole("heading", { name: "Score distribution" });
-    await userEvent.click(await screen.findByRole("button", { name: /Grade C/ }));
-    await vi.waitFor(() =>
-      expect(String(fetchMock.mock.calls.at(-1)?.[0])).toContain("kind=grade&key=C"),
-    );
+    const asked = () => String(fetchMock.mock.calls.at(-1)?.[0]);
+    await user.click(screen.getByRole("button", { name: /Possible/ }));
+    await vi.waitFor(() => expect(asked()).toContain("kind=recommendation&key=possible"));
+    await user.click(await screen.findByRole("button", { name: "Close" }));
+    await user.click(screen.getByRole("button", { name: /Interview/ }));
+    await vi.waitFor(() => expect(asked()).toContain("kind=funnel&key=interview"));
+    await user.click(await screen.findByRole("button", { name: "Close" }));
+    await user.click(await screen.findByRole("button", { name: /Grade C/ }));
+    await vi.waitFor(() => expect(asked()).toContain("kind=grade&key=C"));
   });
 
   it("copes with a company that has nothing yet", async () => {
@@ -621,19 +707,25 @@ describe("CompanyDashboard", () => {
         pending: { awaiting_confirmation: 0, failed: 0, links_expiring: 0 },
       }),
     );
-    const { container } = render(<CompanyDashboard />);
+    const { container } = show("overview");
+    expect(await screen.findByText("0 pending")).toBeTruthy();
+    cleanup();
+    const projects = show("projects");
+    expect(await screen.findByText("No CVs")).toBeTruthy();
+    projects.unmount();
+    const candidates = show("candidates");
     expect(await screen.findByText("No scored candidates yet.")).toBeTruthy();
-    expect(screen.getByText("0 pending")).toBeTruthy();
-    expect(screen.getByText("No CVs")).toBeTruthy();
     expect(container.innerHTML).not.toContain("NaN");
+    candidates.unmount();
   });
 
-  it("shows the server's message when the numbers cannot be read", async () => {
+  it("keeps the tabs and says why when the numbers cannot be read", async () => {
     fetchMock.mockResolvedValue(
       json({ error: { code: "not_found", message: "Not found." } }, false),
     );
-    render(<CompanyDashboard />);
+    show("overview");
     expect((await screen.findByRole("alert")).textContent).toBe("Not found.");
+    expect(screen.getAllByRole("tab")).toHaveLength(5);
   });
 });
 

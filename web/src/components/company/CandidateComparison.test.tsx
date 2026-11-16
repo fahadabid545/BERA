@@ -5,8 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CandidateComparison } from "./CandidateComparison";
 
 const fetchMock = vi.fn();
+const replace = vi.fn();
 let search = "";
 vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace }),
+  usePathname: () => "/company/projects/p1/compare",
   useSearchParams: () => new URLSearchParams(search),
 }));
 
@@ -147,6 +150,7 @@ function serve(body: unknown, ok = true, frontierBody: unknown = frontier) {
 const paths = () => fetchMock.mock.calls.map((call) => call[0] as string);
 
 beforeEach(() => {
+  replace.mockReset();
   search = "";
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
@@ -158,20 +162,54 @@ afterEach(() => {
 });
 
 describe("side by side", () => {
-  it("asks for the chosen candidates and for the frontier", async () => {
+  it("asks for the chosen candidates, and for the frontier only when its tab is open", async () => {
     search = "ids=k1,k2";
     serve(side);
     render(<CandidateComparison projectId="p1" />);
-    await screen.findByRole("region", { name: "Side by side" });
+    await screen.findByRole("tablist", { name: "Comparison" });
+    expect(paths()).toEqual(["/api/company/projects/p1/compare/?ids=k1,k2"]);
+    cleanup();
+    search = "ids=k1,k2&view=frontier";
+    render(<CandidateComparison projectId="p1" />);
     await vi.waitFor(() => expect(paths()).toContain("/api/company/projects/p1/frontier/"));
-    expect(paths()[0]).toBe("/api/company/projects/p1/compare/?ids=k1,k2");
+  });
+
+  it("splits the page into four tabs, opens the one in the address and remembers a choice", async () => {
+    search = "ids=k1,k2";
+    serve(side);
+    render(<CandidateComparison projectId="p1" />);
+    const tabs = await screen.findAllByRole("tab");
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      "Overview",
+      "Requirements",
+      "Frontier",
+      "Evidence",
+    ]);
+    expect(tabs[0].getAttribute("aria-selected")).toBe("true");
+    expect(screen.queryByRole("region", { name: "Side by side" })).toBeNull();
+    await userEvent.setup().click(tabs[3]);
+    expect(replace).toHaveBeenCalledWith("/company/projects/p1/compare?ids=k1%2Ck2&view=evidence", {
+      scroll: false,
+    });
+  });
+
+  it("says so on the Requirements tab when the project has none", async () => {
+    search = "ids=k1,k2&view=requirements";
+    serve({
+      ...side,
+      requirements: [],
+      insights: [],
+      candidates: side.candidates.map((c) => ({ ...c, results: [] })),
+    });
+    render(<CandidateComparison projectId="p1" />);
+    expect(await screen.findByText("No requirements yet.")).toBeTruthy();
   });
 
   it("gives each candidate a card with scores, status and the highest score marked", async () => {
     search = "ids=k1,k2";
     serve(side);
     const { container } = render(<CandidateComparison projectId="p1" />);
-    await screen.findByRole("region", { name: "Side by side" });
+    await screen.findByRole("tablist", { name: "Comparison" });
     const cards = [...container.querySelectorAll(".compare-card")];
     expect(cards).toHaveLength(2);
     expect(
@@ -203,7 +241,7 @@ describe("side by side", () => {
   });
 
   it("draws a bar for every candidate and requirement, written with the verdict", async () => {
-    search = "ids=k1,k2";
+    search = "ids=k1,k2&view=requirements";
     serve(side);
     const { container } = render(<CandidateComparison projectId="p1" />);
     await screen.findByRole("heading", { name: "Requirement by requirement" });
@@ -213,8 +251,8 @@ describe("side by side", () => {
     expect(container.querySelectorAll(".req-bar__fill--none")).toHaveLength(1);
   });
 
-  it("opens the words behind a result, from a bar or from the table", async () => {
-    search = "ids=k1,k2";
+  it("opens the words behind a result from a bar", async () => {
+    search = "ids=k1,k2&view=requirements";
     serve(side);
     const user = userEvent.setup();
     const { container } = render(<CandidateComparison projectId="p1" />);
@@ -226,26 +264,30 @@ describe("side by side", () => {
     expect(within(dialog).getByRole("link", { name: "Open candidate" }).getAttribute("href")).toBe(
       "/company/projects/p1/candidates/k1",
     );
-    await user.click(within(dialog).getByRole("button", { name: "Close" }));
-    await user.click(screen.getByRole("button", { name: "omar.pdf: Docker" }));
-    const second = await screen.findByRole("dialog");
-    expect(within(second).getByText("“Used Docker once”")).toBeTruthy();
-    expect(within(second).getByText("low confidence")).toBeTruthy();
+  });
+
+  it("opens the words behind a result from the table too", async () => {
+    search = "ids=k1,k2&view=evidence";
+    serve(side);
+    render(<CandidateComparison projectId="p1" />);
+    await userEvent.setup().click(await screen.findByRole("button", { name: "omar.pdf: Docker" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("“Used Docker once”")).toBeTruthy();
+    expect(within(dialog).getByText("low confidence")).toBeTruthy();
   });
 
   it("says so in the popup when no words are quoted", async () => {
-    search = "ids=k1,k2";
+    search = "ids=k1,k2&view=evidence";
     serve(side);
     render(<CandidateComparison projectId="p1" />);
-    await screen.findByRole("heading", { name: "Requirement by requirement" });
-    await userEvent.setup().click(screen.getByRole("button", { name: "omar.pdf: Python" }));
+    await userEvent.setup().click(await screen.findByRole("button", { name: "omar.pdf: Python" }));
     expect(
       await screen.findByText("No words from the CV are quoted for this result."),
     ).toBeTruthy();
   });
 
   it("shows scores and each requirement's result with its evidence in the table", async () => {
-    search = "ids=k1,k2";
+    search = "ids=k1,k2&view=evidence";
     serve(side);
     render(<CandidateComparison projectId="p1" />);
     const table = await screen.findByRole("region", { name: "Side by side" });
@@ -262,7 +304,7 @@ describe("side by side", () => {
   });
 
   it("explains a word on hover", async () => {
-    search = "ids=k1,k2";
+    search = "ids=k1,k2&view=evidence";
     serve(side);
     const user = userEvent.setup();
     render(<CandidateComparison projectId="p1" />);
@@ -288,8 +330,10 @@ describe("side by side", () => {
 });
 
 describe("pareto frontier", () => {
+  beforeEach(() => {
+    search = "ids=k1,k2&view=frontier";
+  });
   it("places every candidate as a link, marks the frontier and the chosen ones", async () => {
-    search = "ids=k1,k2";
     serve(side);
     const { container } = render(<CandidateComparison projectId="p1" />);
     await screen.findByRole("heading", { name: "Pareto frontier" });
@@ -307,7 +351,6 @@ describe("pareto frontier", () => {
   });
 
   it("says on hover who beats a candidate on both scores", async () => {
-    search = "ids=k1,k2";
     serve(side);
     const user = userEvent.setup();
     render(<CandidateComparison projectId="p1" />);
@@ -319,7 +362,6 @@ describe("pareto frontier", () => {
   });
 
   it("compares the frontier and asks again for the other pair of scores", async () => {
-    search = "ids=k1,k2";
     serve(side);
     const user = userEvent.setup();
     render(<CandidateComparison projectId="p1" />);
@@ -333,7 +375,6 @@ describe("pareto frontier", () => {
   });
 
   it("says so when nobody can be placed, and shows the server's message on failure", async () => {
-    search = "ids=k1,k2";
     serve(side, true, { ...frontier, points: [], frontier: [], total: 0, left_out: 0 });
     render(<CandidateComparison projectId="p1" />);
     expect(await screen.findByText("No candidates to place yet.")).toBeTruthy();
@@ -362,10 +403,15 @@ describe("matrix", () => {
     expect(paths()[0]).toBe("/api/company/projects/p1/matrix/?page=1&score_min=60&grade=A%2CB");
   });
 
-  it("shows the frontier above the matrix", async () => {
+  it("has a Matrix tab and a Frontier tab, and shows the frontier on the second", async () => {
+    search = "view=frontier";
     serve(matrix([matrixRow("k1")]));
     render(<CandidateComparison projectId="p1" />);
     expect(await screen.findByRole("heading", { name: "Pareto frontier" })).toBeTruthy();
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+      "Matrix",
+      "Frontier",
+    ]);
   });
 
   it("shows every candidate against every requirement", async () => {
