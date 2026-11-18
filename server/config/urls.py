@@ -21,6 +21,7 @@ urlpatterns = [
     path("api/reports/", include("cvs.public_urls")),
     path("api/company/projects/", include("cvs.urls")),
     path("api/company/projects/", include("projects.urls")),
+    path("api/company/scoring-defaults/", include("projects.defaults_urls")),
 ]
 
 handler404 = "core.views.not_found"

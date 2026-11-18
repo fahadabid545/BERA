@@ -1,9 +1,5 @@
-import { Button } from "@/components/ui";
+import { ScoringDefaults } from "@/components/company/ScoringDefaults";
 
 export default function ScoringDefaultsPage() {
-  return (
-    <div className="page-actions">
-      <Button>Save</Button>
-    </div>
-  );
+  return <ScoringDefaults />;
 }

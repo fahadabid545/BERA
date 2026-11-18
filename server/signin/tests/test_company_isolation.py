@@ -49,6 +49,7 @@ KINDS_NAMED_IN_THE_TICKET = {
 # Project: projects/tests/test_create_project.py (TestAnotherCompany).
 # Requirement: projects/tests/test_requirement_editor.py (TestAnotherCompany).
 # ProjectScoringSettings: projects/tests/test_scoring_settings.py (TestAnotherCompany).
+# CompanyScoringDefaults: projects/tests/test_company_defaults.py (TestAnotherCompany).
 # CvFile: cvs/tests/test_cv_upload.py (TestAnotherCompany).
 # ProcessingTurn: cvs/tests/test_processing.py (fairness and TestJobsRunForTheRightCompany).
 # CvProfile, CvContact: cvs/tests/test_ai_reading.py (TestAnotherCompany).
@@ -69,6 +70,7 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Project",
     "Requirement",
     "ProjectScoringSettings",
+    "CompanyScoringDefaults",
     "CvFile",
     "ProcessingTurn",
     "CvProfile",

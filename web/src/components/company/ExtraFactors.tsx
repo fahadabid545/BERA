@@ -14,7 +14,7 @@ type Factors = {
   max_required_years: number;
 };
 
-const FACTORS: { name: string; label: string }[] = [
+export const FACTORS: { name: string; label: string }[] = [
   { name: "experience_years", label: "Experience years match" },
   { name: "education", label: "Education match" },
   { name: "seniority", label: "Seniority fit" },

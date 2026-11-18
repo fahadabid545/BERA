@@ -1569,6 +1569,21 @@ the company activity log below it: newest first, `activity.page_size` (50) entri
 - Name and retention changes are written to the activity log as `setting_changed`, with the setting
   only, never the company name.
 
+## Scoring defaults
+
+The owner sets what the company's new projects start with, at `/company/advanced/defaults`
+(`GET` and `PUT /api/company/scoring-defaults/`, owner only): the must-have and nice-to-have
+weights (always 100 together), the recommendation threshold, the top-N (held to the plan's cap),
+the "cap when a must-have is missing" switch, and which extra factors are on with their weights.
+
+- **New projects only.** When a project is created, the company's defaults are copied into the
+  project's own scoring and factor rows (`projects/service.py`). They are never read again, so
+  changing the defaults later touches no project that already exists, whether it saved its own
+  settings or was following the platform values. Saving the defaults recalculates nothing.
+- **No defaults saved.** The company's new projects start from the platform values, as before.
+- The job expectations (years, education, seniority) belong to one job, so they start empty.
+- Saving is logged as `setting_changed` without the values. Tests: `projects/tests/test_company_defaults.py`.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

@@ -51,7 +51,7 @@ def member(company):
 
 def mails(template, to=None):
     """The emails of one kind (addresses are encrypted, so they are matched here)."""
-    found = OutgoingEmail.objects.filter(template=template).order_by("id")
+    found = OutgoingEmail.objects.filter(template=template).order_by("created_at")
     return [mail for mail in found if to is None or mail.to_address == to]
 
 

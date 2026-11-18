@@ -113,3 +113,35 @@ class ProjectFactorSettings(CompanyOwnedModel):
     seniority = models.CharField(max_length=20, null=True)
     factors = models.JSONField(default=dict)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class CompanyScoringDefaults(CompanyOwnedModel):
+    """What a company's new projects start with: the scoring numbers and which extra factors are
+    on. They are copied into a project when it is created and never read again, so changing them
+    leaves every existing project as it is. A company with no row starts new projects from the
+    platform's values. Checked in `company_defaults.py`."""
+
+    must_weight_percent = models.PositiveSmallIntegerField()
+    nice_weight_percent = models.PositiveSmallIntegerField()
+    recommendation_threshold = models.PositiveSmallIntegerField()
+    top_n = models.PositiveIntegerField()
+    cap_on_missing_must_have = models.BooleanField(default=False)
+    factors = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["company"], name="one_scoring_defaults_per_company"),
+            models.CheckConstraint(
+                condition=Q(must_weight_percent__lte=100, nice_weight_percent__lte=100)
+                & Q(must_weight_percent=100 - models.F("nice_weight_percent")),
+                name="company_defaults_weights_total_100",
+            ),
+            models.CheckConstraint(
+                condition=Q(recommendation_threshold__lte=100),
+                name="company_defaults_threshold_is_a_percent",
+            ),
+            models.CheckConstraint(
+                condition=Q(top_n__gte=1), name="company_defaults_top_n_is_positive"
+            ),
+        ]

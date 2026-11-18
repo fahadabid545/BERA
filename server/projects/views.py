@@ -1,11 +1,16 @@
 from rest_framework import status
+from rest_framework.decorators import api_view, authentication_classes, throttle_classes
 from rest_framework.response import Response
 
 from companies.models import CompanyUser
-from companies.role_matrix import roles_allowed
+from companies.role_matrix import require_action, roles_allowed
 from core.errors import form_error
+from core.throttles import limited
+from signin.authentication import CompanyAuthentication
 from signin.company_views import CompanyObjectView
 
+from .company_defaults import describe as describe_defaults
+from .company_defaults import save_defaults
 from .deletion import delete_project
 from .extraction import suggest_requirements
 from .factor_settings import describe as describe_factors
@@ -22,6 +27,7 @@ from .serializers import (
     FactorSettingsSerializer,
     ListProjectsSerializer,
     SaveRequirementsSerializer,
+    ScoringDefaultsSerializer,
     ScoringSettingsSerializer,
 )
 from .service import archive_project, create_project, restore_project, update_project
@@ -188,3 +194,23 @@ class ProjectFactorSettingsView(ProjectView):
         return Response(
             save_factor_settings(project.pk, project.company_id, serializer.validated_data)
         )
+
+
+@api_view(["GET", "PUT"])
+@authentication_classes([CompanyAuthentication])
+@throttle_classes(limited())
+def company_scoring_defaults(request):
+    """What the company's new projects start with. Owner only; it never touches a project that
+    already exists."""
+    require_action(request.user, "settings.change")
+    if request.method == "GET":
+        return Response(describe_defaults(request.user.company_id))
+    serializer = ScoringDefaultsSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    return Response(
+        save_defaults(
+            CompanyUser.objects.get(pk=request.user.user_id),
+            request.user.company_id,
+            serializer.validated_data,
+        )
+    )

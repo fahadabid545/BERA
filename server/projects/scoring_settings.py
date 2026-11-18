@@ -9,19 +9,14 @@ from platform_settings.service import get_setting
 from .deletion import register_project_data
 from .models import Project, ProjectScoringSettings
 from .recalculation import recalculate_scores
-from .service import require_editable
+from .service import SCORING_FIELDS, require_editable
 
-FIELDS = (
-    "must_weight_percent",
-    "nice_weight_percent",
-    "recommendation_threshold",
-    "top_n",
-    "cap_on_missing_must_have",
-)
+FIELDS = SCORING_FIELDS
 
 
 def scoring_defaults():
-    """The values a project starts with. The company's own scoring defaults plug in here."""
+    """The platform's values. A project with no saved row follows these; a company's own defaults
+    are copied into a new project when it is made (`company_defaults.py`), never read live."""
     return {
         "must_weight_percent": get_setting("scoring.must_have_weight_percent"),
         "nice_weight_percent": get_setting("scoring.nice_to_have_weight_percent"),
@@ -48,7 +43,7 @@ def describe(project):
     return {**effective_settings(project), "top_n_cap": top_n_cap(project.company_id)}
 
 
-def _refuse_impossible(values):
+def refuse_impossible(values):
     problems = {}
     for name in ("must_weight_percent", "nice_weight_percent"):
         if not 0 <= values[name] <= 100:
@@ -66,7 +61,7 @@ def _refuse_impossible(values):
 def save_scoring_settings(project_id, company_id, values):
     """Saves the settings and recalculates scores without the AI. Returns what is now in
     force and how many scores changed."""
-    _refuse_impossible(values)
+    refuse_impossible(values)
     check_top_n(company_id, values["top_n"]).raise_if_blocked()
     with transaction.atomic():
         project = Project.objects.select_for_update().get(pk=project_id, company_id=company_id)

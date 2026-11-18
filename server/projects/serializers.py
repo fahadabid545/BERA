@@ -107,6 +107,12 @@ class FactorSerializer(StrictSerializer):
     weight = TypedWholeNumber(min_value=-1_000_000, max_value=1_000_000)
 
 
+def clean_factors(value):
+    if len(value) > 50:
+        raise serializers.ValidationError("Too many factors.")
+    return {name: dict(setting) for name, setting in value.items()}
+
+
 class FactorSettingsSerializer(StrictSerializer):
     """Every value is sent every time; what is possible is checked when saving."""
 
@@ -116,6 +122,13 @@ class FactorSettingsSerializer(StrictSerializer):
     factors = serializers.DictField(child=FactorSerializer())
 
     def validate_factors(self, value):
-        if len(value) > 50:
-            raise serializers.ValidationError("Too many factors.")
-        return {name: dict(setting) for name, setting in value.items()}
+        return clean_factors(value)
+
+
+class ScoringDefaultsSerializer(ScoringSettingsSerializer):
+    """The company's defaults for new projects: the scoring numbers and the extra factors."""
+
+    factors = serializers.DictField(child=FactorSerializer())
+
+    def validate_factors(self, value):
+        return clean_factors(value)

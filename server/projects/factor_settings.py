@@ -26,7 +26,7 @@ SENIORITY_LEVELS = ("junior", "mid", "senior", "lead")
 JOB_FIELDS = ("required_years", "required_education", "seniority")
 
 
-def _default_factors():
+def default_factors():
     return {
         name: {"enabled": False, "weight": get_setting("factors.default_weight")}
         for name in FACTORS
@@ -41,13 +41,13 @@ def effective_factors(project):
             "required_years": None,
             "required_education": None,
             "seniority": None,
-            "factors": _default_factors(),
+            "factors": default_factors(),
         }
     return {
         "required_years": saved.required_years,
         "required_education": saved.required_education,
         "seniority": saved.seniority,
-        "factors": {**_default_factors(), **saved.factors},
+        "factors": {**default_factors(), **saved.factors},
     }
 
 
@@ -58,7 +58,7 @@ def describe(project):
     }
 
 
-def _refuse_impossible(values):
+def refuse_impossible(values):
     problems = {}
     years = values["required_years"]
     if years is not None and not 0 <= years <= get_setting("factors.max_required_years"):
@@ -84,7 +84,7 @@ def save_factor_settings(project_id, company_id, values):
     recombines scores without the AI. Returns what is in force and how many scores changed."""
     from cvs.extra_factors import refresh_project_factors  # cvs builds on projects
 
-    _refuse_impossible(values)
+    refuse_impossible(values)
     with transaction.atomic():
         project = Project.objects.select_for_update().get(pk=project_id, company_id=company_id)
         require_editable(project)

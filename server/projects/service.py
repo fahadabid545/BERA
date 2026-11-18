@@ -7,9 +7,16 @@ from core.errors import AppError
 from plans.limits import check_projects
 from platform_settings.service import get_setting
 
-from .models import Project
+from .models import CompanyScoringDefaults, Project, ProjectFactorSettings, ProjectScoringSettings
 
 ARCHIVED_CODE = "project_archived"
+SCORING_FIELDS = (
+    "must_weight_percent",
+    "nice_weight_percent",
+    "recommendation_threshold",
+    "top_n",
+    "cap_on_missing_must_have",
+)
 
 SHORT_DESCRIPTION = "short_description"
 DUPLICATE_TITLE = "duplicate_title"
@@ -68,7 +75,7 @@ def create_project(creator, title, job_description, *, acknowledge_warnings=Fals
                 status_code=409,
                 details={"warnings": warnings},
             )
-        return Project.objects.create(
+        project = Project.objects.create(
             company=company,
             title=title,
             job_description=job_description,
@@ -78,6 +85,25 @@ def create_project(creator, title, job_description, *, acknowledge_warnings=Fals
             scoring_prompt_version=get_setting("ai.scoring_prompt_version"),
             created_by=creator,
         )
+        _start_from_company_defaults(project)
+        return project
+
+
+def _start_from_company_defaults(project):
+    """Gives the new project its own copy of the company's scoring defaults. The copy is why a
+    later change to the defaults leaves this project alone. A company that has saved none gets
+    no copy: its project follows the platform's values as before."""
+    saved = CompanyScoringDefaults.objects.filter(company_id=project.company_id).first()
+    if saved is None:
+        return
+    ProjectScoringSettings.objects.create(
+        project=project,
+        company_id=project.company_id,
+        **{name: getattr(saved, name) for name in SCORING_FIELDS},
+    )
+    ProjectFactorSettings.objects.create(
+        project=project, company_id=project.company_id, factors=saved.factors
+    )
 
 
 def update_project(project_id, company_id, *, title=None, job_description=None):
