@@ -58,6 +58,9 @@ class CvFile(CompanyOwnedModel):
     uploaded_by = models.ForeignKey(
         "companies.CompanyUser", on_delete=models.PROTECT, related_name="+"
     )
+    # When the owner was warned that this CV is about to be deleted by the retention period
+    # (see `retention.py`); empty until then.
+    expiry_warned_at = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -291,6 +294,10 @@ class SharedReport(CompanyOwnedModel):
     hide_contact = models.BooleanField()
     expires_at = models.DateTimeField()
     revoked_at = models.DateTimeField(null=True)
+    # When the oldest CV in this report was uploaded: the report goes with its data, so the
+    # retention clean-up removes it when that CV is due (see `retention.py`). Empty for reports
+    # made before this was kept; those go by their own creation time.
+    data_from = models.DateTimeField(null=True)
     views = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -97,6 +97,12 @@ describe("the activity log", () => {
     ]);
   });
 
+  it("names the system as the doer of an entry made by the daily clean-up", async () => {
+    serve(answer([entry({ kind: "data_expired", actor_name: "", details: { files: 2 } })]));
+    render(<ActivityLog />);
+    expect(await screen.findByText("System")).toBeTruthy();
+  });
+
   it("clears the filters", async () => {
     serve(answer([entry()]));
     render(<ActivityLog />);
@@ -163,6 +169,8 @@ describe("the sentence of an entry", () => {
     ["ownership_transferred", { new_owner_name: "Mina" }, "Handed ownership to Mina"],
     ["invite_sent", {}, "Invited a member"],
     ["project_deleted", {}, "Deleted a project"],
+    ["data_expired", { files: 4, shared_links: 1 }, "Deleted 4 CVs past the retention period"],
+    ["data_expired", { files: 1, shared_links: 0 }, "Deleted 1 CV past the retention period"],
     ["something_new", {}, "something new"],
   ])("%s %j says %s", (kind, details, words) => {
     expect(say(kind, details)).toBe(words);

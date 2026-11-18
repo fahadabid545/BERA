@@ -28,14 +28,15 @@ def _checked_details(details):
 
 
 def record(kind, *, company_id, actor, target_kind="", target_id="", details=None):
-    """Adds an entry for the company. `actor` is the company user who did it."""
+    """Adds an entry for the company. `actor` is the company user who did it; it is None for
+    what the system did by itself (the daily clean-up)."""
     if kind not in KINDS:
         raise KeyError(kind)  # a mistake in the code, so it fails loudly
     return ActivityEntry.objects.create(
         company_id=company_id,
         kind=kind,
-        actor_id=actor.pk,
-        actor_name=actor.name,
+        actor_id=actor.pk if actor else None,
+        actor_name=actor.name if actor else "",
         target_kind=target_kind,
         target_id=str(target_id),
         details=_checked_details(details or {}),

@@ -56,6 +56,8 @@ export function sentence(entry: Entry): string {
       return `Handed ownership to ${details.new_owner_name ?? "another member"}`;
     case "setting_changed":
       return "Changed a setting";
+    case "data_expired":
+      return `Deleted ${count(details.files, "CV", "CVs")} past the retention period`;
     default:
       return entry.kind.replace(/_/g, " ");
   }
@@ -161,7 +163,7 @@ export function ActivityLog() {
               {entries.map((entry) => (
                 <tr key={entry.id}>
                   <td>{when(entry.created_at)}</td>
-                  <td>{entry.actor_name}</td>
+                  <td>{entry.actor_name || "System"}</td>
                   <td>{sentence(entry)}</td>
                   <td>
                     {entry.target_kind === "project" && entry.kind !== "project_deleted" && (

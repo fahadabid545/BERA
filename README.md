@@ -348,10 +348,9 @@ recorded by the ticket that builds them, with `activity.service.record(...)`.
 - **Reading:** `GET /api/company/activity/`, owner only (`activity.view`), newest first, in pages
   (`activity.page_size`, continue with `?before=<next_before>`). It only ever shows the signed-in
   company's own entries.
-- **Retention:** every company follows `retention.default_days` until companies can choose their
-  own (Profile and company settings ticket). Older entries are not listed, and
-  `activity.service.purge_expired_entries` deletes them; it still has to be scheduled as a
-  periodic job.
+- **Retention:** every company follows `retention.default_days` unless its owner chose another
+  period (see Retention settings). Older entries are not listed, and
+  `activity.service.purge_expired_entries` deletes them in the daily retention job.
 
 ### Team management
 
@@ -771,7 +770,7 @@ are built from server-made ids only (`cvs/<company>/<cv>`), never from a file na
   record; deleting a project does this for all its CVs, and **the candidate-deletion ticket must
   call it for the candidate's CV**. If the store cannot delete, nothing is deleted and the person
   is told to try again.
-- Connects to Retention settings (which will call `remove_cv_file` when files expire) and Daily
+- Connects to Retention settings (which calls `remove_cv_file` when files expire) and Daily
   backups (the bucket and the database are backed up together).
 
 ## Duplicate detection
@@ -1563,7 +1562,7 @@ the company activity log below it: newest first, `activity.page_size` (50) entri
   field is refused).
 - **Retention** (`/company/advanced/retention`): the same route takes `retention_days`, one of the
   platform's `retention.choices_days`, or `null` for `retention.default_days`. The activity list and the
-  purge job (`activity.service.purge_expired_entries`, still to be scheduled) follow each company's own
+  purge job (`activity.service.purge_expired_entries`, in the daily retention job) follow each company's own
   period; a stored choice the platform no longer offers falls back to the default. A shorter period
   hides older entries at once, so the page asks before saving.
 - Name and retention changes are written to the activity log as `setting_changed`, with the setting
@@ -1583,6 +1582,38 @@ the "cap when a must-have is missing" switch, and which extra factors are on wit
 - **No defaults saved.** The company's new projects start from the platform values, as before.
 - The job expectations (years, education, seniority) belong to one job, so they start empty.
 - Saving is logged as `setting_changed` without the values. Tests: `projects/tests/test_company_defaults.py`.
+
+## Retention settings
+
+The owner chooses how long candidate data is kept at `/company/advanced/retention`: one of the
+platform's `retention.choices_days` (30, 90, 180 or 365) or the platform default (180). It is
+the same choice that already set how long the activity log is kept (`Company.retention_days`).
+
+- **What is deleted.** CVs uploaded more than the period ago, with their stored file, profile,
+  contact details, scores, notes and stage history (`cvs/retention.py`). CVs still being processed
+  are left alone. Projects, requirements, settings and the usage history stay. A download zip that
+  holds a deleted CV is deleted with it.
+- **Daily job.** `cvs.retention.run_retention` is scheduled once a day by a migration. It deletes
+  what is past each company's own period, warns (below), and also clears old activity entries
+  (`purge_expired_entries`). A file the store cannot delete is left whole and tried the next day.
+- **Warning email.** `retention.warning_days` (7) before, the owners get one `retention_warning`
+  email per batch: how many CVs and from when, with a link to the retention page. It names no
+  candidate and no file. Changing the period starts the warnings over.
+- **Share links.** A shared report holds a copy of candidate data, so it is deleted with its
+  oldest CV (`SharedReport.data_from`, the upload time of that CV; older reports go by their own
+  creation time). The link then answers exactly like one that never existed.
+- **Shortening asks first.** `GET /api/company/settings/retention-preview/?days=` says how many
+  CVs, projects and shared links a period would delete now. Saving a shorter period that would
+  delete anything is refused with `retention_confirmation_needed` (409, with those counts) until
+  the request carries `acknowledge_deletion: true`; the page shows the counts in its confirmation.
+  Nothing is deleted at once: the next daily run does it.
+- **Logs.** Each run that deletes something writes one activity entry `data_expired` with counts
+  only (no person, no names); a change of period is an audit event `retention.changed`
+  (`from_days`, `to_days`) and a `setting_changed` activity entry. Owner only.
+- **Backups** are not touched by this job. They age out under their own policy, so deleted data
+  can remain in a backup until that backup expires (see Daily backups).
+
+Tests: `cvs/tests/test_retention.py` (shortened periods of a few days stand for months).
 
 ## Library checks and updates
 

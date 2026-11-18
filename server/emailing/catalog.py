@@ -146,6 +146,18 @@ CATALOG = {
         button_label="Open the download",
         variables=("name", "link", "expires_in"),
     ),
+    "retention_warning": EmailTemplate(
+        subject="Some of your Bera data will be deleted soon",
+        heading="Data will be deleted soon",
+        paragraphs=(
+            GREETING,
+            "{files} in your projects reach the end of your retention period and will be "
+            "deleted from {when}. Download what you need before then, or choose a longer "
+            "retention period.",
+        ),
+        button_label="Open retention settings",
+        variables=("name", "files", "when", "link"),
+    ),
     "payment_problem": EmailTemplate(
         subject="There is a problem with your Bera payment",
         heading="Payment problem",

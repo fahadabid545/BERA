@@ -252,6 +252,19 @@ def remove_expired_packages():
     return removed
 
 
+def remove_packages_with(company_id, cv_ids):
+    """Removes the company's packages (file and record) that hold any of these CVs, so a CV
+    deleted by the retention period is not left inside a zip."""
+    gone = set(cv_ids)
+    if not gone:
+        return
+    for package in DownloadPackage.objects.filter(company_id=company_id):
+        if gone.intersection(package.cv_ids):
+            if package.storage_key:
+                privatefiles.delete_file(package.storage_key)
+            package.delete()
+
+
 def _remove_for_project(company_id, project_id):
     for package in DownloadPackage.objects.filter(company_id=company_id, project_id=project_id):
         if package.storage_key:

@@ -92,6 +92,7 @@ def create_report(project, user, raw_days, raw_hide_contact):
         entries=[_entry(rank, item) for rank, item in enumerate(scores, start=1)],
         contacts="" if hide_contact else json.dumps(_contacts(scores)),
         hide_contact=hide_contact,
+        data_from=min(item.candidate.cv_file.created_at for item in scores),
         expires_at=timezone.now() + timedelta(days=days),
     )
     record(

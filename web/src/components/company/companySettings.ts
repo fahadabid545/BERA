@@ -14,6 +14,8 @@ export type CompanySettings = {
   };
 };
 
+export type RetentionPreview = { cvs: number; projects: number; shared_links: number };
+
 const URL = "/api/company/settings/";
 
 /** The company's settings, and a way to change them. Owner only: others get the server's
@@ -30,7 +32,11 @@ export function useCompanySettings() {
     });
   }, []);
 
-  async function save(changes: { name?: string; retention_days?: number | null }) {
+  async function save(changes: {
+    name?: string;
+    retention_days?: number | null;
+    acknowledge_deletion?: boolean;
+  }) {
     const result = await patchJson<CompanySettings>(URL, changes);
     if (result.ok) {
       setError(null);
@@ -39,5 +45,13 @@ export function useCompanySettings() {
     } else setError(result.error);
   }
 
-  return { settings, error, saved, setSaved, save };
+  /** What a retention period of `days` would delete right now (null if it cannot be told). */
+  async function preview(days: number) {
+    const result = await getJson<RetentionPreview>(`${URL}retention-preview/?days=${days}`);
+    if (result.ok) return result.data;
+    setError(result.error);
+    return null;
+  }
+
+  return { settings, error, saved, setSaved, save, preview };
 }

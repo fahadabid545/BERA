@@ -244,6 +244,7 @@ SETTINGS = [
     # Data retention
     SettingDefinition("retention.choices_days", [30, 90, 180, 365], list_of_whole_numbers(1, 3650)),
     SettingDefinition("retention.default_days", 180, whole_number(1, 3650)),
+    SettingDefinition("retention.warning_days", 7, whole_number(1, 365)),
     # Sharing and downloads
     SettingDefinition(
         "sharing.report_link_choices_days", [1, 7, 30], list_of_whole_numbers(1, 365)

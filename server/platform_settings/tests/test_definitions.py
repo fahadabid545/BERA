@@ -79,6 +79,7 @@ EXPECTED_DEFAULTS = {
     "jobs.max_requirements_per_project": 30,
     "retention.choices_days": [30, 90, 180, 365],
     "retention.default_days": 180,
+    "retention.warning_days": 7,
     "sharing.report_link_choices_days": [1, 7, 30],
     "sharing.report_link_default_days": 7,
     "sharing.download_package_link_hours": 24,

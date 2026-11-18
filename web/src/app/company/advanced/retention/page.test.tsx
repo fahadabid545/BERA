@@ -17,13 +17,18 @@ const reply = (body: unknown, status = 200) => ({
 });
 const patches = () => fetchMock.mock.calls.filter((c) => c[1]?.method === "PATCH");
 
-function serve(chosen: number | null) {
+const NOTHING_DUE = { cvs: 0, projects: 0, shared_links: 0 };
+const previews = () =>
+  fetchMock.mock.calls.filter((c) => String(c[0]).includes("retention-preview"));
+
+function serve(chosen: number | null, due = NOTHING_DUE) {
   fetchMock.mockReset();
-  fetchMock.mockImplementation(async (_path: string, init?: RequestInit) =>
-    reply(
+  fetchMock.mockImplementation(async (path: string, init?: RequestInit) => {
+    if (String(path).includes("retention-preview")) return reply(due);
+    return reply(
       SETTINGS(init?.method === "PATCH" ? JSON.parse(init.body as string).retention_days : chosen),
-    ),
-  );
+    );
+  });
 }
 
 beforeEach(() => vi.stubGlobal("fetch", fetchMock));
@@ -60,14 +65,14 @@ describe("retention settings page", () => {
     expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("says what will be hidden, asks, then saves the choice", async () => {
+  it("asks, then saves the choice", async () => {
     serve(null);
     render(<RetentionPage />);
     const user = userEvent.setup();
     await user.selectOptions(await screen.findByLabelText("Retention"), "30");
     await user.click(screen.getByRole("button", { name: "Save" }));
     const dialog = await screen.findByRole("dialog", { name: "Save retention" });
-    expect(within(dialog).getByText(/older than 30 days/)).toBeTruthy();
+    expect(within(dialog).getByText(/older than 30 days are deleted automatically/)).toBeTruthy();
     expect(patches()).toHaveLength(0);
     await user.click(within(dialog).getByRole("button", { name: "Save" }));
     await screen.findByRole("dialog", { name: "Retention saved" });
@@ -93,5 +98,57 @@ describe("retention settings page", () => {
     );
     render(<RetentionPage />);
     expect((await screen.findByRole("alert")).textContent).toBe("You do not have access.");
+  });
+
+  it("shows what a shorter period deletes before asking, and sends the confirmation", async () => {
+    serve(null, { cvs: 12, projects: 2, shared_links: 1 });
+    render(<RetentionPage />);
+    const user = userEvent.setup();
+    await user.selectOptions(await screen.findByLabelText("Retention"), "30");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    const dialog = await screen.findByRole("dialog", { name: "Save retention" });
+    expect(previews()[0][0]).toContain("days=30");
+    expect(
+      within(dialog).getByText(/Saving deletes 12 CVs in 2 projects and 1 shared link/),
+    ).toBeTruthy();
+    expect(patches()).toHaveLength(0);
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    await screen.findByRole("dialog", { name: "Retention saved" });
+    expect(JSON.parse(patches()[0][1].body)).toEqual({
+      retention_days: 30,
+      acknowledge_deletion: true,
+    });
+  });
+
+  it("does not ask for the confirmation flag when nothing would be deleted", async () => {
+    serve(null, NOTHING_DUE);
+    render(<RetentionPage />);
+    const user = userEvent.setup();
+    await user.selectOptions(await screen.findByLabelText("Retention"), "90");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    const dialog = await screen.findByRole("dialog", { name: "Save retention" });
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    await screen.findByRole("dialog", { name: "Retention saved" });
+    expect(JSON.parse(patches()[0][1].body)).toEqual({ retention_days: 90 });
+  });
+
+  it("does not look at what is deleted when the period gets longer", async () => {
+    serve(30, { cvs: 5, projects: 1, shared_links: 0 });
+    render(<RetentionPage />);
+    const user = userEvent.setup();
+    await user.selectOptions(await screen.findByLabelText("Retention"), "365");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await screen.findByRole("dialog", { name: "Save retention" });
+    expect(previews()).toHaveLength(0);
+  });
+
+  it("says one CV and one project in the singular", async () => {
+    serve(null, { cvs: 1, projects: 1, shared_links: 0 });
+    render(<RetentionPage />);
+    const user = userEvent.setup();
+    await user.selectOptions(await screen.findByLabelText("Retention"), "30");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    const dialog = await screen.findByRole("dialog", { name: "Save retention" });
+    expect(within(dialog).getByText(/Saving deletes 1 CV in 1 project,/)).toBeTruthy();
   });
 });

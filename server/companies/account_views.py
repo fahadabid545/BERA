@@ -17,6 +17,7 @@ from .account import (
     profile,
     rename,
     request_email_change,
+    retention_preview,
     update_company,
 )
 from .account_serializers import (
@@ -24,6 +25,7 @@ from .account_serializers import (
     ConfirmEmailChangeSerializer,
     EmailChangeSerializer,
     ProfileSerializer,
+    RetentionPreviewSerializer,
 )
 from .models import CompanyUser
 from .role_matrix import require_action
@@ -79,3 +81,14 @@ def company_settings_view(request):
     serializer = CompanySettingsSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     return Response(update_company(person, person.company, serializer.validated_data))
+
+
+@api_view(["GET"])
+@authentication_classes([CompanyAuthentication])
+@throttle_classes(limited())
+def retention_preview_view(request):
+    """What a retention period would delete right now. Owner only."""
+    require_action(request.user, "settings.change")
+    serializer = RetentionPreviewSerializer(data=request.query_params)
+    serializer.is_valid(raise_exception=True)
+    return Response(retention_preview(_person(request).company, serializer.validated_data["days"]))

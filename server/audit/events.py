@@ -37,7 +37,7 @@ KINDS = _kinds(
     EventKind("team.ownership_transferred"),
     EventKind("project.deleted"),  # not built yet
     EventKind("export.created"),  # not built yet
-    EventKind("retention.changed"),  # not built yet
+    EventKind("retention.changed"),
     EventKind("plan.changed"),  # not built yet
     EventKind("subscription.state_changed"),
     # Admin actions. One that changes another account or a company needs a written reason;

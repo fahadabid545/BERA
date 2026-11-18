@@ -51,6 +51,7 @@ def test_the_catalog_holds_exactly_the_agreed_emails():
         "security_alert",
         "account_notice",
         "download_ready",
+        "retention_warning",
         "confirm_new_email",
     }
 

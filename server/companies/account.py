@@ -9,8 +9,9 @@ import logging
 from django.db import transaction
 
 from activity.service import record, retention_days
+from audit.service import record as audit_record
 from core import rate_limits
-from core.errors import form_error
+from core.errors import AppError, form_error
 from core.field_protection import normalize_email
 from emailing.link_tokens import (
     consume_link_token,
@@ -122,15 +123,41 @@ def company_settings(company):
     }
 
 
+RETENTION_CONFIRMATION = "retention_confirmation_needed"
+
+
+def _checked_retention_change(company, new_days, acknowledged):
+    """A shorter period deletes data that is already older than it, so the owner must have seen
+    what goes (`retention.preview`) and confirmed. Returns (days now, days after)."""
+    from cvs import retention  # cvs builds on companies
+
+    before = retention_days(company.pk)
+    after = new_days or get_setting("retention.default_days")
+    if after < before and not acknowledged:
+        due = retention.preview(company.pk, after)
+        if due["cvs"] or due["shared_links"]:
+            raise AppError(
+                RETENTION_CONFIRMATION,
+                "Choosing this period deletes data. Confirm to continue.",
+                status_code=409,
+                details=due,
+            )
+    return before, after
+
+
 def update_company(owner, company, changes):
-    """The owner changes the company's name and/or how long its activity log is kept (one of the
-    platform's choices, or None for the platform default)."""
+    """The owner changes the company's name and/or how long candidate data and the activity log
+    are kept (one of the platform's choices, or None for the platform default). A shorter
+    period that would delete data needs `acknowledge_deletion`."""
+    changes = dict(changes)
+    acknowledged = changes.pop("acknowledge_deletion", False)
     if not changes:
         raise form_error({"name": NOTHING_TO_CHANGE})
     if "retention_days" in changes:
         days = changes["retention_days"]
         if days is not None and days not in get_setting("retention.choices_days"):
             raise form_error({"retention_days": "Choose one of the offered times."})
+        before, after = _checked_retention_change(company, days, acknowledged)
     with transaction.atomic():
         if "name" in changes:
             company.name = changes["name"]
@@ -138,8 +165,32 @@ def update_company(owner, company, changes):
         if "retention_days" in changes:
             company.retention_days = changes["retention_days"]
             _log(owner, company, {"setting": "retention", "days": changes["retention_days"] or 0})
+            if before != after:
+                _retention_changed(owner, company, before, after)
         company.save(update_fields=["name", "retention_days"])
     return company_settings(company)
+
+
+def _retention_changed(owner, company, before, after):
+    from cvs.retention import forget_warnings  # cvs builds on companies
+
+    audit_record(
+        "retention.changed",
+        actor=owner,
+        company_id=company.pk,
+        details={"from_days": before, "to_days": after},
+    )
+    forget_warnings(company.pk)  # the earlier warnings no longer say what is true
+
+
+def retention_preview(company, days):
+    """What a period of `days` would delete right now; shown before the owner confirms."""
+    from cvs import retention  # cvs builds on companies
+
+    offered = [*get_setting("retention.choices_days"), get_setting("retention.default_days")]
+    if days not in offered:
+        raise form_error({"days": "Choose one of the offered times."})
+    return retention.preview(company.pk, days)
 
 
 def _log(owner, company, details):
