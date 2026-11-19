@@ -37,6 +37,11 @@ export const ADMIN_NAVIGATION: readonly NavigationItem<AdminRole>[] = [
     children: [
       { label: "Jobs", href: "/admin/operations/jobs" },
       { label: "Payments", href: "/admin/operations/payments", roles: SUPER_ONLY },
+      {
+        label: "Cost vs revenue",
+        href: "/admin/operations/cost-versus-revenue",
+        roles: SUPER_ONLY,
+      },
       { label: "Announcements", href: "/admin/operations/announcements" },
       { label: "Data requests", href: "/admin/operations/data-requests" },
     ],

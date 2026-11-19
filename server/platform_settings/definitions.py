@@ -37,6 +37,19 @@ def list_of_whole_numbers(minimum, maximum):
     return is_valid
 
 
+def positive_number_or_none(maximum):
+    """A number above zero and up to `maximum`, or None for "not set"."""
+
+    def is_valid(value):
+        if value is None:
+            return True
+        return (
+            isinstance(value, (int, float)) and not isinstance(value, bool) and 0 < value <= maximum
+        )
+
+    return is_valid
+
+
 def list_of_file_types(value):
     return (
         isinstance(value, list)
@@ -348,6 +361,10 @@ SETTINGS = [
     # The admin companies list and company page (see adminusers/company_directory.py).
     SettingDefinition("admin_companies.page_size", 20, whole_number(1, 200)),
     SettingDefinition("admin_companies.detail_limit", 50, whole_number(1, 500)),
+    # Cost versus revenue (see adminusers/profitability.py). The rate is set by a super admin;
+    # None means "not set", and PKR companies are then left out of the totals.
+    SettingDefinition("billing.pkr_per_usd", None, positive_number_or_none(100000)),
+    SettingDefinition("profitability.warning_margin_percent", 20, whole_number(0, 100)),
     # Comparing candidates (see cvs/comparison.py).
     SettingDefinition("comparison.min_candidates", 2, whole_number(2, 10)),
     SettingDefinition("comparison.max_candidates", 4, whole_number(2, 10)),

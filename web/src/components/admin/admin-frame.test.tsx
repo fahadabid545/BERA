@@ -37,7 +37,7 @@ const sidebar = () => screen.getByRole("navigation", { name: "Admin" });
 
 const SUB_MENUS = {
   AI: ["Playground", "Models", "Prompts"],
-  Operations: ["Jobs", "Payments", "Announcements", "Data requests"],
+  Operations: ["Jobs", "Payments", "Cost vs revenue", "Announcements", "Data requests"],
   Settings: ["General", "Audit log", "Admin users"],
   Advanced: [
     "Platform values",
@@ -261,6 +261,7 @@ describe("Advanced section", () => {
         "/admin/settings",
         "/admin/advanced",
         "/admin/operations/payments",
+        "/admin/operations/cost-versus-revenue",
       ].sort(),
     );
     expect(blockedAdminHrefs("super")).toEqual([]);

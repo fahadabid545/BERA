@@ -88,6 +88,7 @@ class TestTheWrittenReason:
             "admin.company_suspended",
             "admin.company_unsuspended",
             "admin.subscription_terminated",
+            "admin.pkr_rate_changed",
         }
 
     def test_logins_and_company_actions_need_none(self):

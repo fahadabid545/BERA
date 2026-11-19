@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from django.utils import timezone
 from rest_framework import serializers
@@ -36,3 +37,11 @@ class StrictBoolean(serializers.BooleanField):
 
 class CompanyUserTwoStepSerializer(ReasonSerializer):
     identity_checked = StrictBoolean()
+
+
+class PkrRateSerializer(ReasonSerializer):
+    """PKR per one US dollar; null clears it, so PKR companies are left out of the totals."""
+
+    pkr_per_usd = serializers.DecimalField(
+        max_digits=12, decimal_places=4, min_value=Decimal("0.0001"), allow_null=True
+    )

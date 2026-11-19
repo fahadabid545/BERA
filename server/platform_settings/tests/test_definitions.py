@@ -117,6 +117,8 @@ EXPECTED_DEFAULTS = {
     "admin_dashboard.margin_days": 30,
     "admin_companies.page_size": 20,
     "admin_companies.detail_limit": 50,
+    "billing.pkr_per_usd": None,
+    "profitability.warning_margin_percent": 20,
     "comparison.frontier_max_points": 200,
     "dashboard.period_choices_days": [1, 7, 30],
     "dashboard.period_default_days": 30,

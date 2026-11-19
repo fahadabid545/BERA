@@ -1727,6 +1727,24 @@ shell from the admin frame.
 Tests: `adminusers/tests/test_company_directory.py`, `web/src/components/admin/CompaniesList.test.tsx`,
 `CompanyDetail.test.tsx`.
 
+## Cost versus revenue
+
+`GET /api/admin/cost-versus-revenue/` (`adminusers/profitability.py`, action `payment.view`: super
+admins only) and the page `/admin/operations/cost-versus-revenue`.
+
+- Per company and overall: the AI cost of the last `admin_dashboard.margin_days` days (summed from
+  the AI call records, each priced when the call was made), the amount paid and the margin. A margin
+  under `profitability.warning_margin_percent` (20) is flagged with a warning tag. A company that
+  paid nothing (free grant, expired, no plan) has no margin.
+- Amount paid is an estimate until real payments exist: the monthly price of the company's plan in
+  its own currency (`price_pkr` for Pakistan, `price_usd` otherwise, no fallback). It counts for
+  active, past due within the grace period and cancelled until the period ends. It all lives in
+  `amount_paid`, the one function real payments replace.
+- PKR becomes USD only with the rate a super admin sets (`PUT .../rate/`, platform value
+  `billing.pkr_per_usd`, a reason is required and audited). Without it a PKR company shows "Rate not
+  set"; a plan with no price in the company's currency shows "No price". Both are left out of the
+  overall totals, which count them under "Left out".
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)
