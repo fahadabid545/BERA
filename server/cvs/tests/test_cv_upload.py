@@ -112,7 +112,19 @@ class TestRules:
             "allowed_types": ["pdf", "docx"],
             "max_file_size_mb": 10,
             "max_files_per_batch": 50,
+            "blocked": None,
         }
+
+    def test_it_says_when_the_month_s_allowance_is_used(self, company, client, project):
+        Plan.objects.update(cvs_per_month=0)
+        make_plan(cvs_per_month=500, name="Bigger", price=99)
+        blocked = client.get(url(project)).json()["blocked"]
+        assert (blocked["code"], blocked["prompt"]) == ("monthly_cv_limit_reached", "upgrade")
+
+    def test_it_says_when_the_subscription_has_ended(self, company, client, project):
+        subs.expire(company.pk)
+        blocked = client.get(url(project)).json()["blocked"]
+        assert (blocked["code"], blocked["prompt"]) == ("subscription_expired", "renewal")
 
 
 class TestAccepting:

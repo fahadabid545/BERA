@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
-import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
+import { BillingPrompts, isPromptKind, type PromptKind } from "@/components/company/BillingPrompt";
 import { Button, Checkbox, Dialog, Input } from "@/components/ui";
 import { getJson, putJson, type ApiError } from "@/lib/api";
 
@@ -27,7 +27,7 @@ export function ScoringSettings({ projectId }: { projectId: string }) {
   const [capOnMissing, setCapOnMissing] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [saved, setSaved] = useState(false);
-  const [prompt, setPrompt] = useState<"upgrade" | "renewal" | null>(null);
+  const [prompt, setPrompt] = useState<PromptKind | null>(null);
 
   useEffect(() => {
     void getJson<Scoring>(base).then((result) => {
@@ -55,7 +55,7 @@ export function ScoringSettings({ projectId }: { projectId: string }) {
       return setSaved(true);
     }
     const promptKind = result.error.details?.prompt;
-    if (promptKind === "upgrade" || promptKind === "renewal") return setPrompt(promptKind);
+    if (isPromptKind(promptKind)) return setPrompt(promptKind);
     setError(result.error);
   }
 
@@ -113,14 +113,7 @@ export function ScoringSettings({ projectId }: { projectId: string }) {
         <Button type="submit">Save scoring settings</Button>
       </div>
       <Dialog open={saved} onOpenChange={setSaved} title="Scoring settings saved" />
-      <UpgradePrompt
-        open={prompt === "upgrade"}
-        onOpenChange={(open) => !open && setPrompt(null)}
-      />
-      <RenewalPrompt
-        open={prompt === "renewal"}
-        onOpenChange={(open) => !open && setPrompt(null)}
-      />
+      <BillingPrompts kind={prompt} onClose={() => setPrompt(null)} />
     </form>
   );
 }

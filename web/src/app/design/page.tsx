@@ -26,7 +26,11 @@ import { Histogram } from "@/components/charts/Histogram";
 import { UploadHeatmap } from "@/components/charts/UploadHeatmap";
 import { Ranking } from "@/components/charts/Ranking";
 import { Trend } from "@/components/charts/Trend";
-import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
+import {
+  HighestPlanPrompt,
+  RenewalPrompt,
+  UpgradePrompt,
+} from "@/components/company/BillingPrompt";
 
 import { AdminSample } from "./AdminSample";
 import { ComparisonSample } from "./ComparisonSample";
@@ -292,6 +296,9 @@ export default function DesignSample() {
         <DeleteConfirmation />
         <UpgradePrompt trigger={<Button variant="secondary">Open upgrade prompt</Button>} />
         <RenewalPrompt trigger={<Button variant="secondary">Open renewal prompt</Button>} />
+        <HighestPlanPrompt
+          trigger={<Button variant="secondary">Open highest plan prompt</Button>}
+        />
         <Menu
           trigger={<Button variant="secondary">Menu</Button>}
           items={[

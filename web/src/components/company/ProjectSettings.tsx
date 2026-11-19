@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
-import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
+import { BillingPrompts, isPromptKind, type PromptKind } from "@/components/company/BillingPrompt";
 import { PROJECTS_HREF } from "@/components/company/links";
 import { Button, Dialog, Input, Textarea } from "@/components/ui";
 import { deleteJson, getJson, patchJson, postJson, type ApiError } from "@/lib/api";
@@ -26,7 +26,7 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
   const [saved, setSaved] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<ApiError | null>(null);
-  const [prompt, setPrompt] = useState<"upgrade" | "renewal" | null>(null);
+  const [prompt, setPrompt] = useState<PromptKind | null>(null);
 
   const load = useCallback(async () => {
     const result = await getJson<Project>(base);
@@ -60,7 +60,7 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
     const result = await postJson<Project>(`${base}${action}/`, {});
     if (result.ok) return setProject(result.data);
     const promptKind = result.error.details?.prompt;
-    if (promptKind === "upgrade" || promptKind === "renewal") return setPrompt(promptKind);
+    if (isPromptKind(promptKind)) return setPrompt(promptKind);
     setError(result.error);
   }
 
@@ -156,14 +156,7 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
           </div>
         </form>
       </Dialog>
-      <UpgradePrompt
-        open={prompt === "upgrade"}
-        onOpenChange={(open) => !open && setPrompt(null)}
-      />
-      <RenewalPrompt
-        open={prompt === "renewal"}
-        onOpenChange={(open) => !open && setPrompt(null)}
-      />
+      <BillingPrompts kind={prompt} onClose={() => setPrompt(null)} />
     </div>
   );
 }

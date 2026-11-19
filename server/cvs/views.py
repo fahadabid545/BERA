@@ -69,8 +69,8 @@ class ProjectCvUpload(CandidateDataView):
         return [throttle() for throttle in classes]
 
     def get(self, request, id):
-        self.get_object()
-        return Response(upload_rules())
+        project = self.get_object()
+        return Response(upload_rules(project.company_id))
 
     def post(self, request, id):
         project = self.get_object()

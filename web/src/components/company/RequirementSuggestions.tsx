@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
+import { BillingPrompts, isPromptKind, type PromptKind } from "@/components/company/BillingPrompt";
 import { Button, Table, Tag } from "@/components/ui";
 import { postJson, type ApiError } from "@/lib/api";
 
@@ -27,7 +27,7 @@ export function RequirementSuggestions({
   const [asking, setAsking] = useState(false);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
-  const [prompt, setPrompt] = useState<"upgrade" | "renewal" | null>(null);
+  const [prompt, setPrompt] = useState<PromptKind | null>(null);
 
   async function ask() {
     setAsking(true);
@@ -39,7 +39,7 @@ export function RequirementSuggestions({
     setAsking(false);
     if (result.ok) return setSuggestion(result.data);
     const promptKind = result.error.details?.prompt;
-    if (promptKind === "upgrade" || promptKind === "renewal") return setPrompt(promptKind);
+    if (isPromptKind(promptKind)) return setPrompt(promptKind);
     setError(result.error);
   }
 
@@ -95,14 +95,7 @@ export function RequirementSuggestions({
           </Button>
         </div>
       )}
-      <UpgradePrompt
-        open={prompt === "upgrade"}
-        onOpenChange={(open) => !open && setPrompt(null)}
-      />
-      <RenewalPrompt
-        open={prompt === "renewal"}
-        onOpenChange={(open) => !open && setPrompt(null)}
-      />
+      <BillingPrompts kind={prompt} onClose={() => setPrompt(null)} />
     </div>
   );
 }

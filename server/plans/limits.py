@@ -18,6 +18,7 @@ from .subscriptions import State, effective_state, get_subscription
 
 UPGRADE = "upgrade"
 RENEWAL = "renewal"
+HIGHEST_PLAN = "highest_plan"  # a limit is reached and no bigger plan exists
 
 CVS_PER_MONTH = "cvs_per_month"
 CVS_PER_PROJECT = "cvs_per_project"
@@ -62,7 +63,7 @@ class LimitCheck:
     limit_name: str
     code: str = ""
     message: str = ""
-    prompt: str | None = None  # "upgrade" or "renewal", what the screen should offer
+    prompt: str | None = None  # "upgrade", "renewal" or "highest_plan": what the screen should offer
     limit: int | None = None
     used: int = 0
     room: int = 0  # how many more fit
@@ -101,11 +102,11 @@ def is_on_highest_plan(company_id):
 
 
 def prompt_kind(company_id):
-    """Renewal for an expired subscription or the highest plan (there is nothing bigger to
-    upgrade to); Upgrade otherwise."""
+    """Renewal for an expired subscription; for the highest plan (nothing bigger to upgrade to)
+    the highest-plan prompt, which offers contact instead; Upgrade otherwise."""
     if effective_state(get_subscription(company_id)) == State.EXPIRED:
         return RENEWAL
-    return RENEWAL if is_on_highest_plan(company_id) else UPGRADE
+    return HIGHEST_PLAN if is_on_highest_plan(company_id) else UPGRADE
 
 
 def _expired(company_id, name):

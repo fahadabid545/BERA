@@ -1,5 +1,6 @@
 export const PROJECTS_HREF = "/company/projects";
 export const BILLING_HREF = "/company/billing";
+export const CONTACT_HREF = "/contact";
 export const NEW_PROJECT_HREF = `${PROJECTS_HREF}/new`;
 
 export function projectTabs(project: string) {

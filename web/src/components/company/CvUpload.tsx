@@ -2,18 +2,24 @@
 
 import { useEffect, useRef, useState, type DragEvent } from "react";
 
-import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
+import { BillingPrompts, isPromptKind, type PromptKind } from "@/components/company/BillingPrompt";
 import { CVS_HELD_EVENT } from "@/components/company/CvProcessing";
 import { Button } from "@/components/ui";
 import { getJson, uploadFiles } from "@/lib/api";
 
-type Rules = { allowed_types: string[]; max_file_size_mb: number; max_files_per_batch: number };
+type Blocked = { code: string; message: string; prompt: PromptKind | null };
+type Rules = {
+  allowed_types: string[];
+  max_file_size_mb: number;
+  max_files_per_batch: number;
+  blocked: Blocked | null;
+};
 type FileResult = {
   name: string;
   status: "accepted" | "rejected" | "failed" | "skipped";
   code: string;
   message: string;
-  prompt: "upgrade" | "renewal" | null;
+  prompt: PromptKind | null;
   notice: string;
 };
 type Entry = {
@@ -51,7 +57,8 @@ export function CvUpload({ projectId }: { projectId: string }) {
   const [rules, setRules] = useState<Rules | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [dragging, setDragging] = useState(false);
-  const [prompt, setPrompt] = useState<"upgrade" | "renewal" | null>(null);
+  const [prompt, setPrompt] = useState<PromptKind | null>(null);
+  const [blocked, setBlocked] = useState<Blocked | null>(null);
   const [loadError, setLoadError] = useState("");
   const chooser = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
@@ -60,8 +67,10 @@ export function CvUpload({ projectId }: { projectId: string }) {
 
   useEffect(() => {
     void getJson<Rules>(base).then((result) => {
-      if (result.ok) setRules(result.data);
-      else setLoadError(result.error.message);
+      if (result.ok) {
+        setRules(result.data);
+        setBlocked(result.data.blocked);
+      } else setLoadError(result.error.message);
     });
   }, [base]);
 
@@ -92,7 +101,10 @@ export function CvUpload({ projectId }: { projectId: string }) {
     if (outcome.status === "failed") {
       return update(entry.id, { state: "failed", message: outcome.message });
     }
-    if (outcome.prompt) setPrompt(outcome.prompt);
+    if (outcome.prompt) {
+      setPrompt(outcome.prompt);
+      setBlocked({ code: outcome.code, message: outcome.message, prompt: outcome.prompt });
+    }
     update(entry.id, { state: "refused", message: outcome.message });
   }
 
@@ -177,6 +189,16 @@ export function CvUpload({ projectId }: { projectId: string }) {
           }}
         />
       </div>
+      {blocked && (
+        <p role="status">
+          {blocked.message}{" "}
+          {blocked.prompt && (
+            <Button variant="secondary" onClick={() => setPrompt(blocked.prompt)}>
+              Show options
+            </Button>
+          )}
+        </p>
+      )}
       {entries.length > 0 && (
         <ul className="cv-upload-list" aria-label="Uploads">
           {entries.map((entry) => (
@@ -204,14 +226,7 @@ export function CvUpload({ projectId }: { projectId: string }) {
           ))}
         </ul>
       )}
-      <UpgradePrompt
-        open={prompt === "upgrade"}
-        onOpenChange={(open) => !open && setPrompt(null)}
-      />
-      <RenewalPrompt
-        open={prompt === "renewal"}
-        onOpenChange={(open) => !open && setPrompt(null)}
-      />
+      <BillingPrompts kind={prompt} onClose={() => setPrompt(null)} />
     </div>
   );
 }

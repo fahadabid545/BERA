@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CreateProjectForm } from "./CreateProjectForm";
+import { RoleProvider } from "./role";
 
 const uploadFiles = vi.fn();
 vi.mock("@/lib/api", async (importOriginal) => ({
@@ -207,7 +208,11 @@ describe("create project form", () => {
         details: { limit: 1, prompt: "upgrade" },
       },
     });
-    render(<CreateProjectForm />);
+    render(
+      <RoleProvider value="owner">
+        <CreateProjectForm />
+      </RoleProvider>,
+    );
     await fillAndSubmit();
     expect(await screen.findByText("Upgrade your plan")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Upgrade plan" }).getAttribute("href")).toBe(

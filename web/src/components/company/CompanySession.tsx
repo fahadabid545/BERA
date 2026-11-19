@@ -7,6 +7,7 @@ import { getJson, type ApiError } from "@/lib/api";
 
 import { CompanyFrame } from "./CompanyFrame";
 import type { CompanyRole } from "./navigation";
+import { RoleProvider } from "./role";
 
 type Me = { name: string; company_name: string; role: CompanyRole };
 
@@ -44,7 +45,7 @@ export function CompanySession({ children }: { children: ReactNode }) {
   }
   return (
     <CompanyFrame companyName={me.company_name} userName={me.name} role={me.role}>
-      {children}
+      <RoleProvider value={me.role}>{children}</RoleProvider>
     </CompanyFrame>
   );
 }

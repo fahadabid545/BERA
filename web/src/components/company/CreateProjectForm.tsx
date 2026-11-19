@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { RenewalPrompt, UpgradePrompt } from "@/components/company/BillingPrompt";
+import { BillingPrompts, isPromptKind, type PromptKind } from "@/components/company/BillingPrompt";
 import { PROJECTS_HREF } from "@/components/company/links";
 import { Button, ButtonLink, Dialog, Input, Textarea } from "@/components/ui";
 import { postJson, uploadFiles, type ApiError } from "@/lib/api";
@@ -28,7 +28,7 @@ export function CreateProjectForm() {
   const [error, setError] = useState<ApiError | null>(null);
   const [warnings, setWarnings] = useState<Warning[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [prompt, setPrompt] = useState<"upgrade" | "renewal" | null>(null);
+  const [prompt, setPrompt] = useState<PromptKind | null>(null);
   const [description, setDescription] = useState("");
   const [fileError, setFileError] = useState<string | undefined>();
   const [fileNotice, setFileNotice] = useState("");
@@ -66,7 +66,7 @@ export function CreateProjectForm() {
       return setWarnings(found);
     }
     const promptKind = result.error.details?.prompt;
-    if (promptKind === "upgrade" || promptKind === "renewal") return setPrompt(promptKind);
+    if (isPromptKind(promptKind)) return setPrompt(promptKind);
     setError(result.error);
   }
 
@@ -136,14 +136,7 @@ export function CreateProjectForm() {
           ))}
         </ul>
       </Dialog>
-      <UpgradePrompt
-        open={prompt === "upgrade"}
-        onOpenChange={(open) => !open && setPrompt(null)}
-      />
-      <RenewalPrompt
-        open={prompt === "renewal"}
-        onOpenChange={(open) => !open && setPrompt(null)}
-      />
+      <BillingPrompts kind={prompt} onClose={() => setPrompt(null)} />
     </form>
   );
 }

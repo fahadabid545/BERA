@@ -17,7 +17,7 @@ from django.db import transaction
 import privatefiles as storage
 from companies.models import Company
 from core.validation import safe_file_name
-from plans.limits import split_batch
+from plans.limits import check_cvs_this_month, split_batch
 from platform_settings.service import get_setting
 from privatefiles.errors import StorageUnavailable
 from projects.deletion import register_project_data
@@ -60,9 +60,19 @@ def _result(name, status, code="", message="", prompt=None, notice=""):
     }
 
 
-def upload_rules():
+def upload_block(company_id):
+    """Why a CV sent now would be refused (subscription ended, or the month's allowance used),
+    so the screen can say so before anyone tries. None when uploads are open."""
+    check = check_cvs_this_month(company_id)
+    if check.allowed:
+        return None
+    return {"code": check.code, "message": check.message, "prompt": check.prompt}
+
+
+def upload_rules(company_id):
     """What the upload area checks before sending; the server checks again."""
     return {
+        "blocked": upload_block(company_id),
         "allowed_types": get_setting("uploads.allowed_file_types"),
         "max_file_size_mb": get_setting("uploads.max_file_size_mb"),
         "max_files_per_batch": get_setting("uploads.max_files_per_batch"),

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CvUpload } from "./CvUpload";
+import { RoleProvider } from "./role";
 
 const getJson = vi.fn();
 const uploadFiles = vi.fn();
@@ -11,7 +12,12 @@ vi.mock("@/lib/api", () => ({
   uploadFiles: (...args: unknown[]) => uploadFiles(...args),
 }));
 
-const RULES = { allowed_types: ["pdf", "docx"], max_file_size_mb: 10, max_files_per_batch: 3 };
+const RULES = {
+  allowed_types: ["pdf", "docx"],
+  max_file_size_mb: 10,
+  max_files_per_batch: 3,
+  blocked: null,
+};
 const pdf = (name = "a.pdf", size = 5) => new File([new Uint8Array(size)], name);
 const accepted = (name: string) => ({
   ok: true,
@@ -24,8 +30,12 @@ const refused = (name: string, message: string, prompt: string | null = null) =>
   data: { results: [{ name, status: "rejected", code: "x", message, prompt, notice: "" }] },
 });
 
-async function ready() {
-  render(<CvUpload projectId="p1" />);
+async function ready(role: "owner" | "member" = "owner") {
+  render(
+    <RoleProvider value={role}>
+      <CvUpload projectId="p1" />
+    </RoleProvider>,
+  );
   await waitFor(() =>
     expect((screen.getByRole("button", { name: "Upload CVs" }) as HTMLButtonElement).disabled).toBe(
       false,
@@ -164,6 +174,45 @@ describe("CV upload", () => {
     await ready();
     await choose(pdf());
     expect(await screen.findByText("Upgrade your plan")).toBeTruthy();
+  });
+
+  it("closing the popup keeps saying that uploads are blocked", async () => {
+    uploadFiles.mockResolvedValue(refused("a.pdf", "Limit reached.", "upgrade"));
+    await ready();
+    await choose(pdf());
+    await screen.findByText("Upgrade your plan");
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("status").textContent).toContain("Limit reached.");
+    await userEvent.click(screen.getByRole("button", { name: "Show options" }));
+    expect(await screen.findByText("Upgrade your plan")).toBeTruthy();
+  });
+
+  it("says it from the start when the server reports uploads as blocked", async () => {
+    getJson.mockResolvedValue({
+      ok: true,
+      data: {
+        ...RULES,
+        blocked: {
+          code: "subscription_expired",
+          message: "Your subscription has ended.",
+          prompt: "renewal",
+        },
+      },
+    });
+    await ready();
+    expect(screen.getByRole("status").textContent).toContain("Your subscription has ended.");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Show options" }));
+    expect(await screen.findByText("Renew your subscription")).toBeTruthy();
+  });
+
+  it("asks a member to pass it on instead of offering the button", async () => {
+    uploadFiles.mockResolvedValue(refused("a.pdf", "Limit reached.", "upgrade"));
+    await ready("member");
+    await choose(pdf());
+    expect(await screen.findByText("Please ask your company owner to upgrade.")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Upgrade plan" })).toBeNull();
   });
 
   it("after a dropped connection only the failed file is sent again", async () => {

@@ -201,16 +201,16 @@ class TestWhichPrompt:
     def test_a_lower_plan_gets_upgrade(self, company):
         assert limits.prompt_kind(company.pk) == "upgrade"
 
-    def test_the_highest_plan_gets_renewal(self, top_plan):
+    def test_the_highest_plan_gets_its_own_prompt(self, top_plan):
         company = make_company()
         subscribe(company, top_plan)
-        assert limits.prompt_kind(company.pk) == "renewal"
-        assert limits.check_projects(company.pk, 2).prompt == "renewal"
+        assert limits.prompt_kind(company.pk) == "highest_plan"
+        assert limits.check_projects(company.pk, 2).prompt == "highest_plan"
 
     def test_the_only_plan_is_the_highest(self, plan):
         company = make_company()
         subscribe(company, plan)
-        assert limits.prompt_kind(company.pk) == "renewal"
+        assert limits.prompt_kind(company.pk) == "highest_plan"
 
     def test_an_expired_subscription_gets_renewal_for_every_check(self, company):
         subs.expire(company.pk)

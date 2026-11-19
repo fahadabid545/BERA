@@ -1685,6 +1685,27 @@ again and a repeat never goes out. The key is an id or a date, never a name.
 
 Tests: `notifications/tests/test_notifications.py`, `web/src/app/company/advanced/notifications`.
 
+## Upgrade and renewal prompts
+
+When access is blocked the screen opens a popup (`BillingPrompt`), chosen by the server's
+`prompt` answer (`plans.limits.prompt_kind`):
+
+| Case | `prompt` | Owner's button |
+| --- | --- | --- |
+| A limit is reached on a plan with a bigger one | `upgrade` | Upgrade plan (billing page) |
+| A limit is reached on the highest plan | `highest_plan` | Contact us (`/contact`) |
+| The subscription has expired | `renewal` | Renew subscription (billing page) |
+
+- Only owners get the button. A member sees "Please ask your company owner to upgrade." (renew,
+  or get in touch, for the other two). The role comes from `CompanySession` (`useCompanyRole`);
+  without it the weaker role is assumed.
+- Closing the popup does not hide the block: the upload area keeps a status line with the
+  server's words and a "Show options" button. `GET .../cvs/` returns `blocked` (code, message,
+  prompt, or null), so it shows before any file is sent.
+
+Tests: `plans/tests/test_limits.py`, `cvs/tests/test_cv_upload.py` (TestRules),
+`web/src/components/company/BillingPrompt.test.tsx`, `CvUpload.test.tsx`.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)
