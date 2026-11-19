@@ -63,7 +63,9 @@ class LimitCheck:
     limit_name: str
     code: str = ""
     message: str = ""
-    prompt: str | None = None  # "upgrade", "renewal" or "highest_plan": what the screen should offer
+    prompt: str | None = (
+        None  # "upgrade", "renewal" or "highest_plan": what the screen should offer
+    )
     limit: int | None = None
     used: int = 0
     room: int = 0  # how many more fit
