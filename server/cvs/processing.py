@@ -40,6 +40,7 @@ from ai.client import AiPaused, AiUnavailable
 from companies.models import Company
 from core.errors import AppError
 from core.jobs import logged_job
+from notifications.progress import after_cv_finished
 from plans.limits import check_cvs_this_month
 from platform_settings.service import get_setting
 from projects.deletion import register_work_stopper
@@ -163,6 +164,7 @@ def _give_up(item, reason, now, ai_failure=False):
     )
     if updated:
         usage.mark_failed(item.company_id, item.pk)  # a failed CV is never counted
+        after_cv_finished(item)
     return updated
 
 
@@ -216,7 +218,8 @@ def run_item(item):
             else:
                 _try_again_or_give_up(item, GAVE_UP_REASON, _now())
             return
-    _holds(item).update(status=CvFile.Status.DONE, finished_at=_now(), claim_token=None)
+    if _holds(item).update(status=CvFile.Status.DONE, finished_at=_now(), claim_token=None):
+        after_cv_finished(item)
 
 
 @logged_job
@@ -261,6 +264,8 @@ def cancel_unstarted(project, batch_id=None):
             item.status, item.finished_at = CvFile.Status.CANCELLED, _now()
             item.save(update_fields=["status", "finished_at"])
             usage.mark_failed(item.company_id, item.pk)
+    for item in {item.batch_id: item for item in skipped}.values():
+        after_cv_finished(item)  # skipping can be what finishes an upload
     return len(skipped)
 
 

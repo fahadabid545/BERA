@@ -12,6 +12,7 @@ from core.errors import AppError
 from core.jobs import logged_job
 from emailing.links import build_link
 from emailing.service import send_email
+from notifications.payment_notice import payment_failed
 from platform_settings.service import get_setting
 
 from .models import Subscription
@@ -123,6 +124,9 @@ def owner_of(company_id):
 def _email_the_owner(subscription):
     owner = owner_of(subscription.company_id)
     if owner is None:
+        return
+    if subscription.state == State.PAST_DUE:
+        payment_failed(subscription, owner, _notice_text(subscription))  # once, never optional
         return
     send_email(
         "usage_notice",

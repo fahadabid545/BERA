@@ -8,6 +8,7 @@ urlpatterns = [
     path("api/auth/", include("adminusers.urls")),
     path("api/company/", include("companies.account_urls")),
     path("api/company/team/", include("companies.team_urls")),
+    path("api/company/", include("notifications.urls")),
     path("api/company/activity/", include("activity.urls")),
     path("api/company/charts/", include("cvs.company_urls")),
     path("api/company/dashboard/", include("cvs.dashboard_urls")),

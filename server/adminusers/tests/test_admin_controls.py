@@ -209,7 +209,7 @@ class TestLimits:
         assert not limits.check_cvs_this_month(company.pk).allowed
         assert self.put(client, company, "cvs_per_month", value=9, reason=REASON).status_code == 200
         assert limits.check_cvs_this_month(company.pk).allowed
-        emails = owner_emails(company)
+        emails = [e for e in owner_emails(company) if "allowance" not in e.text_body]
         assert len(emails) == 2  # subscription activated, then the limit change
         event = last_event("admin.limit_changed")
         assert event.details["changes"]["value"] == {"old": 5, "new": 9}

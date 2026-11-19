@@ -48,6 +48,8 @@ def test_the_catalog_holds_exactly_the_agreed_emails():
         "new_sign_in",
         "usage_notice",
         "payment_problem",
+        "batch_finished",
+        "subscription_ending",
         "security_alert",
         "account_notice",
         "download_ready",

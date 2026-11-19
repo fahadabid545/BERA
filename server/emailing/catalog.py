@@ -169,6 +169,27 @@ CATALOG = {
         button_label="Open retention settings",
         variables=("name", "files", "when", "link"),
     ),
+    "batch_finished": EmailTemplate(
+        subject="Your CV upload is finished",
+        heading="Your upload is finished",
+        paragraphs=(
+            GREETING,
+            "The CVs you uploaded to {project} are finished: {summary}.",
+        ),
+        button_label="Open the project",
+        variables=("name", "project", "summary", "link"),
+    ),
+    "subscription_ending": EmailTemplate(
+        subject="Your Bera subscription is ending soon",
+        heading="Your subscription is ending",
+        paragraphs=(
+            GREETING,
+            "Your subscription ends on {when}. After that you can still view and download "
+            "your data, but you cannot upload, start projects or score until you renew.",
+        ),
+        button_label="Open billing",
+        variables=("name", "when", "link"),
+    ),
     "payment_problem": EmailTemplate(
         subject="There is a problem with your Bera payment",
         heading="Payment problem",

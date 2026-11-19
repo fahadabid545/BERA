@@ -38,6 +38,12 @@ def sample_values(template_name):
         "download_ready": {**shared, "expires_in": duration_text(24, "hour")},
         "deletion_scheduled": shared,
         "retention_warning": {**shared, "files": "12 CVs"},
+        "batch_finished": {
+            **shared,
+            "project": "Fake Test Project",
+            "summary": "12 CVs were scored",
+        },
+        "subscription_ending": shared,
         "payment_problem": {
             **shared,
             "message": "We could not take your last payment. Please update your payment method.",

@@ -104,7 +104,10 @@ def mark_scored(company_id, cv_id):
         entry.save(update_fields=["status"])
         counter = _counter(entry.period, entry.project_id)
         UsageCounter.objects.filter(pk=counter.pk).update(cvs_scored=F("cvs_scored") + 1)
-        return True
+    from notifications.progress import after_cv_counted  # it reads the usage this module keeps
+
+    after_cv_counted(company_id)
+    return True
 
 
 def is_counted(company_id, cv_id):

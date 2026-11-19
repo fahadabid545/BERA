@@ -1659,6 +1659,32 @@ confirmation offers it again first.
 Tests: `cvs/tests/test_candidate_deletion.py`, `cvs/tests/test_company_export.py`,
 `companies/tests/test_company_deletion.py`.
 
+## Email notifications
+
+The emails a person gets besides the account ones (sign-in, password, invites), from the
+`notifications` app. Each goes **once per occasion**: `NotificationSent` holds one row per
+(company, kind, key), and the row and the emails are written together, so a failed send is tried
+again and a repeat never goes out. The key is an id or a date, never a name.
+
+| Email | When | Who | Can be switched off |
+| --- | --- | --- | --- |
+| Finished uploads | no CV of an upload is waiting or being worked on (an upload that was only cancelled says nothing) | the person who uploaded | yes |
+| Usage warnings | a metric (CVs, AI tokens) first reaches a level of `usage.warning_percents` below 100, in a billing period | the owner | yes |
+| Usage limit reached | the same, at 100% | the owner | yes |
+| Subscription ending | `notifications.subscription_ending_days` (7) before a subscription stops at its period end (cancelled, free grant, or active without renewal) | the owner | no |
+| Payment failed | the subscription goes past due | the owner | no |
+
+- A jump over several usage levels sends one email, for the highest. Levels checked after a CV
+  is counted (`usage.mark_scored`); the finished-upload check runs when a CV is done, fails, or
+  is skipped by a cancel. A problem sending is logged by its kind and never stops the CV.
+- The ending notice is a daily job (`notifications.billing_notices.send_ending_notices`,
+  scheduled by migration). Companies that are suspended or being deleted are skipped.
+- Choices are per person: `GET/PATCH /api/company/notifications/` (own choices only; no row
+  means on). A required kind answers 409 `notification_required`. The screen is
+  Advanced > Notifications.
+
+Tests: `notifications/tests/test_notifications.py`, `web/src/app/company/advanced/notifications`.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

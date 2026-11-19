@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "activity",
     "plans",
     "usage",
+    "notifications",
     "projects",
     "ai",
     "cvs",

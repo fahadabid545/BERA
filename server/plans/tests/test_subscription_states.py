@@ -286,7 +286,7 @@ class TestLogAndEmail:
         subs.expire(company.pk)
         emails = [e for e in OutgoingEmail.objects.all() if e.to_address == owner.email]
         assert len(emails) == 3
-        assert {e.template for e in emails} == {"usage_notice"}
+        assert {e.template for e in emails} == {"usage_notice", "payment_problem"}
 
     def test_members_are_not_emailed(self, company, plan):
         member = make_company_user(company, role="member")

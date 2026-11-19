@@ -278,6 +278,8 @@ SETTINGS = [
     # How many billing periods the Usage tab lists, newest first.
     SettingDefinition("usage.history_periods", 12, whole_number(1, 120)),
     SettingDefinition("billing.past_due_grace_days", 7, whole_number(0, 90)),
+    # How many days before a subscription ends its owner is emailed.
+    SettingDefinition("notifications.subscription_ending_days", 7, whole_number(1, 60)),
     SettingDefinition("account.deletion_grace_days", 14, whole_number(0, 365)),
     # Scoring
     SettingDefinition("scoring.must_have_weight_percent", 70, percent),
