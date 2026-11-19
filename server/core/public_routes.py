@@ -120,6 +120,14 @@ PUBLIC_ROUTES = [
         "signed in plays no part. The single-use secret in it is the credential.",
     ),
     PublicRoute(
+        route="api/auth/company/undo-deletion/",
+        category="email_verification",
+        reason="The owner opens this link from the email sent when the company deletion was "
+        "asked for, and nobody can be signed in then because the company's sessions ended. "
+        "The single-use secret in it is the credential, and it works only during the grace "
+        "period.",
+    ),
+    PublicRoute(
         route="api/auth/company/verify-email/resend/",
         category="email_verification",
         reason="A person who cannot sign in until verified asks for a new link. It answers the "

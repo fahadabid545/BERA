@@ -1,6 +1,7 @@
 import uuid
 
 from django.http import Http404, HttpResponse
+from rest_framework import status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
@@ -12,6 +13,7 @@ from platform_settings.service import get_setting
 from projects.models import Project
 from signin.company_views import CandidateDataView, CompanyObjectView
 
+from .candidate_deletion import delete_candidate
 from .charts import company_charts, project_charts
 from .comparison import matrix, side_by_side
 from .dashboard import dashboard, report_csv
@@ -21,7 +23,12 @@ from .detail import candidate_detail
 from .download_packages import (
     describe as describe_package,
 )
-from .download_packages import package_response, request_package, require_owner
+from .download_packages import (
+    package_response,
+    request_company_export,
+    request_package,
+    require_owner,
+)
 from .downloads import cv_file_response, log_download
 from .estimate import confirm, estimate
 from .file_checks import check_cv_file, check_name_and_size
@@ -184,13 +191,22 @@ class CandidateDetail(CandidateDataView):
     lookup_url_kwarg = "candidate_id"
 
     def permitted_roles(self):
-        return roles_allowed("candidate.view")
+        return roles_allowed(
+            "candidate.delete" if self.request.method == "DELETE" else "candidate.view"
+        )
 
     def get(self, request, id, candidate_id):
         candidate = self.get_object()
         if str(candidate.project_id) != str(id):
             raise Http404
         return Response(candidate_detail(candidate, request.user.user_id))
+
+    def delete(self, request, id, candidate_id):
+        candidate = self.get_object()
+        if str(candidate.project_id) != str(id):
+            raise Http404
+        delete_candidate(candidate, request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CandidateCvFile(CandidateDataView):
@@ -235,6 +251,26 @@ class ProjectDownloads(CandidateDataView):
         )
         return Response(
             describe_package(request_package(project, request.user, chosen)), status=201
+        )
+
+
+class CompanyExport(CandidateDataView):
+    """Asks for the whole-company export: a zip of every project's CVs and ranked list. Owner
+    only; it is offered before the company is deleted."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("company.export")
+
+    def get_throttles(self):
+        return [throttle() for throttle in limited(DownloadThrottle)]
+
+    def post(self, request):
+        self.get_queryset()  # checks the company and the role
+        return Response(
+            describe_package(request_company_export(request.user.company_id, request.user)),
+            status=201,
         )
 
 

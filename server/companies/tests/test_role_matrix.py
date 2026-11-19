@@ -35,6 +35,7 @@ MEMBER_MAY_NOT = [
     "advanced.open",
     "project.delete",
     "company.delete",
+    "company.export",
 ]
 
 

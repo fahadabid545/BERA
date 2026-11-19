@@ -28,6 +28,9 @@ class Company(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active"
         SUSPENDED = "suspended"
+        # The owner asked to delete the company: nobody can sign in until it is undone or, after
+        # the grace period, removed for good (see `deletion.py`).
+        PENDING_DELETION = "pending_deletion"
 
     name = models.CharField(max_length=200)
     country = models.CharField(max_length=2, default=OTHER_COUNTRY)
@@ -38,13 +41,17 @@ class Company(models.Model):
     # How many days the company's activity log is kept: one of the platform's choices, or none
     # for the platform default (see `activity/service.py`).
     retention_days = models.PositiveIntegerField(null=True)
+    # Set while the status is pending deletion: when it was asked for and when it is removed.
+    deletion_requested_at = models.DateTimeField(null=True)
+    deletion_due_at = models.DateTimeField(null=True)
 
     objects = CompanyQuerySet.as_manager()
 
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=Q(status__in=["active", "suspended"]), name="company_status_is_known"
+                condition=Q(status__in=["active", "suspended", "pending_deletion"]),
+                name="company_status_is_known",
             ),
         ]
 

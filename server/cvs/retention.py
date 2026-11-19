@@ -89,6 +89,8 @@ def warn_company(company_id, now=None):
     """Emails the owners once about CVs that will be deleted within the warning time. Returns
     how many CVs the warning covered."""
     now = now or timezone.now()
+    if not Company.objects.filter(pk=company_id, status=Company.Status.ACTIVE).exists():
+        return 0  # nobody can sign in to act on it (suspended, or being deleted)
     cutoff = retention_cutoff(company_id)  # CVs uploaded before this are already due
     soon = cutoff + timedelta(days=get_setting("retention.warning_days"))
     coming = _finished_cvs(company_id).filter(

@@ -24,6 +24,7 @@ import privatefiles
 from companies.models import CompanyUser
 from core.errors import AppError, form_error
 from core.jobs import logged_job
+from core.validation import safe_file_name
 from emailing.links import build_link
 from emailing.rendering import duration_text
 from emailing.service import send_email
@@ -31,6 +32,7 @@ from platform_settings.service import get_setting
 from projects.deletion import register_project_data
 
 from .downloads import log_download
+from .list_export import ranked_list_xlsx
 from .models import CvFile, DownloadPackage
 
 logger = logging.getLogger(__name__)
@@ -67,14 +69,12 @@ def _cv_ids(project, raw_candidate_ids):
     return ids
 
 
-def request_package(project, user, raw_candidate_ids=None):
-    """Starts a package of the project's CVs for the signed-in person and returns it. A small
-    one is ready when this returns; a larger one is made in the background."""
-    ids = _cv_ids(project, raw_candidate_ids)
+def _start(company_id, project, user, ids):
+    """Records the request and makes the zip: at once when small, in the background when large."""
     package = DownloadPackage.objects.create(
-        company_id=project.company_id,
+        company_id=company_id,
         project=project,
-        requested_by=CompanyUser.objects.get(pk=user.user_id, company_id=project.company_id),
+        requested_by=CompanyUser.objects.get(pk=user.user_id, company_id=company_id),
         cv_ids=[str(item) for item in ids],
         file_count=len(ids),
     )
@@ -84,6 +84,27 @@ def request_package(project, user, raw_candidate_ids=None):
         _build(package, notify=False)
     package.refresh_from_db()
     return package
+
+
+def request_package(project, user, raw_candidate_ids=None):
+    """Starts a package of the project's CVs for the signed-in person and returns it. A small
+    one is ready when this returns; a larger one is made in the background."""
+    return _start(project.company_id, project, user, _cv_ids(project, raw_candidate_ids))
+
+
+def request_company_export(company_id, user):
+    """Starts the export of everything the company can take with it: every CV of every project,
+    in a folder for each project together with that project's ranked list. Made like any other
+    package, so a large one is prepared in the background and the person is emailed."""
+    ids = list(
+        CvFile.objects.filter(company_id=company_id)
+        .exclude(status=CvFile.Status.CANCELLED)
+        .order_by("created_at", "id")
+        .values_list("id", flat=True)
+    )
+    if not ids:
+        raise AppError("nothing_to_download", "There are no CVs to export.", status_code=400)
+    return _start(company_id, None, user, ids)
 
 
 def _zip_names(cv_files):
@@ -103,12 +124,40 @@ def _zip_names(cv_files):
     return names
 
 
-def _zip_of(cv_files):
+def _folders(projects):
+    """A safe folder name for each project; two projects with one title get a number."""
+    used, folders = set(), {}
+    for project in projects:
+        base = safe_file_name(project.title) or "project"
+        name, number = base, 1
+        while name.lower() in used:
+            number += 1
+            name = f"{base} ({number})"
+        used.add(name.lower())
+        folders[project.pk] = name
+    return folders
+
+
+def _write_cvs(archive, cv_files, prefix=""):
+    for cv_file, name in zip(cv_files, _zip_names(cv_files), strict=True):
+        archive.writestr(f"{prefix}{name}", privatefiles.read_file(cv_file.storage_key))
+
+
+def _zip_of(cv_files, *, by_project=False):
     buffer = io.BytesIO()
     # The CVs are PDF and Word files, already compressed, so storing them is as small and faster.
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as archive:
-        for cv_file, name in zip(cv_files, _zip_names(cv_files), strict=True):
-            archive.writestr(name, privatefiles.read_file(cv_file.storage_key))
+        if not by_project:
+            _write_cvs(archive, cv_files)
+        else:
+            projects = {cv_file.project_id: cv_file.project for cv_file in cv_files}
+            folders = _folders(projects.values())
+            for project_id, project in projects.items():
+                own = [cv_file for cv_file in cv_files if cv_file.project_id == project_id]
+                _write_cvs(archive, own, prefix=f"{folders[project_id]}/")
+                archive.writestr(
+                    f"{folders[project_id]}/ranked-list.xlsx", ranked_list_xlsx(project)
+                )
     return buffer.getvalue()
 
 
@@ -120,8 +169,11 @@ def _fail(package, reason):
 
 def _build(package, *, notify):
     ids = package.cv_ids
+    found = CvFile.objects.filter(company_id=package.company_id, id__in=ids)
+    if package.project_id:
+        found = found.filter(project_id=package.project_id)
     cv_files = list(
-        CvFile.objects.filter(company_id=package.company_id, project=package.project, id__in=ids)
+        found.select_related("project")
         .exclude(status=CvFile.Status.CANCELLED)
         .order_by("created_at", "id")
     )
@@ -129,7 +181,7 @@ def _build(package, *, notify):
         _fail(package, "cv_removed")
         return
     try:
-        data = _zip_of(cv_files)
+        data = _zip_of(cv_files, by_project=package.project_id is None)
         key = privatefiles.key_for_package(package.company_id, package.pk)
         privatefiles.save_file(key, data)
     except (privatefiles.StoredFileMissing, privatefiles.StorageUnavailable) as error:
@@ -187,7 +239,7 @@ def status_of(package, now=None):
 def describe(package):
     return {
         "id": str(package.pk),
-        "project_id": str(package.project_id),
+        "project_id": str(package.project_id) if package.project_id else None,
         "status": status_of(package),
         "files": package.file_count,
         "size_bytes": package.size_bytes,
@@ -252,6 +304,13 @@ def remove_expired_packages():
     return removed
 
 
+def remove_package_file(package):
+    """Removes the zip's file and its record."""
+    if package.storage_key:
+        privatefiles.delete_file(package.storage_key)
+    package.delete()
+
+
 def remove_packages_with(company_id, cv_ids):
     """Removes the company's packages (file and record) that hold any of these CVs, so a CV
     deleted by the retention period is not left inside a zip."""
@@ -260,9 +319,7 @@ def remove_packages_with(company_id, cv_ids):
         return
     for package in DownloadPackage.objects.filter(company_id=company_id):
         if gone.intersection(package.cv_ids):
-            if package.storage_key:
-                privatefiles.delete_file(package.storage_key)
-            package.delete()
+            remove_package_file(package)
 
 
 def _remove_for_project(company_id, project_id):

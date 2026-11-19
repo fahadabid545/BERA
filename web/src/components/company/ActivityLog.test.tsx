@@ -169,6 +169,7 @@ describe("the sentence of an entry", () => {
     ["ownership_transferred", { new_owner_name: "Mina" }, "Handed ownership to Mina"],
     ["invite_sent", {}, "Invited a member"],
     ["project_deleted", {}, "Deleted a project"],
+    ["candidate_deleted", {}, "Deleted a candidate"],
     ["data_expired", { files: 4, shared_links: 1 }, "Deleted 4 CVs past the retention period"],
     ["data_expired", { files: 1, shared_links: 0 }, "Deleted 1 CV past the retention period"],
     ["something_new", {}, "something new"],

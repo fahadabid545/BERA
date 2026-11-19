@@ -1,14 +1,30 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import DataPage from "./page";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ name: "Acme", subscription: { active: false } }),
+    }),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
 describe("data and export page", () => {
-  it("shows Export data and Delete company and nothing else", () => {
-    const { container } = render(<DataPage />);
+  it("shows Export data and Delete company", () => {
+    render(<DataPage />);
     expect(screen.getByRole("button", { name: "Export data" })).toBeTruthy();
-    expect(container.querySelectorAll("button, a, input, select, textarea")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Delete company" })).toBeTruthy();
   });
 
   it("gives Delete company the danger style", () => {
@@ -16,12 +32,5 @@ describe("data and export page", () => {
     expect(screen.getByRole("button", { name: "Delete company" }).className).toContain(
       "ui-button--danger",
     );
-  });
-
-  it("does nothing when a button is pressed", async () => {
-    const { container } = render(<DataPage />);
-    const before = container.innerHTML;
-    for (const button of screen.getAllByRole("button")) await userEvent.click(button);
-    expect(container.innerHTML).toBe(before);
   });
 });

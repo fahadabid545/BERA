@@ -38,6 +38,7 @@ ROLES_ALLOWED = {
     "settings.change": OWNER_ONLY,
     "advanced.open": OWNER_ONLY,
     "company.delete": OWNER_ONLY,
+    "company.export": OWNER_ONLY,
 }
 
 

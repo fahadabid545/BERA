@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Button, Card, Dialog, Select, Table, Tag, Textarea } from "@/components/ui";
@@ -115,6 +116,7 @@ export function CandidateDetail({
   candidateId: string;
 }) {
   const base = `/api/company/projects/${projectId}/candidates/${candidateId}/`;
+  const router = useRouter();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [version, setVersion] = useState(0);
@@ -124,6 +126,12 @@ export function CandidateDetail({
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const [problem, setProblem] = useState<ApiError | null>(null);
   const reload = () => setVersion((current) => current + 1);
+
+  async function deleteCandidate() {
+    const result = await deleteJson(base);
+    if (result.ok) router.push(`/company/projects/${projectId}`);
+    else setProblem(result.error);
+  }
 
   useEffect(() => {
     let stopped = false;
@@ -200,6 +208,14 @@ export function CandidateDetail({
           description={`Move this candidate to ${stageLabel(stage)}?`}
           confirmLabel="Change stage"
           onConfirm={() => void changeStage()}
+        />
+        <Dialog
+          trigger={<Button variant="danger">Delete candidate</Button>}
+          title="Delete candidate"
+          description="Delete this candidate with their CV, scores and notes? This cannot be undone."
+          confirmLabel="Delete candidate"
+          destructive
+          onConfirm={() => void deleteCandidate()}
         />
         {detail.status !== "done" && (
           <div>

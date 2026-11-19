@@ -1615,6 +1615,50 @@ the same choice that already set how long the activity log is kept (`Company.ret
 
 Tests: `cvs/tests/test_retention.py` (shortened periods of a few days stand for months).
 
+## Delete candidate and delete company
+
+**A candidate** is deleted by the owner or any member, at any time (`DELETE
+/api/company/projects/<id>/candidates/<candidate>/`, also in an archived project), after a
+confirmation popup on the candidate page. It removes the stored file, the CV record, profile,
+contact details, scores, notes and stage history, and also the copies that hold their data: a
+zip of CVs that contains them, and the project's shared reports made with them (their links then
+stop working; `SharedReport.cv_ids` says which CVs a report holds, and a report made before that
+was kept goes too). A CV still being processed answers `candidate_processing` (409). The usage
+history stays. The deletion is an activity entry `candidate_deleted` and an audit event
+`candidate.deleted` (project id only, never a name).
+
+**Export first.** `POST /api/company/downloads/export/` (owner only, `company.export`) makes a
+zip of every project's CVs, one folder per project with that project's ranked list, as a normal
+download package (`DownloadPackage.project` is empty for it): small ones at once, large ones in
+the background with the usual "ready" email. The Data and export page offers it, and the delete
+confirmation offers it again first.
+
+**The company** is deleted by the owner on Advanced > Data and export (`GET` and `POST
+/api/company/deletion/`, owner only, `company.delete`; `companies/deletion.py`):
+- The owner types the company name exactly. An active subscription (active, past due, cancelled
+  but still running, or granted free) must be acknowledged (`subscription_active`, 409; the
+  popup shows a checkbox).
+- **Grace period** `account.deletion_grace_days` (14). The status becomes `pending_deletion`,
+  every session ends and nobody can sign in (`company_deletion_pending`). Nothing is removed. The
+  owner gets the `deletion_scheduled` email with the date and an undo link
+  (`/undo-company-deletion?token=`).
+- **Undo.** The link (public route `api/auth/company/undo-deletion/`, one use, valid for the grace
+  period, a button press as for the email change) makes the company active again and tells the
+  owner. The retention job does not email a company that is being deleted.
+- **Removal.** The daily job `companies.deletion.remove_due_companies` (scheduled by a migration)
+  removes, all or nothing, every project with its CVs, candidates and stored files, the
+  whole-company exports, shared reports, people, invitations, sessions, activity log,
+  subscription and usage history, then the company. A file the store cannot delete stops that
+  company's removal and it is tried again the next day; one failing company does not stop the
+  others. The owner gets a last email.
+- **Audit.** `company.deletion_requested`, `company.deletion_undone` and `company.deleted` hold
+  ids and kinds only. The audit log is kept; no name or address is in it.
+- **Backups** are not touched. They age out under their own policy (see Daily backups), so removed
+  data can remain in a backup until that backup expires.
+
+Tests: `cvs/tests/test_candidate_deletion.py`, `cvs/tests/test_company_export.py`,
+`companies/tests/test_company_deletion.py`.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

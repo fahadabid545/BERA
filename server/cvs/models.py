@@ -298,6 +298,9 @@ class SharedReport(CompanyOwnedModel):
     # retention clean-up removes it when that CV is due (see `retention.py`). Empty for reports
     # made before this was kept; those go by their own creation time.
     data_from = models.DateTimeField(null=True)
+    # The CVs this report was made from, so deleting one of those candidates removes the report.
+    # Empty for reports made before this was kept (they are treated as holding everyone).
+    cv_ids = models.JSONField(default=list)
     views = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -313,8 +316,9 @@ class DownloadPackage(CompanyOwnedModel):
         FAILED = "failed"
         EXPIRED = "expired"
 
+    # Empty for the whole-company export (every project's CVs in one zip).
     project = models.ForeignKey(
-        "projects.Project", on_delete=models.PROTECT, related_name="download_packages"
+        "projects.Project", null=True, on_delete=models.PROTECT, related_name="download_packages"
     )
     requested_by = models.ForeignKey(
         "companies.CompanyUser", on_delete=models.SET_NULL, null=True, related_name="+"

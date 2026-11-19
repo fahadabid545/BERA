@@ -66,8 +66,8 @@ def log_download(user, project_id, scope, files):
         "download",
         company_id=person.company_id,
         actor=person,
-        target_kind="project",
-        target_id=project_id,
+        target_kind="project" if project_id else "",
+        target_id=project_id or "",
         details={"scope": scope, "files": files},
     )
     watch_cv_downloads(person, files)

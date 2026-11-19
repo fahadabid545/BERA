@@ -76,6 +76,16 @@ describe("a download", () => {
     expect(back.getAttribute("href")).toBe("/company/projects/p1/candidates");
   });
 
+  it("leads back to data and export for the whole-company export", async () => {
+    serve(answer({ project_id: null }));
+    render(<DownloadPackageView packageId="pk1" />);
+    const back = (await screen.findByRole("link", {
+      name: "Back to data and export",
+    })) as HTMLAnchorElement;
+    expect(back.getAttribute("href")).toBe("/company/advanced/data");
+    expect(screen.queryByRole("link", { name: "Back to candidates" })).toBeNull();
+  });
+
   it("shows the server's message when it is not found", async () => {
     serve({ error: { code: "not_found", message: "Not found." } }, 404);
     render(<DownloadPackageView packageId="other" />);

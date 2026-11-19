@@ -117,6 +117,11 @@ def _pdf(rows, title):
     return buffer.getvalue()
 
 
+def ranked_list_xlsx(project):
+    """The project's whole ranked list as spreadsheet bytes, for the company export."""
+    return _spreadsheet(all_ranked_rows(project, {}))
+
+
 def export_response(project, user, params, file_format):
     """The list as a file to save, and an entry in the activity log."""
     if file_format not in FORMATS:

@@ -146,6 +146,17 @@ CATALOG = {
         button_label="Open the download",
         variables=("name", "link", "expires_in"),
     ),
+    "deletion_scheduled": EmailTemplate(
+        subject="Your Bera company will be deleted",
+        heading="Your company will be deleted",
+        paragraphs=(
+            GREETING,
+            "Deleting your company was requested. Everything in it will be removed for good on "
+            "{when}. If this was a mistake, you can undo it until then.",
+        ),
+        button_label="Undo the deletion",
+        variables=("name", "when", "link"),
+    ),
     "retention_warning": EmailTemplate(
         subject="Some of your Bera data will be deleted soon",
         heading="Data will be deleted soon",

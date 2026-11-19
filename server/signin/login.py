@@ -21,6 +21,9 @@ from . import guess_limit
 WRONG_CREDENTIALS = "Email or password is incorrect."
 VERIFY_EMAIL_FIRST = "Please verify your email"
 COMPANY_SUSPENDED = "Your company account is suspended. Please contact support."
+COMPANY_DELETION_PENDING = (
+    "This company is scheduled for deletion. Use the link in the email we sent to undo it."
+)
 ACCESS_BLOCKED = "Your access has been blocked. Please contact your company owner or support."
 
 
@@ -64,6 +67,8 @@ def check_login(email, password):
         raise AppError("access_blocked", ACCESS_BLOCKED, status_code=403)
     if person.company.status == Company.Status.SUSPENDED:
         raise AppError("company_suspended", COMPANY_SUSPENDED, status_code=403)
+    if person.company.status == Company.Status.PENDING_DELETION:
+        raise AppError("company_deletion_pending", COMPANY_DELETION_PENDING, status_code=403)
     if not person.email_verified:
         raise AppError("email_not_verified", VERIFY_EMAIL_FIRST, status_code=403)
     return person

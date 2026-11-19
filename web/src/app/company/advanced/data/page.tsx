@@ -1,10 +1,5 @@
-import { Button } from "@/components/ui";
+import { DataAndExport } from "@/components/company/DataAndExport";
 
 export default function DataPage() {
-  return (
-    <div className="page-actions">
-      <Button variant="secondary">Export data</Button>
-      <Button variant="danger">Delete company</Button>
-    </div>
-  );
+  return <DataAndExport />;
 }

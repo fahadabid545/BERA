@@ -73,9 +73,13 @@ export function DownloadPackageView({ packageId }: { packageId: string }) {
           Download zip
         </a>
       )}
-      <TextLink href={`/company/projects/${shown.project_id}/candidates`}>
-        Back to candidates
-      </TextLink>
+      {shown.project_id ? (
+        <TextLink href={`/company/projects/${shown.project_id}/candidates`}>
+          Back to candidates
+        </TextLink>
+      ) : (
+        <TextLink href="/company/advanced/data">Back to data and export</TextLink>
+      )}
     </Card>
   );
 }

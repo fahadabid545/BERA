@@ -56,6 +56,8 @@ export function sentence(entry: Entry): string {
       return `Handed ownership to ${details.new_owner_name ?? "another member"}`;
     case "setting_changed":
       return "Changed a setting";
+    case "candidate_deleted":
+      return "Deleted a candidate";
     case "data_expired":
       return `Deleted ${count(details.files, "CV", "CVs")} past the retention period`;
     default:

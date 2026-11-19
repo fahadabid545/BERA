@@ -36,6 +36,7 @@ def sample_values(template_name):
         },
         "confirm_new_email": {**shared, "expires_in": duration_text(24, "hour")},
         "download_ready": {**shared, "expires_in": duration_text(24, "hour")},
+        "deletion_scheduled": shared,
         "retention_warning": {**shared, "files": "12 CVs"},
         "payment_problem": {
             **shared,

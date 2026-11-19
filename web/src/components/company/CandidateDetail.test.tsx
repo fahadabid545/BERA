@@ -4,6 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CandidateDetail } from "./CandidateDetail";
 
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+
 const fetchMock = vi.fn();
 const URL = "/api/company/projects/p1/candidates/k1/";
 
@@ -60,6 +63,7 @@ const open = async () => {
 };
 
 beforeEach(() => {
+  push.mockReset();
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -362,5 +366,54 @@ describe("stage, history and notes", () => {
     );
     await user.click(screen.getByRole("button", { name: "Add note" }));
     expect((await screen.findByRole("alert")).textContent).toBe("The note is too long.");
+  });
+});
+
+describe("deleting the candidate", () => {
+  const deletes = () => fetchMock.mock.calls.filter((call) => call[1]?.method === "DELETE");
+
+  it("asks first, then deletes and goes back to the project", async () => {
+    serve(detail());
+    await open();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Delete candidate" }));
+    const dialog = await screen.findByRole("dialog", { name: "Delete candidate" });
+    expect(deletes()).toHaveLength(0);
+    await user.click(within(dialog).getByRole("button", { name: "Delete candidate" }));
+    await waitFor(() => expect(deletes()).toHaveLength(1));
+    expect(deletes()[0][0]).toBe(URL);
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/company/projects/p1"));
+  });
+
+  it("deletes nothing when cancelled", async () => {
+    serve(detail());
+    await open();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Delete candidate" }));
+    const dialog = await screen.findByRole("dialog", { name: "Delete candidate" });
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(deletes()).toHaveLength(0);
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("stays on the page and shows the reason when the server refuses", async () => {
+    fetchMock.mockImplementation(async (_path: string, init?: { method?: string }) =>
+      init?.method === "DELETE"
+        ? {
+            ok: false,
+            status: 409,
+            json: async () => ({
+              error: { code: "candidate_processing", message: "This CV is still being processed." },
+            }),
+          }
+        : { ok: true, status: 200, json: async () => detail() },
+    );
+    await open();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Delete candidate" }));
+    const dialog = await screen.findByRole("dialog", { name: "Delete candidate" });
+    await user.click(within(dialog).getByRole("button", { name: "Delete candidate" }));
+    expect(await screen.findByText("This CV is still being processed.")).toBeTruthy();
+    expect(push).not.toHaveBeenCalled();
   });
 });

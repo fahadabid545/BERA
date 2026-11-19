@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import account_views, team_views, views
+from . import account_views, deletion_views, team_views, views
 
 urlpatterns = [
     path("company/signup/", views.sign_up_company),
@@ -11,4 +11,5 @@ urlpatterns = [
     path("company/verify-email/", views.verify_company_email),
     path("company/confirm-email-change/", account_views.confirm_company_email_change),
     path("company/verify-email/resend/", views.resend_company_verification),
+    path("company/undo-deletion/", deletion_views.undo_company_deletion),
 ]

@@ -44,5 +44,8 @@ def end_sessions_that_should_not_continue(sender, instance, created, **_):
 def end_sessions_of_a_suspended_company(sender, instance, created, **_):
     # Requests already refuse a suspended company's tokens; ending the sessions as well means
     # that lifting the suspension later does not bring old tokens back to life.
-    if not created and instance.status == Company.Status.SUSPENDED:
+    if not created and instance.status in (
+        Company.Status.SUSPENDED,
+        Company.Status.PENDING_DELETION,
+    ):
         service.revoke_company_sessions(instance.pk, RevokeReason.COMPANY_SUSPENDED)
