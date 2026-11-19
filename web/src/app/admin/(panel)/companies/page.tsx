@@ -1,12 +1,5 @@
-import { Button, Input } from "@/components/ui";
+import { CompaniesList } from "@/components/admin/CompaniesList";
 
 export default function CompaniesPage() {
-  return (
-    <div className="page-form">
-      <Input label="Search" type="search" />
-      <div className="page-actions">
-        <Button variant="secondary">Filters</Button>
-      </div>
-    </div>
-  );
+  return <CompaniesList />;
 }

@@ -1,21 +1,28 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import CompaniesPage from "./page";
 
-describe("companies page", () => {
-  it("shows a Search box and a Filters button and nothing else", () => {
-    const { container } = render(<CompaniesPage />);
-    expect((screen.getByLabelText("Search") as HTMLInputElement).type).toBe("search");
-    expect(screen.getByRole("button", { name: "Filters" })).toBeTruthy();
-    expect(container.querySelectorAll("button, a, input, select, textarea")).toHaveLength(2);
-  });
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ results: [], page: 1, pages: 1, total: 0, plans: [] }),
+    }),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
-  it("does nothing when a button is pressed", async () => {
-    const { container } = render(<CompaniesPage />);
-    const before = container.innerHTML;
-    for (const button of screen.getAllByRole("button")) await userEvent.click(button);
-    expect(container.innerHTML).toBe(before);
+describe("companies page", () => {
+  it("shows the companies list with its search box", async () => {
+    render(<CompaniesPage />);
+    expect((screen.getByLabelText("Search") as HTMLInputElement).type).toBe("search");
+    expect(await screen.findByText("No companies found.")).toBeTruthy();
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain("/api/admin/companies/");
   });
 });

@@ -1,8 +1,11 @@
 from django.urls import path
 
+from . import company_views
 from . import control_views as views
 
 urlpatterns = [
+    path("companies/", company_views.CompaniesList.as_view()),
+    path("companies/<str:id>/", company_views.CompanyPage.as_view()),
     path("companies/<str:id>/suspend/", views.SuspendCompany.as_view()),
     path("companies/<str:id>/unsuspend/", views.UnsuspendCompany.as_view()),
     path("companies/<str:id>/limits/<str:name>/", views.CompanyLimit.as_view()),

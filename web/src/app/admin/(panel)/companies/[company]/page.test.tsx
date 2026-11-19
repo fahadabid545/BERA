@@ -1,35 +1,27 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import CompanyDetailPage from "./page";
 
-const DANGER = ["Suspend", "Terminate subscription", "Block member"];
-const OTHER = ["Grant free subscription", "Change limits"];
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: { code: "not_found", message: "Not found." } }),
+    }),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("company detail page", () => {
-  it("shows the five buttons and nothing else", () => {
-    const { container } = render(<CompanyDetailPage />);
-    for (const name of [...DANGER, ...OTHER]) {
-      expect(screen.getByRole("button", { name })).toBeTruthy();
-    }
-    expect(container.querySelectorAll("button, a, input, select, textarea")).toHaveLength(5);
-  });
-
-  it("gives the destructive buttons the danger style and the others not", () => {
-    render(<CompanyDetailPage />);
-    for (const name of DANGER) {
-      expect(screen.getByRole("button", { name }).className).toContain("ui-button--danger");
-    }
-    for (const name of OTHER) {
-      expect(screen.getByRole("button", { name }).className).not.toContain("ui-button--danger");
-    }
-  });
-
-  it("does nothing when a button is pressed", async () => {
-    const { container } = render(<CompanyDetailPage />);
-    const before = container.innerHTML;
-    for (const button of screen.getAllByRole("button")) await userEvent.click(button);
-    expect(container.innerHTML).toBe(before);
+  it("asks for the company named in the address", async () => {
+    render(await CompanyDetailPage({ params: Promise.resolve({ company: "7" }) }));
+    await screen.findByRole("alert");
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/admin/companies/7/");
   });
 });

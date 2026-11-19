@@ -115,6 +115,8 @@ EXPECTED_DEFAULTS = {
     "admin_dashboard.expiring_grant_days": 7,
     "admin_dashboard.failed_calls_hours": 24,
     "admin_dashboard.margin_days": 30,
+    "admin_companies.page_size": 20,
+    "admin_companies.detail_limit": 50,
     "comparison.frontier_max_points": 200,
     "dashboard.period_choices_days": [1, 7, 30],
     "dashboard.period_default_days": 30,

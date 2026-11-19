@@ -345,6 +345,9 @@ SETTINGS = [
     SettingDefinition("admin_dashboard.expiring_grant_days", 7, whole_number(1, 90)),
     SettingDefinition("admin_dashboard.failed_calls_hours", 24, whole_number(1, 720)),
     SettingDefinition("admin_dashboard.margin_days", 30, whole_number(1, 365)),
+    # The admin companies list and company page (see adminusers/company_directory.py).
+    SettingDefinition("admin_companies.page_size", 20, whole_number(1, 200)),
+    SettingDefinition("admin_companies.detail_limit", 50, whole_number(1, 500)),
     # Comparing candidates (see cvs/comparison.py).
     SettingDefinition("comparison.min_candidates", 2, whole_number(2, 10)),
     SettingDefinition("comparison.max_candidates", 4, whole_number(2, 10)),

@@ -1706,6 +1706,27 @@ When access is blocked the screen opens a popup (`BillingPrompt`), chosen by the
 Tests: `plans/tests/test_limits.py`, `cvs/tests/test_cv_upload.py` (TestRules),
 `web/src/components/company/BillingPrompt.test.tsx`, `CvUpload.test.tsx`.
 
+## Admin companies list and company page
+
+`GET /api/admin/companies/` and `GET /api/admin/companies/<id>/` (`adminusers/company_directory.py`,
+action `company.view`: both admin roles). Read-only; the action buttons on the page are still the
+shell from the admin frame.
+
+- List: search by name, filters for status, plan (or "No plan"), country and usage, paged by the
+  platform value `admin_companies.page_size`. Each row shows the plan, the subscription state and
+  the CVs used this month as a plain number against the limit.
+- Usage filter: the share of the company's CV limit used this period (scored plus waiting), read
+  through `limits.limit_for`, so an admin override counts. Under 80%, 80 to 99% and 100% reached
+  follow `usage.warning_percents`. A company with no active plan or no CV limit is left out.
+- Page: users, subscription, usage, project counts, the projects with the reading model and prompt
+  version pinned at creation (both roles), and the company's history (its audit entries, newest
+  first, `admin_companies.detail_limit`). The AI cost is shown to super admins only.
+- No candidate content: the answer never holds a job description, CV name, candidate or score. A
+  server test puts such text in the data and checks it is absent for both roles.
+
+Tests: `adminusers/tests/test_company_directory.py`, `web/src/components/admin/CompaniesList.test.tsx`,
+`CompanyDetail.test.tsx`.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)
