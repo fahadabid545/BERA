@@ -1727,6 +1727,18 @@ shell from the admin frame.
 Tests: `adminusers/tests/test_company_directory.py`, `web/src/components/admin/CompaniesList.test.tsx`,
 `CompanyDetail.test.tsx`.
 
+## AI spend alerts
+
+A super admin sets a daily and a monthly limit in US dollars on Advanced > AI controls
+(`GET/PUT /api/admin/ai/controls/spend-alerts/`, settings `ai.daily_spend_alert_usd` and
+`ai.monthly_spend_alert_usd`; empty means no alert; changes are audited with a reason).
+
+- Spending is the sum of the AI call records' estimated costs for the UTC day or month.
+- The once-a-minute sweep runs `ai/spend_alerts.py`. When spending reaches a limit, every active
+  super admin gets the `ai_spend_alert` email, once. The alert is stored per kind, period and limit
+  (`AiSpendAlert`), so later checks in the same day or month send nothing. A new day or month, or a
+  changed limit that is crossed, is a new crossing.
+
 ## Cost versus revenue
 
 `GET /api/admin/cost-versus-revenue/` (`adminusers/profitability.py`, action `payment.view`: super

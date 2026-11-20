@@ -7,7 +7,7 @@ from adminusers.models import AdminUser
 from adminusers.role_matrix import require_action
 from signin.authentication import AdminAuthentication
 
-from . import control, prompt_versions
+from . import control, prompt_versions, spend_alerts
 from . import model_settings as models_service
 from .models import AiModel
 from .serializers import (
@@ -20,6 +20,7 @@ from .serializers import (
     MakeCurrentSerializer,
     MoveProjectSerializer,
     SelectModelsSerializer,
+    SpendAlertsSerializer,
 )
 
 
@@ -183,3 +184,25 @@ class AiResume(ModelSettingsView):
         serializer = AiSwitchSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(control.resume(self.admin(), serializer.validated_data["reason"]))
+
+
+class AiSpendAlerts(ModelSettingsView):
+    """The daily and monthly spend limits that trigger an alert email. Super admins only."""
+
+    def get(self, request):
+        require_action(request.user, "ai.view")
+        return Response(spend_alerts.describe())
+
+    def put(self, request):
+        require_action(request.user, "ai.control")
+        serializer = SpendAlertsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        values = serializer.validated_data
+        return Response(
+            spend_alerts.set_limits(
+                values["daily_limit"],
+                values["monthly_limit"],
+                by=self.admin(),
+                reason=values["reason"],
+            )
+        )

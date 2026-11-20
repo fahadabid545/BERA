@@ -197,4 +197,15 @@ CATALOG = {
         button_label="Update payment method",
         variables=("name", "message", "link"),
     ),
+    "ai_spend_alert": EmailTemplate(
+        subject="AI spending passed its {period} limit",
+        heading="AI spending is high",
+        paragraphs=(
+            GREETING,
+            "AI spending for {period_name} reached {spent} US dollars, which is over the limit "
+            "of {limit} US dollars.",
+        ),
+        button_label="Open AI controls",
+        variables=("name", "period", "period_name", "spent", "limit", "link"),
+    ),
 }

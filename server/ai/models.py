@@ -126,3 +126,30 @@ class AiControl(models.Model):
         constraints = [
             models.CheckConstraint(condition=Q(id=1), name="ai_control_is_one_row"),
         ]
+
+
+class AiSpendAlert(models.Model):
+    """One alert that was sent because AI spending crossed a limit (see `spend_alerts.py`).
+    `period` is the UTC day ("2026-11-20") or month ("2026-11") and `limit_usd` the limit that was
+    crossed. The unique row is what keeps it to one alert per crossing, even if two checks run
+    at once; raising the limit during the period makes a new crossing, so a new row."""
+
+    class Kind(models.TextChoices):
+        DAILY = "daily"
+        MONTHLY = "monthly"
+
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    period = models.CharField(max_length=10)
+    limit_usd = models.DecimalField(max_digits=14, decimal_places=4)
+    spent_usd = models.DecimalField(max_digits=14, decimal_places=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["kind", "period", "limit_usd"], name="aispendalert_once_per_crossing"
+            ),
+            models.CheckConstraint(
+                condition=Q(kind__in=["daily", "monthly"]), name="aispendalert_kind_is_known"
+            ),
+        ]

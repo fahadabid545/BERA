@@ -374,6 +374,10 @@ SETTINGS = [
     # this many minutes, then carry on by itself.
     SettingDefinition("ai.pause_after_failures", 5, whole_number(1, 1000)),
     SettingDefinition("ai.auto_pause_minutes", 10, whole_number(1, 1440)),
+    # AI spend alerts (see ai/spend_alerts.py): a super admin sets the limits in US dollars on
+    # Advanced > AI controls. None means no alert.
+    SettingDefinition("ai.daily_spend_alert_usd", None, positive_number_or_none(10_000_000)),
+    SettingDefinition("ai.monthly_spend_alert_usd", None, positive_number_or_none(10_000_000)),
     # The cost estimate shown before processing (see cvs/estimate.py). Averages only: the screen
     # always calls the figures approximate.
     SettingDefinition("estimate.cv_text_tokens", 2500, whole_number(1, 200000)),

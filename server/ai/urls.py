@@ -6,6 +6,7 @@ urlpatterns = [
     path("controls/", views.AiControls.as_view()),
     path("controls/pause/", views.AiPause.as_view()),
     path("controls/resume/", views.AiResume.as_view()),
+    path("controls/spend-alerts/", views.AiSpendAlerts.as_view()),
     path("models/", views.ModelList.as_view()),
     path("models/selection/", views.ModelSelection.as_view()),
     path("models/<str:id>/", views.ModelDetail.as_view()),

@@ -94,3 +94,23 @@ class CompareSerializer(StrictSerializer):
 
 class AiSwitchSerializer(StrictSerializer):
     reason = SafeTextField(max_length=MAX_REASON_LENGTH)
+
+
+class SpendLimit(serializers.DecimalField):
+    """A limit in US dollars: above zero, at most two decimals; null turns that alert off."""
+
+    def __init__(self, **kwargs):
+        super().__init__(
+            max_digits=12,
+            decimal_places=2,
+            min_value=Decimal("0.01"),
+            allow_null=True,
+            coerce_to_string=False,
+            **kwargs,
+        )
+
+
+class SpendAlertsSerializer(StrictSerializer):
+    daily_limit = SpendLimit()
+    monthly_limit = SpendLimit()
+    reason = SafeTextField(max_length=MAX_REASON_LENGTH)

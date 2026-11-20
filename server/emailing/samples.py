@@ -48,4 +48,11 @@ def sample_values(template_name):
             **shared,
             "message": "We could not take your last payment. Please update your payment method.",
         },
+        "ai_spend_alert": {
+            **shared,
+            "period": "daily",
+            "period_name": "today",
+            "spent": "52.40",
+            "limit": "50.00",
+        },
     }[template_name]

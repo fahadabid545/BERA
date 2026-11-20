@@ -35,7 +35,7 @@ from django.db.models.functions import Greatest
 from django.utils import timezone
 from django_q.tasks import async_task
 
-from ai import control
+from ai import control, spend_alerts
 from ai.client import AiPaused, AiUnavailable
 from companies.models import Company
 from core.errors import AppError
@@ -240,6 +240,7 @@ def sweep():
     work whose task was lost in a restart."""
     now = _now()
     control.end_expired_pause(now)  # an automatic pause that is over: resume by itself
+    spend_alerts.check(now)  # email the super admins once when spending passes a limit
     cutoff = now - timedelta(minutes=get_setting("processing.stuck_minutes"))
     with transaction.atomic():
         stuck = CvFile.objects.select_for_update(skip_locked=True, of=("self",)).filter(
