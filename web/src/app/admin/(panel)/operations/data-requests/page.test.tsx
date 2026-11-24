@@ -1,11 +1,24 @@
-import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import DataRequestsPage from "./page";
 
-describe("Data requests page", () => {
-  it("has an empty body", () => {
-    const { container } = render(<DataRequestsPage />);
-    expect(container.childElementCount).toBe(0);
-  });
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ total: 0, items: [], companies: [] }),
+    }),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+it("shows the data requests page with New request", async () => {
+  render(<DataRequestsPage />);
+  expect(await screen.findByRole("button", { name: "New request" })).toBeTruthy();
 });

@@ -35,6 +35,7 @@ export type AdminData = {
     suspended: number;
     failed_ai_calls?: number;
     failed_jobs?: number;
+    data_requests?: number;
   };
   recent: CompanyRow[];
   /** Only a super admin gets these two. */

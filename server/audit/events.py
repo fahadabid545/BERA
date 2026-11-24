@@ -76,6 +76,8 @@ KINDS = _kinds(
     EventKind("admin.ai_playground_budget_changed", reason_required=True),
     EventKind("admin.job_retried"),
     EventKind("admin.job_cancelled"),
+    EventKind("admin.data_request_created"),
+    EventKind("admin.data_request_status_changed"),
     EventKind("admin.announcement_created"),
     EventKind("admin.announcement_edited"),
     EventKind("admin.announcement_deleted"),

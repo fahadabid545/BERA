@@ -1778,6 +1778,29 @@ on now at the top of every company page, newest written first, and can dismiss e
 - The longest message is the platform value `announcements.max_message_length` (300).
 - Dismissals are `AnnouncementDismissal` rows, kept per company like other company data.
 
+## Data requests
+
+Admin > Operations > Data requests (both admin roles: `data_request.handle`). An admin logs a
+company's export or deletion request by hand when it arrives (for example by email); there is no
+company-side form. Carrying a request out is not part of this: it will use the existing delete and
+export functions of the company panel.
+
+- Routes under `/api/admin/data-requests/`: `GET` (optional `?status=`) lists not-completed
+  requests first by due date, then completed ones newest first, up to `data_requests.list_limit`
+  with the real total; `POST` logs one (company, type `export` or `deletion`, who asked, received
+  date, optional note); `PATCH <id>/` changes the status and/or the note.
+- The due date is the received date plus `data_requests.due_days` (30), fixed when the request is
+  logged. A request that is not completed and past its due day is overdue (marked "Overdue").
+- Status goes Open, In progress, Completed and never back (409 `data_request_status_backwards`).
+  Completing saves the day. There is no Cancelled status.
+- The record holds only the company, type, who asked, dates, status and a short note
+  (`data_requests.max_note_length`, 300): no candidate content. The company is kept as a number and
+  its name, so the record outlives a company that was deleted.
+- Every create and status change is audited (`admin.data_request_created`,
+  `admin.data_request_status_changed`; never the name or the note).
+- The overview's Attention tab has an "Open data requests" row (open and in progress; completed
+  ones leave it) and its Review lists them most urgent first, overdue ones marked.
+
 ## Jobs monitor
 
 Admin > Operations > Jobs (`cvs/job_monitor.py`; both admin roles: actions `job.view`,

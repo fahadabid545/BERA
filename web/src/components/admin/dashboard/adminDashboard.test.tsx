@@ -350,6 +350,50 @@ describe("Attention", () => {
     );
   });
 
+  it("lists open data requests as a row of its own and opens it", async () => {
+    const data = superData();
+    serve({ ...data, pending: { ...data.pending, data_requests: 2 } });
+    const user = userEvent.setup();
+    show("attention");
+    expect(await screen.findByText("Open data requests")).toBeTruthy();
+    await user.click(screen.getAllByRole("button", { name: "Review" })[5]);
+    await vi.waitFor(() =>
+      expect(String(fetchMock.mock.calls.at(-1)?.[0])).toContain("kind=pending&key=data_requests"),
+    );
+  });
+
+  it("shows a data request with its type, status and due date, and marks an overdue one", async () => {
+    fetchMock.mockResolvedValue(
+      json({
+        total: 1,
+        items: [
+          {
+            type: "data_request",
+            id: 4,
+            company_id: 7,
+            company: "Fake Company",
+            request_type: "deletion",
+            status: "in_progress",
+            due_on: "2026-11-01",
+            overdue: true,
+          },
+        ],
+      }),
+    );
+    render(
+      <AdminDetailDialog
+        detail={{ kind: "pending", key: "data_requests", title: "Open data requests" }}
+        onClose={vi.fn()}
+      />,
+    );
+    expect((await screen.findByRole("link", { name: "Fake Company" })).getAttribute("href")).toBe(
+      "/admin/companies/7",
+    );
+    for (const words of ["Deletion", "In progress", "Due 2026-11-01", "Overdue"]) {
+      expect(screen.getByText(words)).toBeTruthy();
+    }
+  });
+
   it("leaves the AI row out for support", async () => {
     serve(supportData());
     show("attention");

@@ -29,11 +29,22 @@ type JobRow = {
   reason: string;
   at: string;
 };
-type Body = { total: number; items: (CompanyRow | CallRow | JobRow)[] };
+type RequestRow = {
+  type: "data_request";
+  id: number;
+  company_id: number;
+  company: string;
+  request_type: "export" | "deletion";
+  status: "open" | "in_progress";
+  due_on: string;
+  overdue: boolean;
+};
+type AnyRow = CompanyRow | CallRow | JobRow | RequestRow;
+type Body = { total: number; items: AnyRow[] };
 
 const DATE_LENGTH = 10;
 
-function Row({ item }: { item: CompanyRow | CallRow | JobRow }) {
+function Row({ item }: { item: AnyRow }) {
   if (item.type === "company") {
     return (
       <>
@@ -45,6 +56,19 @@ function Row({ item }: { item: CompanyRow | CallRow | JobRow }) {
           {item.cvs_scored !== undefined && <span>CVs scored {whole(item.cvs_scored)}</span>}
           {item.tokens !== undefined && <span>Tokens {whole(item.tokens)}</span>}
           {item.cost !== undefined && <span>AI cost {usd(item.cost)}</span>}
+        </span>
+      </>
+    );
+  }
+  if (item.type === "data_request") {
+    return (
+      <>
+        <TextLink href={`/admin/companies/${item.company_id}`}>{item.company}</TextLink>
+        <span className="detail-list__facts">
+          <span>{item.request_type === "export" ? "Export" : "Deletion"}</span>
+          <Tag variant="neutral">{item.status === "open" ? "Open" : "In progress"}</Tag>
+          <span>Due {item.due_on}</span>
+          {item.overdue && <Tag variant="danger">Overdue</Tag>}
         </span>
       </>
     );

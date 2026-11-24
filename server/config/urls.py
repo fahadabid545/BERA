@@ -10,6 +10,7 @@ urlpatterns = [
     path("api/company/team/", include("companies.team_urls")),
     path("api/company/", include("notifications.urls")),
     path("api/company/announcements/", include("announcements.company_urls")),
+    path("api/admin/data-requests/", include("datarequests.urls")),
     path("api/admin/announcements/", include("announcements.admin_urls")),
     path("api/company/activity/", include("activity.urls")),
     path("api/company/charts/", include("cvs.company_urls")),

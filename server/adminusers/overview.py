@@ -35,6 +35,7 @@ from cvs import job_monitor
 from cvs.charts import per_day, percent_change
 from cvs.dashboard import card, checked_period, in_days, windows
 from cvs.models import CandidateScore
+from datarequests import service as data_requests
 from plans.models import Plan, Subscription
 from plans.subscriptions import State, effective_state
 from platform_settings.service import get_setting
@@ -318,6 +319,8 @@ def _pending(role, subscriptions):
         pending["failed_ai_calls"] = _failed_calls(now).count()
     if _can(role, "job.view"):
         pending["failed_jobs"] = job_monitor.failed_count()
+    if _can(role, "data_request.handle"):
+        pending["data_requests"] = data_requests.open_count()
     return pending
 
 
@@ -406,6 +409,19 @@ def _job_item(job):
     }
 
 
+def _request_item(item):
+    return {
+        "type": "data_request",
+        "id": item["id"],
+        "company_id": item["company_id"],
+        "company": item["company"],
+        "request_type": item["kind"],
+        "status": item["status"],
+        "due_on": item["due_on"].isoformat(),
+        "overdue": item["overdue"],
+    }
+
+
 def detail(role, kind, key, raw_days):
     """{"total", "items"}: companies (or AI calls for admins who may see them) behind a card or
     a mark; at most `dashboard.detail_limit` items with the real total."""
@@ -465,6 +481,10 @@ def detail(role, kind, key, raw_days):
             "total": jobs["total"],
             "items": [_job_item(job) for job in jobs["items"][:limit]],
         }
+    if kind == "pending" and key == "data_requests":
+        require_action_for(role, "data_request.handle")
+        waiting = data_requests.attention_items(limit)
+        return {"total": waiting["total"], "items": [_request_item(i) for i in waiting["items"]]}
     if kind in ("ai_purpose", "ai_model") and key:
         require_action_for(role, "ai.view")
         column = "purpose" if kind == "ai_purpose" else "model"

@@ -480,6 +480,11 @@ SETTINGS = [
     SettingDefinition("requirements.near_duplicate_percent", 85, whole_number(50, 100)),
     # Live screen updates
     SettingDefinition("live_updates.max_delay_seconds", 3, whole_number(1, 60)),
+    # Data requests (see datarequests/): days from the request to its due date, the longest note,
+    # and how many requests one list shows.
+    SettingDefinition("data_requests.due_days", 30, whole_number(1, 365)),
+    SettingDefinition("data_requests.max_note_length", 300, whole_number(1, 1000)),
+    SettingDefinition("data_requests.list_limit", 100, whole_number(1, 1000)),
     # Announcement banners (see announcements/). The ceiling is the column size of the message.
     SettingDefinition("announcements.max_message_length", 300, whole_number(1, 2000)),
 ]
