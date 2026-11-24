@@ -35,12 +35,12 @@ into `POSTGRES_ADMIN_PASSWORD` in `.env`; run the command again afterwards.
 
 When ready it prints:
 
-| Area          | Address                           |
-| ------------- | --------------------------------- |
-| Website       | http://localhost:3000/            |
-| Company panel | http://localhost:3000/company     |
-| Admin panel   | http://localhost:3000/admin       |
-| API health    | http://localhost:8000/api/health/ |
+| Area          | Address                             |
+| ------------- | ----------------------------------- |
+| Website       | http://localhost:3000/              |
+| Company panel | http://localhost:3000/company       |
+| Admin panel   | http://localhost:3000/admin         |
+| API health    | http://localhost:8000/api/health/   |
 
 Press `Ctrl+C` to stop everything.
 
@@ -282,7 +282,7 @@ short-lived signed step, and the session starts after the code. An admin with no
 yet sets one up at that point. There is no public admin sign up and no recovery codes.
 
 - **First super admin:** on the server run `python manage.py create_first_super_admin --name "…"
---email …`. The password is typed at a hidden prompt (never an option) and follows the normal
+  --email …`. The password is typed at a hidden prompt (never an option) and follows the normal
   password rules. It works only while no admin exists at all; afterwards it refuses.
 - **Sessions:** access token 10 minutes (`tokens.admin_access_minutes`), refresh 8 hours
   (`tokens.admin_refresh_hours`). Admin tokens use their own keys and are accepted only by admin
@@ -643,7 +643,8 @@ token cap (409 with the Upgrade prompt).
 
 `GET` and `PUT /api/company/projects/<id>/requirements/` (own company; owners and members). The
 whole list is sent and replaces the stored one, so order, weights and removals can never
-disagree. Each requirement has a `kind` (`must` or `nice`), `text` (up to `requirements.max_length`, 120) and a `weight` from 1 to `requirements.weight_max` (5, default `requirements.weight_default`,
+disagree. Each requirement has a `kind` (`must` or `nice`), `text` (up to `requirements.max_length`,
+120) and a `weight` from 1 to `requirements.weight_max` (5, default `requirements.weight_default`,
 3); at most `requirements.max_total` (30) per project. Sending an `id` keeps an existing one.
 An archived project is read-only (409 `project_archived`).
 
@@ -669,7 +670,7 @@ default 70/30), `recommendation_threshold` (0 to 100; default 75) and `top_n` (d
 `GET` also returns `top_n_cap`, the plan's limit. The panel is on the project's Settings tab.
 
 - **Defaults.** A project with no saved row follows `projects/scoring_settings.py::
-scoring_defaults()`, today the platform settings `scoring.must_have_weight_percent`,
+  scoring_defaults()`, today the platform settings `scoring.must_have_weight_percent`,
   `scoring.nice_to_have_weight_percent`, `scoring.strong_match_min` and `scoring.top_n`; the
   company's own scoring defaults plug in there. Saving stores the project's own values.
 - **Plan cap.** `top_n` is checked with `plans.limits.check_top_n` (409 `top_n_limit_exceeded`
@@ -1369,13 +1370,13 @@ live updates routine. The project's Overview tab shows all five above the upload
 dashboard's Overview tab shows the funnel, the distribution and the trend for all projects together.
 Code: `server/cvs/charts.py`, `web/src/components/charts/`; every chart is on the `/design` page.
 
-| Question                       | Chart                          | Notes                                                                                                                                                                                            |
-| ------------------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| How far do CVs get?            | Funnel                         | Uploaded, read, scored, shortlisted, interview, approved. The last three count scored candidates that ever reached the stage (from the stage history), so each step is a part of the one before. |
-| How are scores spread?         | Score distribution             | A column for each grade A to E, counts written above.                                                                                                                                            |
-| Who is at the top?             | Ranking (project)              | The Top-N list, at most `charts.ranking_max_bars` (10) bars, names as initials.                                                                                                                  |
-| How well are requirements met? | Requirement coverage (project) | Met, partly met, missing, not judged for each requirement; a verdict for older wording counts as not judged.                                                                                     |
-| More or less than before?      | Trend                          | CVs uploaded or scored per day for the last N days against the N before, with the change in percent. N is one of `charts.trend_days_choices` (7, 30, 90; default `charts.trend_days_default`).   |
+| Question | Chart | Notes |
+| --- | --- | --- |
+| How far do CVs get? | Funnel | Uploaded, read, scored, shortlisted, interview, approved. The last three count scored candidates that ever reached the stage (from the stage history), so each step is a part of the one before. |
+| How are scores spread? | Score distribution | A column for each grade A to E, counts written above. |
+| Who is at the top? | Ranking (project) | The Top-N list, at most `charts.ranking_max_bars` (10) bars, names as initials. |
+| How well are requirements met? | Requirement coverage (project) | Met, partly met, missing, not judged for each requirement; a verdict for older wording counts as not judged. |
+| More or less than before? | Trend | CVs uploaded or scored per day for the last N days against the N before, with the change in percent. N is one of `charts.trend_days_choices` (7, 30, 90; default `charts.trend_days_default`). |
 
 - API: `GET /api/company/projects/<id>/charts/?days=` and `GET /api/company/charts/?days=` (any
   company role, live allowance, a wrong `days` is a form error). A fixed number of queries
@@ -1391,17 +1392,17 @@ The company dashboard (Overview tab) answers one question per card, all counted 
 when asked (no AI) and refreshed by the live-updates routine. Numbers for the chosen period (today,
 this week, this month) sit next to the period before it.
 
-| Card                                                    | Question                                                      | Opens                                     |
-| ------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------- |
-| CVs uploaded, CVs scored, Shortlisted, Average AI score | More or less than before?                                     | The CVs or candidates counted             |
-| Hiring pace, Match quality, Time to shortlist           | Better or worse than before?                                  | The same lists                            |
-| CVs by recommendation, Projects overview (donuts)       | How are they split?                                           | Who is in each part                       |
-| Screening progress (gauge)                              | How much is scored?                                           | Projects with their counts                |
-| Top candidates                                          | Who is best? Pick two to four to compare                      | The candidate, the comparison page        |
-| Quick actions                                           | What is done most often?                                      | Upload, new project, share report, export |
-| Pending actions                                         | What waits for me?                                            | The CVs or links waiting                  |
-| Funnel, Score distribution, Trend                       | Where do CVs drop out, how do scores spread, how is the pace? | Steps and grades as lists                 |
-| Live activity                                           | What just happened?                                           | The candidate or project                  |
+| Card | Question | Opens |
+| --- | --- | --- |
+| CVs uploaded, CVs scored, Shortlisted, Average AI score | More or less than before? | The CVs or candidates counted |
+| Hiring pace, Match quality, Time to shortlist | Better or worse than before? | The same lists |
+| CVs by recommendation, Projects overview (donuts) | How are they split? | Who is in each part |
+| Screening progress (gauge) | How much is scored? | Projects with their counts |
+| Top candidates | Who is best? Pick two to four to compare | The candidate, the comparison page |
+| Quick actions | What is done most often? | Upload, new project, share report, export |
+| Pending actions | What waits for me? | The CVs or links waiting |
+| Funnel, Score distribution, Trend | Where do CVs drop out, how do scores spread, how is the pace? | Steps and grades as lists |
+| Live activity | What just happened? | The candidate or project |
 
 Every card and every mark of a chart shows its details on hover or keyboard focus. Where it makes
 sense it also opens a popup with the list behind it; every name in that list is a link to the page
@@ -1452,13 +1453,13 @@ refreshed by the live-updates routine. The period (today, this week, this month,
 card and mark shows details on hover or focus, opens a popup listing the companies (or AI calls)
 behind it, and every name links to its company page. The chosen tab is kept in the address.
 
-| Tab       | Shows                                                                                                   | Who                                       |
-| --------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| Overview  | Companies, paying, suspended, monthly revenue; new companies, CVs scored, AI cost; the newest companies | both (money and AI cost: super only)      |
-| Revenue   | Revenue against AI cost with the margin; plan mix; subscriptions by state                               | super                                     |
-| Usage     | The pace of scoring and AI calls; the companies using the platform most                                 | both (tokens, cost, AI calls: super only) |
-| AI        | Token budget; calls by purpose and failure rate; cost by model; whether AI work is paused               | super                                     |
-| Attention | Past-due subscriptions, free grants ending soon, suspended companies, failed AI calls                   | both (failed AI calls: super only)        |
+| Tab | Shows | Who |
+| --- | --- | --- |
+| Overview | Companies, paying, suspended, monthly revenue; new companies, CVs scored, AI cost; the newest companies | both (money and AI cost: super only) |
+| Revenue | Revenue against AI cost with the margin; plan mix; subscriptions by state | super |
+| Usage | The pace of scoring and AI calls; the companies using the platform most | both (tokens, cost, AI calls: super only) |
+| AI | Token budget; calls by purpose and failure rate; cost by model; whether AI work is paused | super |
+| Attention | Past-due subscriptions, free grants ending soon, suspended companies, failed AI calls | both (failed AI calls: super only) |
 
 - `GET /api/admin/dashboard/?days=`: the cards. `GET /api/admin/dashboard/detail/?kind=&key=&days=`:
   what is behind one (`metric`, `state`, `plan`, `pending`, `ai_purpose`, `ai_model`).
@@ -1557,7 +1558,7 @@ the company activity log below it: newest first, `activity.page_size` (50) entri
   the same whether or not the new address is already taken: a taken address gets the "you already have
   an account" notice instead of a link, and a taken one found at confirmation is refused.
 - **Company** (`/company/settings/company`, owner only, `settings.change`): `GET`/`PATCH
-/api/company/settings/` change the company name. The billing country is shown and locked (any other
+  /api/company/settings/` change the company name. The billing country is shown and locked (any other
   field is refused).
 - **Retention** (`/company/advanced/retention`): the same route takes `retention_days`, one of the
   platform's `retention.choices_days`, or `null` for `retention.default_days`. The activity list and the
@@ -1634,7 +1635,6 @@ confirmation offers it again first.
 
 **The company** is deleted by the owner on Advanced > Data and export (`GET` and `POST
 /api/company/deletion/`, owner only, `company.delete`; `companies/deletion.py`):
-
 - The owner types the company name exactly. An active subscription (active, past due, cancelled
   but still running, or granted free) must be acknowledged (`subscription_active`, 409; the
   popup shows a checkbox).
@@ -1666,13 +1666,13 @@ The emails a person gets besides the account ones (sign-in, password, invites), 
 (company, kind, key), and the row and the emails are written together, so a failed send is tried
 again and a repeat never goes out. The key is an id or a date, never a name.
 
-| Email               | When                                                                                                                                          | Who                     | Can be switched off |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------- |
-| Finished uploads    | no CV of an upload is waiting or being worked on (an upload that was only cancelled says nothing)                                             | the person who uploaded | yes                 |
-| Usage warnings      | a metric (CVs, AI tokens) first reaches a level of `usage.warning_percents` below 100, in a billing period                                    | the owner               | yes                 |
-| Usage limit reached | the same, at 100%                                                                                                                             | the owner               | yes                 |
-| Subscription ending | `notifications.subscription_ending_days` (7) before a subscription stops at its period end (cancelled, free grant, or active without renewal) | the owner               | no                  |
-| Payment failed      | the subscription goes past due                                                                                                                | the owner               | no                  |
+| Email | When | Who | Can be switched off |
+| --- | --- | --- | --- |
+| Finished uploads | no CV of an upload is waiting or being worked on (an upload that was only cancelled says nothing) | the person who uploaded | yes |
+| Usage warnings | a metric (CVs, AI tokens) first reaches a level of `usage.warning_percents` below 100, in a billing period | the owner | yes |
+| Usage limit reached | the same, at 100% | the owner | yes |
+| Subscription ending | `notifications.subscription_ending_days` (7) before a subscription stops at its period end (cancelled, free grant, or active without renewal) | the owner | no |
+| Payment failed | the subscription goes past due | the owner | no |
 
 - A jump over several usage levels sends one email, for the highest. Levels checked after a CV
   is counted (`usage.mark_scored`); the finished-upload check runs when a CV is done, fails, or
@@ -1690,11 +1690,11 @@ Tests: `notifications/tests/test_notifications.py`, `web/src/app/company/advance
 When access is blocked the screen opens a popup (`BillingPrompt`), chosen by the server's
 `prompt` answer (`plans.limits.prompt_kind`):
 
-| Case                                           | `prompt`       | Owner's button                    |
-| ---------------------------------------------- | -------------- | --------------------------------- |
-| A limit is reached on a plan with a bigger one | `upgrade`      | Upgrade plan (billing page)       |
-| A limit is reached on the highest plan         | `highest_plan` | Contact us (`/contact`)           |
-| The subscription has expired                   | `renewal`      | Renew subscription (billing page) |
+| Case | `prompt` | Owner's button |
+| --- | --- | --- |
+| A limit is reached on a plan with a bigger one | `upgrade` | Upgrade plan (billing page) |
+| A limit is reached on the highest plan | `highest_plan` | Contact us (`/contact`) |
+| The subscription has expired | `renewal` | Renew subscription (billing page) |
 
 - Only owners get the button. A member sees "Please ask your company owner to upgrade." (renew,
   or get in touch, for the other two). The role comes from `CompanySession` (`useCompanyRole`);
