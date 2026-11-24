@@ -336,6 +336,8 @@ SETTINGS = [
     # How many months the revenue history on the admin overview lists, newest last.
     SettingDefinition("admin_dashboard.revenue_months", 12, whole_number(1, 60)),
     SettingDefinition("billing.checkout_minutes", 30, whole_number(30, 1440)),
+    # How long an upgrade may wait for its payment notice before the company may ask again.
+    SettingDefinition("billing.upgrade_processing_minutes", 60, whole_number(5, 1440)),
     # How many days before a subscription ends its owner is emailed.
     SettingDefinition("notifications.subscription_ending_days", 7, whole_number(1, 60)),
     SettingDefinition("account.deletion_grace_days", 14, whole_number(0, 365)),

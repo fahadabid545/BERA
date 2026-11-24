@@ -81,6 +81,17 @@ class Subscription(CompanyOwnedModel):
     # When the provider created the newest paid-invoice event applied here, so a failure that is
     # older than a later payment (delivered late) cannot make the company past due again.
     provider_paid_at = models.DateTimeField(null=True)
+
+    class Change(models.TextChoices):
+        NONE = ""
+        UPGRADE = "upgrade"  # asked and charged; waits for the paid-invoice notice
+        DOWNGRADE = "downgrade"  # takes effect at the next renewal
+
+    # A plan change in flight. An upgrade waits for the provider's paid notice (the plan has not
+    # changed until then); a downgrade waits for the renewal.
+    pending_plan = models.ForeignKey(Plan, null=True, on_delete=models.PROTECT, related_name="+")
+    pending_change = models.CharField(max_length=20, choices=Change.choices, blank=True)
+    pending_since = models.DateTimeField(null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

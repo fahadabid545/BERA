@@ -20,12 +20,14 @@ from companies.models import Company
 
 from .models import CheckoutAttempt, Plan
 from .payments import record_event
+from .plan_change import warn_over_limits
 from .subscriptions import State, activate, cancel, effective_state, get_subscription, mark_past_due
 
 logger = logging.getLogger(__name__)
 
 HANDLED, DUPLICATE, UNMATCHED, IGNORED = "handled", "duplicate", "unmatched", "ignored"
 FIRST_INVOICE = "subscription_create"
+PLAN_CHANGE_INVOICE = "subscription_update"  # the charge for the rest of the period on an upgrade
 FAILURE_REASON = "Payment attempt {attempt} failed."
 
 
@@ -88,13 +90,22 @@ def _paid_period(invoice):
     return _at(period["start"]), _at(period["end"])
 
 
-def _plan_for(subscription, metadata):
-    plan = (
-        Plan.objects.filter(pk=metadata.get("plan_id")).first()
-        if str(metadata.get("plan_id", "")).isdigit()
-        else None
-    )
-    return plan or subscription.plan
+def _plan_for(subscription, metadata, invoice):
+    """The plan an invoice pays for. Only the first invoice names it in its own metadata (the
+    plan bought at checkout); later ones are the company's current plan, or the plan its waiting
+    change moves it to: an upgrade's own invoice, or the first renewal after a downgrade."""
+    Change = type(subscription).Change
+    reason = invoice.get("billing_reason")
+    if reason != FIRST_INVOICE:
+        waiting_for = {PLAN_CHANGE_INVOICE: Change.UPGRADE}.get(reason, Change.DOWNGRADE)
+        if subscription.pending_change == waiting_for and subscription.pending_plan:
+            return subscription.pending_plan
+        if subscription.plan:
+            return subscription.plan
+    plan_id = str(metadata.get("plan_id", ""))
+    return (
+        Plan.objects.filter(pk=plan_id).first() if plan_id.isdigit() else None
+    ) or subscription.plan
 
 
 def handle_invoice_paid(event):
@@ -107,7 +118,7 @@ def handle_invoice_paid(event):
     with transaction.atomic():
         _lock(company_id)
         subscription = get_subscription(company_id)
-        plan = _plan_for(subscription, metadata)
+        plan = _plan_for(subscription, metadata, invoice)
         _, created = record_event(
             provider_event_id=event["id"],
             company_id=company_id,
@@ -134,7 +145,27 @@ def _apply_paid_period(invoice, subscription, plan, provider_subscription_id, pa
     newer = period is not None and (
         subscription.period_end is None or period[1] > subscription.period_end
     )
-    if newer and plan is not None and not already_activated_by_checkout and not other_subscription:
+    Change = type(subscription).Change
+    if invoice.get("billing_reason") == PLAN_CHANGE_INVOICE:
+        # The upgrade is paid: the plan changes now and the period stays as it is.
+        if not other_subscription and subscription.pending_change == Change.UPGRADE and plan:
+            activate(
+                subscription.company_id,
+                plan,
+                period_start=subscription.period_start,
+                period_end=subscription.period_end,
+                renewal=True,
+                stripe_customer_id=subscription.stripe_customer_id,
+                stripe_subscription_id=subscription.stripe_subscription_id,
+            )
+        elif not other_subscription:
+            logger.warning("A paid plan-change invoice matches no waiting upgrade.")
+    elif (
+        newer and plan is not None and not already_activated_by_checkout and not other_subscription
+    ):
+        downgrading = (
+            subscription.pending_change == Change.DOWNGRADE and plan == subscription.pending_plan
+        )
         activate(
             subscription.company_id,
             plan,
@@ -149,6 +180,8 @@ def _apply_paid_period(invoice, subscription, plan, provider_subscription_id, pa
         CheckoutAttempt.objects.filter(
             company_id=subscription.company_id, plan=plan, status=CheckoutAttempt.Status.OPEN
         ).update(status=CheckoutAttempt.Status.ACTIVATED)
+        if downgrading:
+            warn_over_limits(subscription.company_id)
     if not other_subscription and (
         subscription.provider_paid_at is None or paid_at > subscription.provider_paid_at
     ):

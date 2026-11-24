@@ -3,12 +3,17 @@ provider's own page and never reach this server: all we send is the plan, its pr
 come back to, and all we read is the status of the provider's checkout session.
 
 Test mode only for now: a key that is not a test key is refused, so real money cannot move
-before real payments are built (BERA-166)."""
+before the business is registered."""
+
+import logging
+from dataclasses import dataclass
 
 import stripe
 from django.conf import settings
 
 from core.errors import AppError
+
+logger = logging.getLogger(__name__)
 
 TEST_KEY_PREFIXES = ("sk_test_", "rk_test_")
 UNAVAILABLE_CODE = "payments_unavailable"
@@ -91,3 +96,82 @@ def expire_checkout_session(session_id):
     except stripe.StripeError:
         return False
     return True
+
+
+APPLIED, NEEDS_ACTION, DECLINED = "applied", "needs_action", "declined"
+
+
+@dataclass(frozen=True)
+class PriceChange:
+    status: str  # applied, needs_action (the bank wants a check) or declined
+    url: str = ""  # where the person completes the bank check
+
+
+def _void_open_invoice(subscription_id):
+    """A declined upgrade leaves an unpaid invoice that could still be paid later and change the
+    price behind our back, so it is voided. A failure here is logged, never hidden."""
+    try:
+        invoice = stripe.Subscription.retrieve(subscription_id, api_key=_key())["latest_invoice"]
+        invoice_id = invoice if isinstance(invoice, str) else invoice["id"]
+        if stripe.Invoice.retrieve(invoice_id, api_key=_key())["status"] == "open":
+            stripe.Invoice.void_invoice(invoice_id, api_key=_key())
+    except stripe.StripeError:
+        logger.warning("An unpaid plan-change invoice could not be voided.", exc_info=True)
+
+
+def _outcome_of(updated):
+    """An upgrade is applied only when its payment went through. Otherwise the provider keeps
+    the old price and holds the change as pending."""
+    if not updated.get("pending_update"):
+        return PriceChange(APPLIED)
+    invoice = updated["latest_invoice"]
+    payment = invoice.get("payment_intent") or {}
+    if payment.get("status") == "requires_action":
+        return PriceChange(NEEDS_ACTION, url=invoice.get("hosted_invoice_url") or "")
+    return PriceChange(DECLINED)
+
+
+def change_subscription_price(
+    *, subscription_id, company_id, plan, currency, amount_minor, immediate, idempotency_key
+):
+    """Moves the monthly subscription to the plan's price. `immediate` (an upgrade) charges the
+    difference for the rest of the period now and keeps the update pending until that payment
+    succeeds, so a failed card leaves the old price. Otherwise (a downgrade, or taking one back)
+    nothing is charged or credited and the new price starts with the next invoice."""
+    try:
+        item = stripe.Subscription.retrieve(
+            subscription_id, api_key=_key(), max_network_retries=NETWORK_RETRIES
+        )["items"]["data"][0]
+        price = stripe.Price.create(
+            api_key=_key(),
+            idempotency_key=f"{idempotency_key}-price",
+            max_network_retries=NETWORK_RETRIES,
+            currency=currency.lower(),
+            unit_amount=amount_minor,
+            recurring={"interval": "month"},
+            product_data={"name": plan.name},
+        )
+        options = {
+            "items": [{"id": item["id"], "price": price["id"]}],
+            "metadata": {"company_id": str(company_id), "plan_id": str(plan.pk)},
+            "proration_behavior": "always_invoice" if immediate else "none",
+        }
+        if immediate:
+            options["payment_behavior"] = "pending_if_incomplete"
+            options["expand"] = ["latest_invoice.payment_intent"]
+        updated = stripe.Subscription.modify(
+            subscription_id,
+            api_key=_key(),
+            idempotency_key=idempotency_key,
+            max_network_retries=NETWORK_RETRIES,
+            **options,
+        )
+    except stripe.CardError:
+        _void_open_invoice(subscription_id)
+        return PriceChange(DECLINED)
+    except stripe.StripeError as error:
+        raise _provider_error() from error
+    outcome = _outcome_of(updated) if immediate else PriceChange(APPLIED)
+    if outcome.status == DECLINED:
+        _void_open_invoice(subscription_id)
+    return outcome

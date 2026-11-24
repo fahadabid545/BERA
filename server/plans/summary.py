@@ -6,6 +6,7 @@ from projects.service import active_project_count
 from usage import service as usage
 
 from . import limits
+from .plan_change import pending_of
 from .subscriptions import State, effective_state, get_subscription, grace_ends_at
 
 
@@ -41,6 +42,8 @@ def plan_and_usage(company_id):
     project_limit = limits.limit_for(company_id, limits.MAX_PROJECTS)
     return {
         "plan_name": subscription.plan.name if subscription.plan else None,
+        "plan_id": subscription.plan_id,
+        "pending_change": pending_of(subscription),
         "state": state,
         "renewal": subscription.renewal,
         "grace_ends_at": grace_ends_at(subscription) if state == State.PAST_DUE else None,

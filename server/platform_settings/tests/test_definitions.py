@@ -103,6 +103,7 @@ EXPECTED_DEFAULTS = {
     "billing.past_due_grace_days": 7,
     "admin_dashboard.revenue_months": 12,
     "billing.checkout_minutes": 30,
+    "billing.upgrade_processing_minutes": 60,
     "notifications.subscription_ending_days": 7,
     "scoring.must_have_weight_percent": 70,
     "scoring.nice_to_have_weight_percent": 30,

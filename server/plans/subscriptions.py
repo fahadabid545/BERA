@@ -29,6 +29,11 @@ FULL_ACCESS_STATES = frozenset({State.ACTIVE, State.PAST_DUE, State.CANCELLED, S
 CAN_BE_EXPIRED = frozenset({State.ACTIVE, State.PAST_DUE, State.CANCELLED, State.GRANTED_FREE})
 CAN_BE_GRANTED_FREE = frozenset({State.NO_PLAN, State.EXPIRED})
 
+# What a plan change in flight leaves behind once it is over (applied, or the subscription ended).
+NO_PENDING_CHANGE = {"pending_plan": None, "pending_change": "", "pending_since": None}
+# A change waiting for the next renewal survives a late payment, but not the end of access.
+KEEPS_PENDING_CHANGE = frozenset({State.ACTIVE, State.PAST_DUE})
+
 NOTICE_TITLES = {
     State.ACTIVE: "Your plan is active",
     State.PAST_DUE: "Your payment is overdue",
@@ -164,6 +169,8 @@ def _change(
 def _apply(subscription, new_state, *, source, by=None, reason="", kind=None, **fields):
     before = {"state": subscription.state, "plan": subscription.plan_id}
     subscription.state = new_state
+    if new_state not in KEEPS_PENDING_CHANGE:
+        fields = {**NO_PENDING_CHANGE, **fields}
     for name, value in fields.items():
         setattr(subscription, name, value)
     subscription.save()
@@ -197,6 +204,7 @@ def activate(company_id, plan, *, period_start, period_end, renewal=True, **prov
         period_end=period_end,
         renewal=renewal,
         past_due_since=None,
+        **NO_PENDING_CHANGE,
         **provider_ids,
     )
 

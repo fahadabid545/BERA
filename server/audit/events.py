@@ -42,7 +42,7 @@ KINDS = _kinds(
     EventKind("company.deletion_requested"),
     EventKind("company.deletion_undone"),
     EventKind("company.deleted"),
-    EventKind("plan.changed"),  # not built yet
+    EventKind("plan.changed"),  # a company asked for another plan, or took the request back
     EventKind("subscription.state_changed"),
     # Admin actions. One that changes another account or a company needs a written reason;
     # reading things needs none.

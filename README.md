@@ -553,6 +553,38 @@ type changes; other types are acknowledged and ignored.
   behaviour, reactivation, and view-and-download-only after expiry. Refund notices are not handled
   yet either.
 
+### Upgrade and downgrade (BERA-166)
+
+Owner only (`billing.pay`), for a company whose subscription is Active and paid by card.
+`POST /api/company/billing/change-plan/` `{plan_id}` and `POST .../change-plan/cancel/`. The plan
+shown to the company comes from `GET /api/company/usage/` (`plan_id`, `pending_change`).
+
+- **Upgrade** (a dearer USD price): Stripe changes the subscription price now, charges the
+  difference for the rest of the period (`proration_behavior=always_invoice`) and keeps the update
+  pending until that payment succeeds (`payment_behavior=pending_if_incomplete`). A declined card
+  leaves the old price (the unpaid invoice is voided) and the company sees "Your card could not be
+  charged" (402 `payment_declined`). A bank check returns the provider's page (`action_required`).
+  Our plan changes only when the paid invoice notice (`billing_reason=subscription_update`) arrives
+  (BERA-165 webhook); until then the screen shows "processing" and the old plan is not final. The
+  period dates and the usage counters are untouched, so used counts carry over. A second request
+  while processing is refused (`plan_change_processing`); after `billing.upgrade_processing_minutes`
+  without a notice the company may ask again.
+- **Downgrade** (same or lower price): refused with the exact numbers when the company already uses
+  more than the new plan allows (CVs this month incl. waiting ones, active projects, team accounts
+  incl. open invitations; a per-company limit override still counts). Otherwise Stripe's price
+  changes with no charge or credit and the new price starts with the next invoice; our plan changes
+  when that renewal's paid notice arrives. The renewal applies the lower plan even if the company
+  grew in between (it already paid the lower price). Nothing is deleted or removed: the normal limit
+  checks refuse new projects, invitations, uploads and scoring that would exceed the new limit, and
+  the owner is emailed exactly what is over and by how much.
+- **Cancelling a downgrade** puts Stripe's price back to the current plan's price (no proration) and
+  forgets the waiting plan; if Stripe refuses, the downgrade stays waiting.
+- A waiting change is dropped when access ends (cancelled, expired, free grant); it survives a
+  Past due period. Renewals use the company's current plan (only the first invoice uses the plan
+  named at checkout).
+- Not in this ticket: the email before renewal, the Cancel button, grace period behaviour and
+  reactivation (BERA-167); refund notices.
+
 ### Plans management
 
 Super admins manage the subscription plans under `/api/admin/plans/` (list and create; read,
