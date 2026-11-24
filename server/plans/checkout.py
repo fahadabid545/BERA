@@ -133,6 +133,15 @@ def confirm_checkout(company_id, session_id):
         if not (session.status == "complete" and session.payment_status == "paid"):
             return PENDING
         _check_matches_what_was_asked(attempt, session, company_id)
+        provider_subscription_id = _id_of(session.subscription)
+        if provider_subscription_id and (
+            get_subscription(company_id).stripe_subscription_id == provider_subscription_id
+        ):
+            # The provider's paid-invoice notice got here first and already moved the company to
+            # its period: activating again would count the same payment twice.
+            attempt.status = Status.ACTIVATED
+            attempt.save(update_fields=["status"])
+            return PAID
         now = timezone.now()
         activate(
             company_id,
@@ -141,7 +150,7 @@ def confirm_checkout(company_id, session_id):
             period_end=add_months(now, 1),
             renewal=True,
             stripe_customer_id=_id_of(session.customer),
-            stripe_subscription_id=_id_of(session.subscription),
+            stripe_subscription_id=provider_subscription_id,
         )
         attempt.status = Status.ACTIVATED
         attempt.save(update_fields=["status"])

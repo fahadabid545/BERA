@@ -42,7 +42,15 @@ def _checked(values):
 
 
 def record_event(
-    *, provider_event_id, company_id, kind, amount_minor, currency, occurred_at, reason=""
+    *,
+    provider_event_id,
+    company_id,
+    kind,
+    amount_minor,
+    currency,
+    occurred_at,
+    reason="",
+    plan_id=None,
 ):
     """Writes the record for one provider event. Returns `(record, created)`; an event seen before
     returns its existing record with `created` False."""
@@ -55,6 +63,7 @@ def record_event(
             "currency": currency,
             "reason": reason,
             "occurred_at": occurred_at,
+            "plan_id": plan_id,
         }
     )
     event_id = str(values.pop("provider_event_id")).strip()

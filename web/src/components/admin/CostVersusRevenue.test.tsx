@@ -11,9 +11,6 @@ const ROW = {
   name: "Fake Alpha Ltd",
   country: "US",
   subscription_state: "active",
-  currency: "USD",
-  amount: "100.00",
-  status: "ok",
   paid_usd: "100.00",
   ai_cost: "15.000000",
   margin_percent: 85,
@@ -25,7 +22,6 @@ const OVERALL = {
   margin_percent: 85,
   flagged: false,
   companies_counted: 1,
-  left_out: { rate_not_set: 0, no_price: 0 },
   all_ai_cost: "15.000000",
 };
 const REPORT = {
@@ -59,24 +55,10 @@ describe("cost versus revenue", () => {
     answer(REPORT);
     render(<CostVersusRevenue />);
     const companies = await screen.findByRole("region", { name: "Companies" });
-    expect(cellsOf(companies)).toEqual([
-      "Fake Alpha Ltd",
-      "Active",
-      "USD 100.00",
-      "$100.00",
-      "$15.00",
-      "85%",
-    ]);
+    expect(cellsOf(companies)).toEqual(["Fake Alpha Ltd", "Active", "$100.00", "$15.00", "85%"]);
     const overall = screen.getByRole("region", { name: "Overall" });
-    expect(cellsOf(overall).slice(0, 6)).toEqual([
-      "Last 30 days",
-      "$15.00",
-      "$100.00",
-      "85%",
-      "1",
-      "0 rate not set, 0 no price",
-    ]);
-    expect(cellsOf(overall)[6]).toContain("Not set");
+    expect(cellsOf(overall).slice(0, 5)).toEqual(["Last 30 days", "$15.00", "$100.00", "85%", "1"]);
+    expect(cellsOf(overall)[5]).toContain("Not set");
   });
 
   it("marks a margin under the warning level with a warning tag", async () => {
@@ -98,40 +80,16 @@ describe("cost versus revenue", () => {
     ).toContain("ui-tag--warning");
   });
 
-  it("says rate not set for a rupee company and no price when the plan has none", async () => {
+  it("shows a company that has received nothing as zero with no margin", async () => {
     answer({
       ...REPORT,
-      results: [
-        {
-          ...ROW,
-          name: "Fake Karachi",
-          currency: "PKR",
-          amount: "28000.00",
-          status: "rate_not_set",
-          paid_usd: null,
-          margin_percent: null,
-        },
-        {
-          ...ROW,
-          id: "8",
-          name: "Fake Bare",
-          amount: null,
-          status: "no_price",
-          paid_usd: null,
-          margin_percent: null,
-        },
-      ],
-      overall: { ...OVERALL, left_out: { rate_not_set: 1, no_price: 1 } },
+      results: [{ ...ROW, name: "Fake Bare", paid_usd: "0.00", margin_percent: null }],
     });
     render(<CostVersusRevenue />);
     const companies = await screen.findByRole("region", { name: "Companies" });
-    const karachi = within(companies).getByText("Fake Karachi").closest("tr")!;
-    expect(karachi.textContent).toContain("PKR 28,000.00");
-    expect(karachi.textContent).toContain("Rate not set");
     const bare = within(companies).getByText("Fake Bare").closest("tr")!;
-    expect(bare.textContent).toContain("No price");
-    expect(within(bare as HTMLElement).queryByText(/\$100/)).toBeNull();
-    expect(screen.getByText("1 rate not set, 1 no price")).toBeTruthy();
+    expect(bare.textContent).toContain("$0.00");
+    expect(bare.textContent).toContain("None");
   });
 
   it("says so when there are no companies", async () => {

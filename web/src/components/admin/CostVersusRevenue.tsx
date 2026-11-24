@@ -9,18 +9,13 @@ import { STATE_NAMES } from "./companyText";
 
 const BASE = "/api/admin/cost-versus-revenue/";
 const MONEY_DECIMALS = 2;
-const RATE_NOT_SET = "rate_not_set";
-const NO_PRICE = "no_price";
 
 type Row = {
   id: string;
   name: string;
   country: string;
   subscription_state: string;
-  currency: string;
-  amount: string | null;
-  status: string;
-  paid_usd: string | null;
+  paid_usd: string;
   ai_cost: string;
   margin_percent: number | null;
   flagged: boolean;
@@ -31,7 +26,6 @@ type Overall = {
   margin_percent: number | null;
   flagged: boolean;
   companies_counted: number;
-  left_out: { rate_not_set: number; no_price: number };
 };
 type Report = {
   days: number;
@@ -45,25 +39,11 @@ type Report = {
 const dollars = (value: string) => `$${Number(value).toFixed(MONEY_DECIMALS)}`;
 const marginText = (value: number | null) => (value === null ? "None" : `${value}%`);
 
-function amountText(row: Row) {
-  if (row.status === NO_PRICE) return "No price";
-  if (row.amount === null) return "None";
-  const number = Number(row.amount).toLocaleString("en-US", {
-    minimumFractionDigits: MONEY_DECIMALS,
-  });
-  return `${row.currency} ${number}`;
-}
-
-function usdText(row: Row) {
-  if (row.status === RATE_NOT_SET) return "Rate not set";
-  return row.paid_usd === null ? "None" : dollars(row.paid_usd);
-}
-
 function Margin({ value, flagged }: { value: number | null; flagged: boolean }) {
   return flagged ? <Tag variant="warning">{marginText(value)}</Tag> : <>{marginText(value)}</>;
 }
 
-/** Per company and overall: AI cost, the estimated amount paid and the margin, with the PKR to
+/** Per company and overall: AI cost, the money received and the margin, with the PKR to
  * USD rate a super admin sets. A margin under the warning level carries a warning tag. */
 export function CostVersusRevenue() {
   const [report, setReport] = useState<Report | null>(null);
@@ -125,10 +105,9 @@ export function CostVersusRevenue() {
           <tr>
             <th scope="col">Period</th>
             <th scope="col">AI cost</th>
-            <th scope="col">Amount paid (estimated)</th>
+            <th scope="col">Amount received</th>
             <th scope="col">Margin</th>
             <th scope="col">Companies counted</th>
-            <th scope="col">Left out</th>
             <th scope="col">PKR per USD</th>
           </tr>
         </thead>
@@ -141,7 +120,6 @@ export function CostVersusRevenue() {
               <Margin value={overall.margin_percent} flagged={overall.flagged} />
             </td>
             <td>{overall.companies_counted}</td>
-            <td>{`${overall.left_out.rate_not_set} rate not set, ${overall.left_out.no_price} no price`}</td>
             <td>
               {report.pkr_per_usd ?? "Not set"}{" "}
               <Button variant="secondary" onClick={show}>
@@ -159,8 +137,7 @@ export function CostVersusRevenue() {
             <tr>
               <th scope="col">Company</th>
               <th scope="col">Subscription</th>
-              <th scope="col">Amount paid (estimated)</th>
-              <th scope="col">In USD</th>
+              <th scope="col">Amount received</th>
               <th scope="col">AI cost</th>
               <th scope="col">Margin</th>
             </tr>
@@ -172,8 +149,7 @@ export function CostVersusRevenue() {
                   <TextLink href={`/admin/companies/${row.id}`}>{row.name}</TextLink>
                 </td>
                 <td>{STATE_NAMES[row.subscription_state] ?? row.subscription_state}</td>
-                <td>{amountText(row)}</td>
-                <td>{usdText(row)}</td>
+                <td>{dollars(row.paid_usd)}</td>
                 <td>{dollars(row.ai_cost)}</td>
                 <td>
                   <Margin value={row.margin_percent} flagged={row.flagged} />

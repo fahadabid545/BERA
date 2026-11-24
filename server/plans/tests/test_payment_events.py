@@ -3,9 +3,9 @@ from decimal import Decimal
 
 import pytest
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from rest_framework.test import APIClient
 
-from adminusers import profitability
 from ai.tests.test_model_settings import admin_client
 from core.errors import AppError
 from core.tests.factories import make_company, make_company_user
@@ -250,13 +250,12 @@ class TestOnlySuperAdmins:
         assert APIClient().get(URL).status_code == 401
 
 
-def test_cost_versus_revenue_still_uses_the_estimate(boss):
-    """Real payments replace the estimated revenue in a later ticket; records change nothing."""
+def test_cost_versus_revenue_follows_the_payment_records(boss):
     company = make_company()
-    before = boss.get("/api/admin/cost-versus-revenue/").json()
-    record(company, "evt_1", amount=999_900)
-    assert boss.get("/api/admin/cost-versus-revenue/").json() == before
-    assert profitability.amount_paid  # the one function real payments will replace
+    first = boss.get("/api/admin/cost-versus-revenue/").json()["overall"]["paid_usd"]
+    record(company, "evt_1", amount=999_900, at=timezone.now())
+    after = boss.get("/api/admin/cost-versus-revenue/").json()["overall"]["paid_usd"]
+    assert (first, after) == ("0.00", "9999.00")
 
 
 def test_amounts_are_shown_with_two_decimals():

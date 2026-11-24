@@ -40,12 +40,13 @@ export type AdminData = {
   recent: CompanyRow[];
   /** Only a super admin gets these two. */
   revenue?: {
-    mrr: number;
+    received: number;
     ai_cost: number;
     margin_days: number;
     margin_percent: number | null;
-    plans: { id: number; name: string; subscribers: number; mrr: number; share: number }[];
+    plans: { id: number; name: string; subscribers: number; received: number; share: number }[];
     states: Record<string, number>;
+    history: { month: string; received: number; ai_cost: number; margin_percent: number | null }[];
   };
   ai?: {
     calls: { total: number; failed: number; failure_percent: number | null };

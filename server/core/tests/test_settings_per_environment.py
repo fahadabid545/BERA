@@ -23,6 +23,7 @@ FAKE_VALUES = {
     "EMAIL_FROM_ADDRESS": "bera@example.com",
     "OPENAI_API_KEY": "test-only-ai-key-6e0c4a8d21f7b359",
     "STRIPE_SECRET_KEY": "sk_test_only9c4e7a1b5d2f8e63",  # nosecret: fake
+    "STRIPE_WEBHOOK_SECRET": "whsec_only3b7d1f9a5c2e8046",  # nosecret: fake
     "R2_ACCOUNT_ID": "0123456789abcdef0123456789abcdef",
     "R2_ACCESS_KEY_ID": "test-only-r2-key-id-5d8a3c1f7e92",
     "R2_SECRET_ACCESS_KEY": "test-only-r2-secret-b41e7c0a9d3f6528",
@@ -86,6 +87,7 @@ def test_staging_and_production_turn_debug_off_and_read_hosts(app_env):
         "EMAIL_FROM_ADDRESS",
         "OPENAI_API_KEY",
         "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
         "R2_ACCOUNT_ID",
         "R2_ACCESS_KEY_ID",
         "R2_SECRET_ACCESS_KEY",

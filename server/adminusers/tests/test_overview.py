@@ -16,6 +16,7 @@ from cvs.models import Candidate, CandidateScore, CvFile
 from cvs.tests.test_processing import Tenant, make_plan, set_setting
 from cvs.tests.test_ranked_list import add
 from plans.models import Plan, Subscription
+from plans.payments import record_event  # noqa: E402
 from signin import service
 
 pytestmark = pytest.mark.django_db
@@ -177,20 +178,64 @@ class TestCards:
         assert board(boss)["totals"] == {"companies": 2, "suspended": 1, "paying": 1}
 
 
-class TestRevenue:
-    def test_monthly_revenue_is_the_paying_plans_prices(self, boss):
-        cheap, dear = make_plan(name="Cheap", price_usd=10), make_plan(name="Dear", price_usd=50)
-        Tenant(cheap), Tenant(cheap), Tenant(dear)
-        revenue = board(boss)["revenue"]
-        assert revenue["mrr"] == 70.0
-        assert [(row["name"], row["subscribers"], row["mrr"]) for row in revenue["plans"]] == [
-            ("Cheap", 2, 20.0),
-            ("Dear", 1, 50.0),
-        ] or [row["name"] for row in revenue["plans"]] == ["Dear", "Cheap"]  # noqa: PLR0916
-        shares = {row["name"]: row["share"] for row in revenue["plans"]}
-        assert shares == {"Dear": 71.4, "Cheap": 28.6}
+def pay(tenant, plan, amount, *, ago=0, kind="payment", currency="usd"):
+    """A payment record, as the payment provider's notice writes it (amount in dollars)."""
+    pay.count = getattr(pay, "count", 0) + 1
+    return record_event(
+        provider_event_id=f"evt_overview_{pay.count}",
+        company_id=tenant.company.pk,
+        kind=kind,
+        amount_minor=int(Decimal(amount) * 100),
+        currency=currency,
+        occurred_at=timezone.now() - timedelta(days=ago),
+        plan_id=plan.pk,
+    )
 
-    def test_free_grants_and_ended_subscriptions_bring_nothing(self, boss):
+
+class TestRevenue:
+    def test_revenue_is_the_money_received_not_the_price_list(self, boss):
+        plan = make_plan(price_usd=10)
+        Tenant(plan), Tenant(plan)  # two paying subscriptions, nothing received yet
+        revenue = board(boss)["revenue"]
+        assert revenue["received"] == 0 and revenue["margin_percent"] is None
+
+    def test_payments_in_the_days_are_added_up_by_plan(self, boss):
+        cheap, dear = make_plan(name="Cheap", price_usd=10), make_plan(name="Dear", price_usd=50)
+        one, two, three = Tenant(cheap), Tenant(cheap), Tenant(dear)
+        pay(one, cheap, 10), pay(two, cheap, 10), pay(three, dear, 50)
+        revenue = board(boss)["revenue"]
+        assert revenue["received"] == 70.0
+        assert [(r["name"], r["subscribers"], r["received"]) for r in revenue["plans"]] == [
+            ("Dear", 1, 50.0),
+            ("Cheap", 2, 20.0),
+        ]
+        assert {r["name"]: r["share"] for r in revenue["plans"]} == {"Dear": 71.4, "Cheap": 28.6}
+
+    def test_refunds_are_taken_off(self, boss):
+        plan = make_plan(price_usd=100)
+        tenant = Tenant(plan)
+        pay(tenant, plan, 100), pay(tenant, plan, 30, kind="refund")
+        assert board(boss)["revenue"]["received"] == 70.0
+
+    def test_failed_payments_bring_nothing(self, boss):
+        plan = make_plan(price_usd=100)
+        tenant = Tenant(plan)
+        pay(tenant, plan, 100, kind="failure")
+        assert board(boss)["revenue"]["received"] == 0
+
+    def test_a_payment_outside_the_days_does_not_count(self, boss):
+        plan = make_plan(price_usd=100)
+        tenant = Tenant(plan)
+        pay(tenant, plan, 100, ago=60)
+        assert board(boss)["revenue"]["received"] == 0
+
+    def test_only_dollars_are_added(self, boss):
+        plan = make_plan(price_usd=100)
+        tenant = Tenant(plan)
+        pay(tenant, plan, 100), pay(tenant, plan, 9999, currency="pkr")
+        assert board(boss)["revenue"]["received"] == 100.0
+
+    def test_subscription_states_are_still_counted(self, boss):
         plan = make_plan(price_usd=10)
         free, ended, past_due, cancelled = (Tenant(plan) for _ in range(4))
         set_subscription(free.company, state="granted_free")
@@ -198,29 +243,21 @@ class TestRevenue:
         set_subscription(past_due.company, state="past_due", past_due_since=timezone.now())
         set_subscription(cancelled.company, state="cancelled")
         revenue = board(boss)["revenue"]
-        assert revenue["mrr"] == 20.0  # past due and cancelled still hold their period
         assert revenue["states"]["granted_free"] == 1 and revenue["states"]["expired"] == 1
         assert revenue["states"]["past_due"] == 1 and revenue["states"]["cancelled"] == 1
-
-    def test_a_past_due_subscription_after_its_grace_period_no_longer_counts(self, boss):
-        plan = make_plan(price_usd=10)
-        tenant = Tenant(plan)
-        set_subscription(
-            tenant.company, state="past_due", past_due_since=timezone.now() - timedelta(days=365)
-        )
-        revenue = board(boss)["revenue"]
-        assert revenue["mrr"] == 0 and revenue["states"]["expired"] == 1
 
     def test_companies_with_no_subscription_row_count_as_no_plan(self, boss):
         make_company()
         assert board(boss)["revenue"]["states"]["no_plan"] == 1
 
     def test_the_margin_is_what_is_left_after_the_ai_cost(self, boss):
-        tenant = Tenant(make_plan(price_usd=100))
+        plan = make_plan(price_usd=100)
+        tenant = Tenant(plan)
+        pay(tenant, plan, 100)
         ai_call(tenant.company, cost="25.00", ago=2)
         ai_call(tenant.company, cost="40.00", ago=60)  # too long ago for the margin
         revenue = board(boss)["revenue"]
-        assert (revenue["mrr"], revenue["ai_cost"], revenue["margin_percent"]) == (
+        assert (revenue["received"], revenue["ai_cost"], revenue["margin_percent"]) == (
             100.0,
             25.0,
             75.0,
@@ -231,10 +268,37 @@ class TestRevenue:
         assert board(boss)["revenue"]["margin_percent"] is None
 
     def test_the_margin_window_comes_from_the_setting(self, boss):
-        tenant = Tenant(make_plan(price_usd=100))
+        plan = make_plan(price_usd=100)
+        tenant = Tenant(plan)
+        pay(tenant, plan, 100, ago=60)
         ai_call(tenant.company, cost="40.00", ago=60)
         set_setting("admin_dashboard.margin_days", 90)
         assert board(boss)["revenue"]["margin_percent"] == 60.0
+
+
+class TestRevenueHistory:
+    def test_it_lists_the_months_with_money_received_against_ai_cost(self, boss):
+        plan = make_plan(price_usd=100)
+        tenant = Tenant(plan)
+        pay(tenant, plan, 100), pay(tenant, plan, 50, ago=40)
+        ai_call(tenant.company, cost="25.00")
+        history = board(boss)["revenue"]["history"]
+        assert len(history) == 12
+        assert history[-1]["month"] == timezone.now().strftime("%Y-%m")
+        assert (history[-1]["received"], history[-1]["ai_cost"]) == (100.0, 25.0)
+        assert history[-1]["margin_percent"] == 75.0
+        assert sum(row["received"] for row in history) == 150.0
+
+    def test_a_month_without_payments_shows_zero_and_no_margin(self, boss):
+        history = board(boss)["revenue"]["history"]
+        assert all(row["received"] == 0 and row["margin_percent"] is None for row in history)
+
+    def test_the_number_of_months_comes_from_the_setting(self, boss):
+        set_setting("admin_dashboard.revenue_months", 3)
+        assert len(board(boss)["revenue"]["history"]) == 3
+
+    def test_support_admins_get_no_history(self, helper):
+        assert "revenue" not in board(helper)
 
 
 class TestUsage:
@@ -426,14 +490,17 @@ class TestDetail:
 
 class TestReport:
     def test_the_numbers_as_a_table(self, boss):
-        tenant = Tenant(make_plan(name="Gold", price_usd=40))
+        gold = make_plan(name="Gold", price_usd=40)
+        tenant = Tenant(gold)
+        pay(tenant, gold, 40)
         add(tenant, "a.pdf", 80)
         ai_call(tenant.company, cost="4")
         body = boss.get(f"{URL}report/?days=7").json()
         summary = {row["metric"]: row for row in body["summary"]}
         assert summary["CVs scored"]["current"] == 1 and summary["AI cost (USD)"]["current"] == 4.0
-        assert body["revenue"]["mrr"] == 40.0 and body["revenue"]["margin_percent"] == 90.0
-        assert body["revenue"]["plans"] == [{"plan": "Gold", "subscribers": 1, "mrr": 40.0}]
+        assert body["revenue"]["received"] == 40.0 and body["revenue"]["margin_percent"] == 90.0
+        assert body["revenue"]["plans"] == [{"plan": "Gold", "subscribers": 1, "received": 40.0}]
+        assert len(body["revenue"]["history"]) == 12
         assert body["companies"][0]["cvs_scored"] == 1
 
     def test_the_file_is_csv_and_guards_formula_like_names(self, boss):

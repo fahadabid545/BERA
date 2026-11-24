@@ -102,8 +102,8 @@ export function OverviewSection({ data, open }: { data: AdminData; open: Open })
   );
 }
 
-/** What the paying plans bring in, set against what the AI costs, and how the subscriptions
- * and plans are split. Every row and slice opens the companies in it. */
+/** The money received, set against what the AI costs (also month by month), and how the
+ * subscriptions and plans are split. Every row and slice opens the companies in it. */
 export function RevenueSection({
   revenue,
   open,
@@ -111,7 +111,7 @@ export function RevenueSection({
   revenue: NonNullable<AdminData["revenue"]>;
   open: Open;
 }) {
-  const top = Math.max(1, revenue.mrr, revenue.ai_cost);
+  const top = Math.max(1, revenue.received, revenue.ai_cost);
   const states = Object.entries(revenue.states);
   const stateTotal = Math.max(1, ...states.map(([, count]) => count));
   return (
@@ -129,7 +129,11 @@ export function RevenueSection({
             )}
           </div>
           {[
-            ["Monthly revenue", revenue.mrr, "revenue-card__bar--revenue"],
+            [
+              `Revenue received, last ${revenue.margin_days} days`,
+              revenue.received,
+              "revenue-card__bar--revenue",
+            ],
             [
               `AI cost, last ${revenue.margin_days} days`,
               revenue.ai_cost,
@@ -142,7 +146,7 @@ export function RevenueSection({
               tip={
                 <TipLines
                   title={String(label)}
-                  lines={[usd(Number(value)), "Estimated, not money received"]}
+                  lines={[usd(Number(value)), "Money received, refunds taken off"]}
                 />
               }
             >
@@ -170,7 +174,7 @@ export function RevenueSection({
               noun="subscribers"
               parts={revenue.plans.map((plan, index) => ({
                 key: String(plan.id),
-                label: `${plan.name} · ${usd(plan.mrr)}`,
+                label: `${plan.name} · ${usd(plan.received)}`,
                 count: plan.subscribers,
                 colour: MIX_COLOURS[index % MIX_COLOURS.length],
               }))}
@@ -185,6 +189,31 @@ export function RevenueSection({
           )}
         </Card>
       </div>
+      <Card className="ui-card">
+        <div className="chart-card__header">
+          <h2>Revenue by month</h2>
+        </div>
+        <Table label="Revenue by month">
+          <thead>
+            <tr>
+              <th scope="col">Month</th>
+              <th scope="col">Revenue received</th>
+              <th scope="col">AI cost</th>
+              <th scope="col">Margin</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...revenue.history].reverse().map((row) => (
+              <tr key={row.month}>
+                <td>{row.month}</td>
+                <td>{usd(row.received)}</td>
+                <td>{usd(row.ai_cost)}</td>
+                <td>{row.margin_percent === null ? "No revenue" : `${row.margin_percent}%`}</td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </Card>
       <Card className="ui-card">
         <div className="chart-card__header">
           <h2>Subscriptions by state</h2>

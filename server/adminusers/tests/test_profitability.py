@@ -5,11 +5,11 @@ import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from adminusers import profitability
 from ai.models import AiCall
 from audit.models import AuditEvent
 from core.tests.factories import make_admin_user, make_company
 from plans.models import Plan, Subscription
+from plans.payments import record_event
 from platform_settings.models import PlatformSetting
 from platform_settings.service import clear_cache, get_setting
 from signin import service as signin
@@ -39,6 +39,18 @@ def make_plan(name="Fake Plan", usd="100.00", pkr="28000.00"):
 
 
 def subscribe(company, plan, state="active", days_left=10):
+    """A subscription, and for a paying state the payment the provider reported for it."""
+    if state in ("active", "past_due", "cancelled"):
+        subscribe.count = getattr(subscribe, "count", 0) + 1
+        record_event(
+            provider_event_id=f"evt_profit_{subscribe.count}",
+            company_id=company.pk,
+            kind="payment",
+            amount_minor=int(plan.price_usd * 100),
+            currency="USD",
+            occurred_at=timezone.now() - timedelta(days=1),
+            plan_id=plan.pk,
+        )
     Subscription.objects.update_or_create(
         company=company,
         defaults={
@@ -90,7 +102,7 @@ class TestFigures:
         spend(company, "4.750000", ago=3)
         _, found = rows(boss)
         row = found["Fake Alpha"]
-        assert (row["currency"], row["amount"], row["status"]) == ("USD", "100.00", "ok")
+        assert (row["currency"], row["amount"]) == ("USD", "100.00")
         assert row["paid_usd"] == "100.00"
         assert row["ai_cost"] == "15.000000"
         assert row["margin_percent"] == 85.0
@@ -151,7 +163,7 @@ class TestWhatCountsAsPaid:
         _, found = rows(boss)
         assert found["Fake Paying"]["paid_usd"] == "100.00"
 
-    def test_past_due_beyond_the_grace_period_counts_as_expired(self, boss):
+    def test_past_due_beyond_the_grace_shows_expired_and_keeps_the_money(self, boss):
         company = make_company(name="Fake Late", country="US")
         subscribe(company, make_plan(), state="past_due")
         Subscription.objects.filter(company=company).update(
@@ -160,7 +172,7 @@ class TestWhatCountsAsPaid:
         )
         _, found = rows(boss)
         assert found["Fake Late"]["subscription_state"] == "expired"
-        assert found["Fake Late"]["paid_usd"] == "0.00"
+        assert found["Fake Late"]["paid_usd"] == "100.00"
 
     def test_a_free_grant_counts_as_zero_and_has_no_margin(self, boss):
         company = make_company(name="Fake Free", country="US")
@@ -180,72 +192,59 @@ class TestWhatCountsAsPaid:
         assert found["Fake Bare"]["paid_usd"] == "0.00"
         assert found["Fake Bare"]["subscription_state"] == "no_plan"
 
-    def test_amount_paid_is_one_function_of_the_subscription(self):
-        company = make_company(country="PK")
+
+class TestMoneyReceived:
+    def test_only_money_received_in_the_window_counts(self, boss):
+        company = make_company(name="Fake Alpha", country="US")
         subscribe(company, make_plan())
-        subscription = Subscription.objects.get(company=company)
-        assert profitability.amount_paid(subscription, "active", "PK") == (
-            "PKR",
-            Decimal("28000.00"),
+        record_event(
+            provider_event_id="evt_old",
+            company_id=company.pk,
+            kind="payment",
+            amount_minor=50000,
+            currency="USD",
+            occurred_at=timezone.now()
+            - timedelta(days=get_setting("admin_dashboard.margin_days") + 5),
         )
-        assert profitability.amount_paid(subscription, "active", "GB") == ("USD", Decimal("100.00"))
-        assert profitability.amount_paid(subscription, "granted_free", "PK") == ("PKR", Decimal(0))
+        assert rows(boss)[1]["Fake Alpha"]["paid_usd"] == "100.00"
 
+    def test_refunds_are_taken_off(self, boss):
+        company = make_company(name="Fake Alpha", country="US")
+        subscribe(company, make_plan())
+        record_event(
+            provider_event_id="evt_refund",
+            company_id=company.pk,
+            kind="refund",
+            amount_minor=2500,
+            currency="USD",
+            occurred_at=timezone.now(),
+        )
+        assert rows(boss)[1]["Fake Alpha"]["paid_usd"] == "75.00"
 
-class TestCurrencyAndRate:
-    def test_a_pakistani_company_is_converted_with_the_rate(self, boss):
-        set_rate_value(280)
+    def test_failed_payments_bring_nothing(self, boss):
+        company = make_company(name="Fake Alpha", country="US")
+        record_event(
+            provider_event_id="evt_failed",
+            company_id=company.pk,
+            kind="failure",
+            amount_minor=10000,
+            currency="USD",
+            occurred_at=timezone.now(),
+        )
+        assert rows(boss)[1]["Fake Alpha"]["paid_usd"] == "0.00"
+
+    def test_a_subscription_with_no_payment_yet_has_paid_nothing(self, boss):
+        company = make_company(name="Fake Alpha", country="US")
+        Subscription.objects.create(company=company, plan=make_plan(), state="active")
+        assert rows(boss)[1]["Fake Alpha"]["paid_usd"] == "0.00"
+
+    def test_a_pakistani_company_is_charged_and_shown_in_dollars_whatever_the_rate(self, boss):
         company = make_company(name="Fake Karachi", country="PK")
         subscribe(company, make_plan())
-        spend(company, "20")
-        _, found = rows(boss)
-        row = found["Fake Karachi"]
-        assert (row["currency"], row["amount"], row["paid_usd"]) == ("PKR", "28000.00", "100.00")
-        assert row["margin_percent"] == 80.0
-
-    def test_without_a_rate_a_pkr_company_says_so_and_is_left_out_of_the_total(self, boss):
-        pk = make_company(name="Fake Karachi", country="PK")
-        us = make_company(name="Fake Austin", country="US")
-        plan = make_plan()
-        subscribe(pk, plan)
-        subscribe(us, plan)
-        spend(pk, "9")
-        spend(us, "10")
-        response, found = rows(boss)
-        row = found["Fake Karachi"]
-        assert (row["status"], row["paid_usd"], row["margin_percent"], row["flagged"]) == (
-            "rate_not_set", None, None, False,
-        )  # fmt: skip
-        overall = response.json()["overall"]
-        assert overall["paid_usd"] == "100.00"
-        assert overall["ai_cost"] == "10.000000"
-        assert overall["left_out"] == {"rate_not_set": 1, "no_price": 0}
-        assert overall["all_ai_cost"] == "19.000000"
-        assert response.json()["pkr_per_usd"] is None
-
-    def test_a_plan_without_a_price_in_the_currency_shows_no_amount_and_no_margin(self, boss):
-        pk = make_company(name="Fake Karachi", country="PK")
-        us = make_company(name="Fake Austin", country="US")
+        row = rows(boss)[1]["Fake Karachi"]
+        assert (row["currency"], row["amount"], row["paid_usd"]) == ("USD", "100.00", "100.00")
         set_rate_value(280)
-        subscribe(pk, make_plan(pkr=None))
-        subscribe(us, make_plan(name="Other", usd=None))
-        spend(pk, "5")
-        response, found = rows(boss)
-        for name in ("Fake Karachi", "Fake Austin"):
-            row = found[name]
-            assert (row["status"], row["amount"], row["paid_usd"], row["margin_percent"]) == (
-                "no_price", None, None, None,
-            )  # fmt: skip
-            assert row["flagged"] is False
-        assert response.json()["overall"]["left_out"]["no_price"] == 2
-        assert response.json()["overall"]["companies_counted"] == 0
-
-    def test_a_free_pakistani_company_without_a_rate_still_counts_as_zero(self, boss):
-        company = make_company(name="Fake Free PK", country="PK")
-        subscribe(company, make_plan(), state="granted_free")
-        _, found = rows(boss)
-        assert found["Fake Free PK"]["status"] == "ok"
-        assert found["Fake Free PK"]["paid_usd"] == "0.00"
+        assert rows(boss)[1]["Fake Karachi"]["paid_usd"] == "100.00"
 
 
 class TestOverall:
@@ -317,14 +316,6 @@ class TestSettingTheRate:
         assert event.reason == "Fake bank rate"
         assert event.details["changes"]["pkr_per_usd"] == {"old": None, "new": "281.5000"}
         assert client.get(URL).json()["pkr_per_usd"] == "281.5"
-
-    def test_changing_it_changes_the_conversion(self, boss):
-        company = make_company(name="Fake Karachi", country="PK")
-        subscribe(company, make_plan())
-        boss.put(RATE_URL, {"pkr_per_usd": "280", "reason": "Fake"}, format="json")
-        assert rows(boss)[1]["Fake Karachi"]["paid_usd"] == "100.00"
-        boss.put(RATE_URL, {"pkr_per_usd": "140", "reason": "Fake"}, format="json")
-        assert rows(boss)[1]["Fake Karachi"]["paid_usd"] == "200.00"
 
     def test_clearing_it_goes_back_to_not_set(self, boss):
         boss.put(RATE_URL, {"pkr_per_usd": "280", "reason": "Fake"}, format="json")

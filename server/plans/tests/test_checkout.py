@@ -12,7 +12,7 @@ from core.errors import AppError
 from core.tests.factories import make_company, make_company_user
 from plans import stripe_client
 from plans.models import CheckoutAttempt, Subscription
-from plans.subscriptions import get_subscription, grant_free
+from plans.subscriptions import activate, get_subscription, grant_free
 from plans.tests.test_regional_pricing import make_plan
 from signin import service
 
@@ -264,6 +264,23 @@ class TestConfirming:
         )
         confirm(owner, session_of(company))
         assert get_subscription(company.pk).stripe_subscription_id == "sub_o"
+
+    def test_the_providers_notice_that_came_first_is_not_counted_a_second_time(
+        self, company, owner, provider
+    ):
+        plan = make_plan()
+        begin(owner, plan)
+        provider.pay(session_of(company), customer="cus_test_9", subscription="sub_test_9")
+        start = timezone.now() - timedelta(minutes=1)
+        end = start + timedelta(days=30)
+        activate(
+            company.pk, plan, period_start=start, period_end=end,
+            stripe_customer_id="cus_test_9", stripe_subscription_id="sub_test_9",
+        )  # fmt: skip
+        assert confirm(owner, session_of(company)).json() == {"result": "activated"}
+        subscription = get_subscription(company.pk)
+        assert (subscription.period_start, subscription.period_end) == (start, end)
+        assert CheckoutAttempt.objects.get().status == "activated"
 
     def test_opening_the_return_page_twice_activates_once(self, company, owner, provider):
         begin(owner, make_plan())

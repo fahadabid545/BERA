@@ -78,6 +78,9 @@ class Subscription(CompanyOwnedModel):
     # that never paid by card (free grants, no plan). Not secrets, but never shown to the company.
     stripe_customer_id = models.CharField(max_length=255, blank=True)
     stripe_subscription_id = models.CharField(max_length=255, blank=True)
+    # When the provider created the newest paid-invoice event applied here, so a failure that is
+    # older than a later payment (delivered late) cannot make the company past due again.
+    provider_paid_at = models.DateTimeField(null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -129,6 +132,8 @@ class PaymentEvent(CompanyOwnedModel):
     amount_minor = models.PositiveBigIntegerField()
     currency = models.CharField(max_length=3)  # ISO code, upper case
     reason = models.CharField(max_length=200, blank=True)  # why a payment failed, in words
+    # The plan the company was on when it paid; empty for older records and for events with none.
+    plan = models.ForeignKey(Plan, null=True, on_delete=models.PROTECT, related_name="+")
     occurred_at = models.DateTimeField()  # when the provider says it happened
     created_at = models.DateTimeField(auto_now_add=True)
 

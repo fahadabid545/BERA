@@ -9,12 +9,13 @@ export function AdminSample() {
     <AdminHero
       totals={{ companies: 128, suspended: 2, paying: 104 }}
       revenue={{
-        mrr: 12900,
+        received: 12900,
         ai_cost: 3870,
         margin_days: 30,
         margin_percent: 70,
         plans: [],
         states: {},
+        history: [],
       }}
       onSuspended={() => undefined}
     />

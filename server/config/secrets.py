@@ -39,6 +39,7 @@ REQUIRED_SETTINGS = [
     RequiredSetting("EMAIL_FROM_ADDRESS", secret=False),
     RequiredSetting("OPENAI_API_KEY", roles=("app",)),
     RequiredSetting("STRIPE_SECRET_KEY", roles=("app",)),
+    RequiredSetting("STRIPE_WEBHOOK_SECRET", roles=("app",)),
     RequiredSetting("R2_ACCOUNT_ID", secret=False, roles=("app",)),
     RequiredSetting("R2_ACCESS_KEY_ID", roles=("app",)),
     RequiredSetting("R2_SECRET_ACCESS_KEY", roles=("app",)),

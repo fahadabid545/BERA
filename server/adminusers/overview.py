@@ -3,9 +3,9 @@
 One answer per card, for the chosen period next to the period before it (same length):
 
 - cards: new companies, CVs scored, and (super admins) the AI cost.
-- revenue (super admins): the estimated monthly revenue from the paying subscriptions, how it is
-  split over plans and subscription states, and what is left after the AI cost. There are no
-  payment records yet, so this is "what the active plans bring in a month", not money received.
+- revenue (super admins): the money received (payment records written from the payment
+  provider's notices, refunds taken off), how it is split over plans and subscription states,
+  what is left after the AI cost, and the same month by month.
 - usage: the pace of scoring over time and the companies using the platform most.
 - ai (super admins): how the AI calls went, by purpose and by model, and the token budget.
 - pending: what waits for an admin.
@@ -18,10 +18,10 @@ card or mark; `report` is the same numbers as a plain table for the CSV and the 
 
 import csv
 import io
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.db.models import Count, Sum
-from django.db.models.functions import TruncDate
+from django.db.models.functions import TruncDate, TruncMonth
 from django.http import Http404
 from django.utils import timezone
 
@@ -36,6 +36,7 @@ from cvs.charts import per_day, percent_change
 from cvs.dashboard import card, checked_period, in_days, windows
 from cvs.models import CandidateScore
 from datarequests import service as data_requests
+from plans import revenue
 from plans.models import Plan, Subscription
 from plans.subscriptions import State, effective_state
 from platform_settings.service import get_setting
@@ -126,40 +127,88 @@ def _totals(subscriptions):
     }
 
 
-def _revenue(subscriptions):
-    paying = _paying(subscriptions)
-    mrr = sum(float(subscription.plan.price_usd) for subscription, _ in paying)
-    by_plan = {}
-    for subscription, _ in paying:
-        row = by_plan.setdefault(
-            subscription.plan_id,
+def _months_back(today, count):
+    """The first days of the last `count` months, oldest first, ending with this month."""
+    index = today.year * 12 + today.month - 1
+    return [_first_of(index - back) for back in range(count - 1, -1, -1)]
+
+
+def _first_of(index):
+    year, month = divmod(index, 12)
+    return date(year, month + 1, 1)
+
+
+def _monthly_ai_cost(start, end):
+    rows = (
+        in_days(AiCall.objects.all(), "created_at", start, end)
+        .annotate(month=TruncMonth("created_at"))
+        .values_list("month")
+        .annotate(total=Sum("estimated_cost"))
+    )
+    return {(month.year, month.month): total or 0 for month, total in rows}
+
+
+def _history(today):
+    """Month by month: money received against AI cost, oldest first, this month last."""
+    months = _months_back(today, get_setting("admin_dashboard.revenue_months"))
+    start, end = months[0], _first_of(today.year * 12 + today.month)
+    received = revenue.received_by_month(start, end)
+    cost = _monthly_ai_cost(start, end)
+    rows = []
+    for month in months:
+        key = (month.year, month.month)
+        money, spent = float(received.get(key, 0)), float(cost.get(key, 0))
+        rows.append(
             {
-                "id": subscription.plan_id,
-                "name": subscription.plan.name,
-                "subscribers": 0,
-                "mrr": 0,
-            },
+                "month": month.strftime("%Y-%m"),
+                "received": round(money, COST_PLACES),
+                "ai_cost": round(spent, COST_PLACES),
+                "margin_percent": round((money - spent) * PERCENT / money, 1) if money else None,
+            }
+        )
+    return rows
+
+
+def _plan_rows(paying, received_by_plan):
+    """One row per plan that has paying subscribers or money received in the days."""
+    rows = {}
+    for subscription, _ in paying:
+        row = rows.setdefault(
+            subscription.plan_id,
+            {"id": subscription.plan_id, "name": subscription.plan.name, "subscribers": 0},
         )
         row["subscribers"] += 1
-        row["mrr"] += float(subscription.plan.price_usd)
-    plans = sorted(by_plan.values(), key=lambda row: -row["mrr"])
+    for plan in Plan.objects.filter(pk__in=[key for key in received_by_plan if key]):
+        rows.setdefault(plan.pk, {"id": plan.pk, "name": plan.name, "subscribers": 0})
+    for plan_id, row in rows.items():
+        row["received"] = round(float(received_by_plan.get(plan_id, 0)), COST_PLACES)
+    return sorted(rows.values(), key=lambda row: (-row["received"], row["name"].lower()))
+
+
+def _revenue(subscriptions):
+    """Money received (payment records), not prices: in the last `margin_days` days, by plan and
+    month by month, with the margin against the AI cost of the same days."""
+    margin_days = get_setting("admin_dashboard.margin_days")
+    today = timezone.now().date()
+    start, end = today - timedelta(days=margin_days - 1), today + timedelta(days=1)
+    by_plan = revenue.received_by_plan(start, end)
+    received = float(sum(by_plan.values(), 0))
+    plans = _plan_rows(_paying(subscriptions), by_plan)
     for row in plans:
-        row["mrr"] = round(row["mrr"], COST_PLACES)
-        row["share"] = round(row["mrr"] * PERCENT / mrr, 1) if mrr else 0
+        row["share"] = round(row["received"] * PERCENT / received, 1) if received else 0
     states = dict.fromkeys(STATES, 0)
     for _, state in subscriptions:
         states[state] += 1
     states["no_plan"] += Company.objects.count() - len(subscriptions)
-    margin_days = get_setting("admin_dashboard.margin_days")
-    today = timezone.now().date()
-    cost = _cost(today - timedelta(days=margin_days - 1), today + timedelta(days=1))
+    cost = _cost(start, end)
     return {
-        "mrr": round(mrr, COST_PLACES),
+        "received": round(received, COST_PLACES),
         "ai_cost": cost,
         "margin_days": margin_days,
-        "margin_percent": round((mrr - cost) * PERCENT / mrr, 1) if mrr else None,
+        "margin_percent": round((received - cost) * PERCENT / received, 1) if received else None,
         "plans": plans,
         "states": states,
+        "history": _history(today),
     }
 
 
@@ -544,15 +593,20 @@ def report(role, raw_days):
         ],
     }
     if _can(role, "payment.view"):
-        revenue = _revenue(subscriptions)
+        figures = _revenue(subscriptions)
         body["revenue"] = {
-            "mrr": revenue["mrr"],
-            "ai_cost": revenue["ai_cost"],
-            "margin_percent": revenue["margin_percent"],
+            "received": figures["received"],
+            "ai_cost": figures["ai_cost"],
+            "margin_percent": figures["margin_percent"],
             "plans": [
-                {"plan": row["name"], "subscribers": row["subscribers"], "mrr": row["mrr"]}
-                for row in revenue["plans"]
+                {
+                    "plan": row["name"],
+                    "subscribers": row["subscribers"],
+                    "received": row["received"],
+                }
+                for row in figures["plans"]
             ],
+            "history": figures["history"],
         }
     return body
 
@@ -574,13 +628,19 @@ def report_csv(body):
         writer.writerow([_safe(row[key]) for key in ("metric", "current", "previous", "change")])
     if "revenue" in body:
         writer.writerow([])
-        writer.writerow(["Estimated monthly revenue (USD)", body["revenue"]["mrr"]])
-        writer.writerow(["AI cost, last month (USD)", body["revenue"]["ai_cost"]])
+        writer.writerow(["Revenue received (USD)", body["revenue"]["received"]])
+        writer.writerow(["AI cost, same days (USD)", body["revenue"]["ai_cost"]])
         writer.writerow(["Margin (%)", _safe(body["revenue"]["margin_percent"])])
         writer.writerow([])
-        writer.writerow(["Plan", "Subscribers", "Monthly revenue (USD)"])
+        writer.writerow(["Plan", "Subscribers", "Revenue received (USD)"])
         for row in body["revenue"]["plans"]:
-            writer.writerow([_safe(row["plan"]), row["subscribers"], row["mrr"]])
+            writer.writerow([_safe(row["plan"]), row["subscribers"], row["received"]])
+        writer.writerow([])
+        writer.writerow(["Month", "Revenue received (USD)", "AI cost (USD)", "Margin (%)"])
+        for row in body["revenue"]["history"]:
+            writer.writerow(
+                [row["month"], row["received"], row["ai_cost"], _safe(row["margin_percent"])]
+            )
     writer.writerow([])
     columns = ["Company", "Plan", "Subscription", "CVs scored"]
     with_cost = any("cost" in row for row in body["companies"])

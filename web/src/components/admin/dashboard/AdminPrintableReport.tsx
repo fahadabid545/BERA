@@ -26,10 +26,11 @@ type Report = {
     cost?: number;
   }[];
   revenue?: {
-    mrr: number;
+    received: number;
     ai_cost: number;
     margin_percent: number | null;
-    plans: { plan: string; subscribers: number; mrr: number }[];
+    plans: { plan: string; subscribers: number; received: number }[];
+    history: { month: string; received: number; ai_cost: number; margin_percent: number | null }[];
   };
 };
 
@@ -110,15 +111,31 @@ export function AdminPrintableReport() {
       {report.revenue && (
         <Grid
           title="Revenue"
-          columns={["Plan", "Subscribers", "Monthly revenue"]}
+          columns={["Plan", "Subscribers", "Revenue received"]}
           rows={[
-            ...report.revenue.plans.map((row) => [row.plan, String(row.subscribers), usd(row.mrr)]),
+            ...report.revenue.plans.map((row) => [
+              row.plan,
+              String(row.subscribers),
+              usd(row.received),
+            ]),
             [
               "Total",
               String(report.revenue.plans.reduce((sum, row) => sum + row.subscribers, 0)),
-              usd(report.revenue.mrr),
+              usd(report.revenue.received),
             ],
           ]}
+        />
+      )}
+      {report.revenue && (
+        <Grid
+          title="Revenue by month"
+          columns={["Month", "Revenue received", "AI cost", "Margin"]}
+          rows={report.revenue.history.map((row) => [
+            row.month,
+            usd(row.received),
+            usd(row.ai_cost),
+            row.margin_percent === null ? "No revenue" : `${row.margin_percent}%`,
+          ])}
         />
       )}
       <Grid

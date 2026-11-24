@@ -522,6 +522,37 @@ production; see `.env.example`).
 - Extra bank verification (3-D Secure) is handled by Stripe's page; the return page only reads the
   outcome.
 
+### Payment notifications (BERA-165)
+
+`POST /api/payments/stripe/webhook/` (public route, category `payment_notification`) is how Stripe
+keeps subscriptions in step. Secret `STRIPE_WEBHOOK_SECRET` (held by the app only; required in
+staging and production). A notice is read only after `stripe.Webhook.construct_event` verified its
+signature and age; anything else is refused with 400 `invalid_signature` before the body is looked
+at, and with no secret configured everything is refused. `plans/stripe_events.py` holds what each
+type changes; other types are acknowledged and ignored.
+
+- **`invoice.paid`:** writes the payment record (`plans.payments.record_event`, once per Stripe
+  event id, with the plan) and, in the same transaction, moves the subscription to the invoice's own
+  period dates from Stripe (never "+1 month" on our side), clears Past due and applies a waiting plan
+  change. A repeated event stops after the record lookup and changes nothing. The period only moves
+  when it ends later than the current one, so an older invoice arriving late cannot move it back.
+  The first invoice (`subscription_create`) of a subscription checkout already activated does not
+  extend again (same period); if it arrives before the buyer's return page it activates with
+  Stripe's dates and the return page then adds nothing.
+- **Usage:** usage periods follow the subscription's period start, so the new period starts at zero
+  and nothing carries over; the old period keeps its numbers.
+- **`invoice.payment_failed`:** writes a failure record and, only for the company's own
+  subscription, moves an Active company to Past due, which emails the owner once (required email).
+  Later attempts add records only. A failure older than a payment already applied
+  (`Subscription.provider_paid_at`) changes nothing. A failed first invoice makes nobody past due.
+- **`customer.subscription.deleted`:** an Active company becomes Cancelled: renewal stops and access
+  runs to the period end. A repeat, an older subscription's end and a Past due company (left to its
+  grace period) change nothing.
+- A notice that matches no company is acknowledged (200, `unmatched`) and logged with its id only.
+- Not built here (BERA-167): the email before renewal, the Cancel button, the 7-day grace
+  behaviour, reactivation, and view-and-download-only after expiry. Refund notices are not handled
+  yet either.
+
 ### Plans management
 
 Super admins manage the subscription plans under `/api/admin/plans/` (list and create; read,
@@ -1509,10 +1540,11 @@ behind it, and every name links to its company page. The chosen tab is kept in t
 - Support admins get the counts and usage only. The server leaves money and AI figures out of the
   answer (`payment.view`, `ai.view`) and refuses the routes behind them; the page then has no
   Revenue or AI tab.
-- "Revenue" is the estimated monthly revenue: the prices of the plans of paying subscriptions
-  (active, past due within grace, cancelled until the period ends; free grants bring nothing).
-  There are no payment records yet, so it is not money received and has no history. The margin is
-  that revenue against the AI cost of the last `admin_dashboard.margin_days` days.
+- "Revenue" is money received: the payment records (BERA-165, `plans/revenue.py`; payments minus
+  refunds, USD) of the last `admin_dashboard.margin_days` days, split by the plan on each record,
+  with the margin against the AI cost of the same days. "Revenue by month" lists the last
+  `admin_dashboard.revenue_months` (12) months, this month last, each with received, AI cost and
+  margin. Subscriber counts and the state split still come from the subscriptions.
 - The token budget is the tokens used in those days against the caps of the plans of the paying and
   free subscriptions.
 - Platform settings: `admin_dashboard.top_companies_count`, `.recent_companies_count`,
@@ -1796,9 +1828,9 @@ the companies and currencies that have records.
   of the real-payments ticket included) and use this one table; there must be no second payments
   table. The same provider event id again changes nothing and returns the existing record, so
   records match the provider's events one to one. The same id with different details is refused
-  with 409 (`payment_event_conflict`). Nothing writes records yet.
-- Cost versus revenue still uses the estimated amount paid; the real-payments ticket switches it
-  to these records.
+  with 409 (`payment_event_conflict`). The Stripe notice route writes them (BERA-165).
+- Cost versus revenue, the overview revenue and the revenue history all read these records
+  (BERA-165). The Payments page lists them as they are.
 
 ## Announcements
 
@@ -1973,14 +2005,11 @@ admins only) and the page `/admin/operations/cost-versus-revenue`.
   the AI call records, each priced when the call was made), the amount paid and the margin. A margin
   under `profitability.warning_margin_percent` (20) is flagged with a warning tag. A company that
   paid nothing (free grant, expired, no plan) has no margin.
-- Amount paid is an estimate until real payments exist: the monthly price of the company's plan in
-  its own currency (`price_pkr` for Pakistan, `price_usd` otherwise, no fallback). It counts for
-  active, past due within the grace period and cancelled until the period ends. It all lives in
-  `amount_paid`, the one function real payments replace.
-- PKR becomes USD only with the rate a super admin sets (`PUT .../rate/`, platform value
-  `billing.pkr_per_usd`, a reason is required and audited). Without it a PKR company shows "Rate not
-  set"; a plan with no price in the company's currency shows "No price". Both are left out of the
-  overall totals, which count them under "Left out".
+- Amount received is real money (BERA-165): the company's payment records (payments minus refunds)
+  in the same days, in USD, which is the only currency charged, so nothing is converted. A company
+  with a free grant, no plan, or no payment yet shows zero and no margin.
+- The PKR rate a super admin sets (`PUT .../rate/`, platform value `billing.pkr_per_usd`, a reason
+  is required and audited) is kept for when charging in rupees exists; no figure uses it now.
 
 ## Library checks and updates
 

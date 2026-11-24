@@ -67,6 +67,8 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
 # The payment provider's secret key. Test mode only for now: `plans/stripe_client.py` refuses
 # any key that is not a test key.
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
+# Signs the payment provider's notifications; one that does not match is rejected.
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
 WEB_BASE_URL = os.environ.get("WEB_BASE_URL", "").strip().rstrip("/") or "http://localhost:3000"
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.Argon2PasswordHasher"]

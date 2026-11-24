@@ -96,6 +96,13 @@ PUBLIC_ROUTES = [
         "emailed link is the credential, and the route is rate limited.",
     ),
     PublicRoute(
+        route="api/payments/stripe/webhook/",
+        category="payment_notification",
+        reason="The payment provider reports payments, failures and cancellations here and has "
+        "no account. Every request must carry a signature made with the shared webhook secret; "
+        "an unsigned, wrongly signed or too old one is refused before its body is read.",
+    ),
+    PublicRoute(
         route="api/platform/",
         category="website",
         reason="Every screen, signed in or not, shows the platform's name, support address and "

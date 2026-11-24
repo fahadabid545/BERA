@@ -76,15 +76,19 @@ const superData = (over: Partial<AdminData> = {}): AdminData => ({
   pending: { past_due: 4, grants_expiring: 0, suspended: 2, failed_ai_calls: 9, failed_jobs: 3 },
   recent: [{ ...company("n"), created_at: new Date().toISOString() }],
   revenue: {
-    mrr: 12900,
+    received: 12900,
     ai_cost: 3870,
     margin_days: 30,
     margin_percent: 70,
     plans: [
-      { id: 1, name: "Gold", subscribers: 3, mrr: 120, share: 60 },
-      { id: 2, name: "Silver", subscribers: 2, mrr: 80, share: 40 },
+      { id: 1, name: "Gold", subscribers: 3, received: 120, share: 60 },
+      { id: 2, name: "Silver", subscribers: 2, received: 80, share: 40 },
     ],
     states: { active: 5, past_due: 1, cancelled: 0, expired: 2, granted_free: 1, no_plan: 3 },
+    history: [
+      { month: "2026-10", received: 800, ai_cost: 200, margin_percent: 75 },
+      { month: "2026-11", received: 0, ai_cost: 5, margin_percent: null },
+    ],
   },
   ai: {
     calls: { total: 20, failed: 2, failure_percent: 10 },
@@ -144,7 +148,7 @@ describe("AdminDashboard tabs", () => {
       "Usage",
       "Attention",
     ]);
-    expect(container.textContent).not.toMatch(/\$|AI cost|Monthly revenue/);
+    expect(container.textContent).not.toMatch(/\$|AI cost|Revenue received/);
     expect(screen.getByText("128")).toBeTruthy();
   });
 
@@ -497,10 +501,11 @@ describe("AdminPrintableReport", () => {
     summary: [{ metric: "New companies", current: 2, previous: null, change: null }],
     companies: [{ company: "Acme", plan: null, state: "no_plan", cvs_scored: 3, cost: 1.25 }],
     revenue: {
-      mrr: 100,
+      received: 100,
       ai_cost: 20,
       margin_percent: 80,
-      plans: [{ plan: "Gold", subscribers: 2, mrr: 100 }],
+      plans: [{ plan: "Gold", subscribers: 2, received: 100 }],
+      history: [{ month: "2026-11", received: 100, ai_cost: 20, margin_percent: 80 }],
     },
   };
   it("shows the tables and prints on request", async () => {

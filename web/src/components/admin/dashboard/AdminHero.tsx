@@ -56,13 +56,13 @@ export function AdminHero({
               className="admin-hero__stat"
               tip={
                 <TipLines
-                  title="Estimated monthly revenue"
-                  lines={["What the paying plans bring in a month", "Not money received"]}
+                  title="Revenue received"
+                  lines={[`Money received in the last ${revenue.margin_days} days`]}
                 />
               }
             >
-              <span>Monthly revenue</span>
-              <strong>{usd(revenue.mrr)}</strong>
+              <span>Revenue received</span>
+              <strong>{usd(revenue.received)}</strong>
             </ChartMark>
           </li>
         )}
