@@ -106,3 +106,39 @@ class LimitOverride(CompanyOwnedModel):
         constraints = [
             models.UniqueConstraint(fields=["company", "name"], name="one_override_per_limit"),
         ]
+
+
+class PaymentEvent(CompanyOwnedModel):
+    """One payment, refund or failed payment, as the payment provider reported it. The provider's
+    own event id is unique, so an event that is delivered twice is one record. Written only by
+    `plans.payments.record_event`, the one function every payment source must use (the provider's
+    webhook included): there is no second payments table. Amounts are in the smallest unit of the
+    currency (cents), never rounded; the record is never changed after it is written."""
+
+    class Kind(models.TextChoices):
+        PAYMENT = "payment"
+        REFUND = "refund"
+        FAILURE = "failure"
+
+    provider_event_id = models.CharField(max_length=255, unique=True)
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    amount_minor = models.PositiveBigIntegerField()
+    currency = models.CharField(max_length=3)  # ISO code, upper case
+    reason = models.CharField(max_length=200, blank=True)  # why a payment failed, in words
+    occurred_at = models.DateTimeField()  # when the provider says it happened
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["occurred_at"], name="paymentevent_time"),
+            models.Index(fields=["company", "occurred_at"], name="paymentevent_company_time"),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(kind__in=["payment", "refund", "failure"]),
+                name="paymentevent_kind_is_known",
+            ),
+            models.CheckConstraint(
+                condition=Q(currency__regex=r"^[A-Z]{3}$"), name="paymentevent_currency_is_iso"
+            ),
+        ]

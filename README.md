@@ -1739,6 +1739,25 @@ A super admin sets a daily and a monthly limit in US dollars on Advanced > AI co
   (`AiSpendAlert`), so later checks in the same day or month send nothing. A new day or month, or a
   changed limit that is crossed, is a new crossing.
 
+## Payments overview
+
+Admin > Operations > Payments (super admin only: `payment.view`; support is refused and sees no
+amounts). `GET /api/admin/payments/?kind=&company=&currency=&from_date=&to_date=&page=` lists
+payments, refunds and failures newest first, one page of `admin_payments.page_size` (50), with each
+company linked, totals per currency (never added across currencies) that follow the filters, and
+the companies and currencies that have records.
+
+- Records are `plans.PaymentEvent` rows: provider event id (unique), kind (`payment`, `refund`,
+  `failure`), amount in the smallest currency unit, currency, company, reason (for a failure) and
+  the time the provider gave. Amounts are shown with two decimals (USD and PKR).
+- **Every payment source must write through `plans.payments.record_event`** (the Stripe webhook
+  of the real-payments ticket included) and use this one table; there must be no second payments
+  table. The same provider event id again changes nothing and returns the existing record, so
+  records match the provider's events one to one. The same id with different details is refused
+  with 409 (`payment_event_conflict`). Nothing writes records yet.
+- Cost versus revenue still uses the estimated amount paid; the real-payments ticket switches it
+  to these records.
+
 ## Jobs monitor
 
 Admin > Operations > Jobs (`cvs/job_monitor.py`; both admin roles: actions `job.view`,

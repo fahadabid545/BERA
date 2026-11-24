@@ -285,6 +285,8 @@ SETTINGS = [
     SettingDefinition("processing.list_limit", 200, whole_number(10, 2000)),
     # The admin jobs monitor (see cvs/job_monitor.py): most jobs listed at once.
     SettingDefinition("admin_jobs.list_limit", 100, whole_number(10, 2000)),
+    # The admin payments overview (see plans/payment_overview.py): records per page.
+    SettingDefinition("admin_payments.page_size", 50, whole_number(10, 500)),
     # Duplicate detection: two CVs with a phone number ending in the same digits (at least
     # this many) are likely the same person.
     SettingDefinition("duplicates.phone_digits", 9, whole_number(6, 15)),

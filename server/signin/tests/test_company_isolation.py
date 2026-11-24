@@ -60,11 +60,13 @@ KINDS_NAMED_IN_THE_TICKET = {
 # ProjectFactorSettings: projects/tests/test_factor_settings.py (TestAnotherCompany).
 # UsagePeriod, UsageCounter, CvUsage: usage/tests/test_usage_counting.py (kept apart per company).
 # NotificationChoice, NotificationSent: notifications/tests/test_notifications.py (TestChoices).
+# PaymentEvent: plans/tests/test_payment_events.py (TestAnotherCompany).
 REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Invitation",
     "ActivityEntry",
     "Subscription",
     "LimitOverride",
+    "PaymentEvent",
     "UsagePeriod",
     "UsageCounter",
     "CvUsage",
