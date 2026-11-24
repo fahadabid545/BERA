@@ -1739,6 +1739,30 @@ A super admin sets a daily and a monthly limit in US dollars on Advanced > AI co
   (`AiSpendAlert`), so later checks in the same day or month send nothing. A new day or month, or a
   changed limit that is crossed, is a new crossing.
 
+## AI playground
+
+A super admin tries the reading and scoring on one CV and one job description at Admin > AI >
+Playground. Action `ai.playground` (super admin only; support is refused on every route).
+
+- `GET /api/admin/ai/playground/`: the models that are switched on, the prompt versions of each
+  kind, and the test budget. `PUT` sets the budget (`monthly_budget`, `reason`; audited).
+- `POST /api/admin/ai/playground/run/` (multipart: `cv_file`, `job_description`, `reading_model`,
+  `scoring_model`, `reading_prompt_version`, `scoring_prompt_version`) returns the profile, the
+  requirement results, the score with its grade and label, the tokens and cost of each step, and
+  the budget.
+- A run uses the real reading, requirement-extraction, judging and score functions
+  (`ai/playground.py`), in memory. Nothing is saved to any company, project, candidate or CV; the
+  file and its text are thrown away. Contact details are not returned, and scoring reads the CV
+  without personal details, as real processing does. The page warns not to use real candidate data.
+- Test calls are `AiCall` rows with purpose `playground` and no company (the database refuses a
+  company on them and refuses no company on any other purpose), so no company's usage counts them.
+- Test runs have their own budget: setting `ai.playground_monthly_budget_usd` (default 10, US
+  dollars per UTC month), counted from the playground call records. The budget is checked before
+  every AI call; a run is refused with `playground_budget_used_up` once spent reaches it. One run
+  at a time: a run holds a PostgreSQL advisory lock, and a second run at the same moment is refused
+  with `playground_busy`, so parallel runs cannot pass the check together. The call that crosses
+  the limit can overshoot by its own cost, which is only known afterwards.
+
 ## Cost versus revenue
 
 `GET /api/admin/cost-versus-revenue/` (`adminusers/profitability.py`, action `payment.view`: super

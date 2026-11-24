@@ -37,6 +37,7 @@ ROLES_ALLOWED = {
     "price.change": SUPER_ONLY,
     "model.change": SUPER_ONLY,
     "ai.control": SUPER_ONLY,  # pause or resume all AI work
+    "ai.playground": SUPER_ONLY,  # run test scoring and set its monthly budget
     "prompt.change": SUPER_ONLY,
     "settings.change": SUPER_ONLY,
     "limit.change": SUPER_ONLY,

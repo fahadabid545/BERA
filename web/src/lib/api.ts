@@ -76,6 +76,11 @@ export function postJson<T>(path: string, body: unknown) {
   });
 }
 
+/** Sends a form with files (the browser sets the multipart type itself). */
+export function postForm<T>(path: string, body: FormData) {
+  return request<T>(path, { method: "POST", body });
+}
+
 export function deleteJson<T>(path: string, body?: unknown) {
   if (body === undefined) return request<T>(path, { method: "DELETE" });
   return request<T>(path, {

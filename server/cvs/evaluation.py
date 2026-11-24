@@ -106,20 +106,38 @@ def judge(cv_file, requirements, cv_text, candidate_id):
     """{requirement: Judgement} for the given requirements, asking the AI (once, plus the retry)."""
     project = cv_file.project
     by_number = {position: requirement for position, requirement in enumerate(requirements, 1)}
-    pending = {number: requirement.text for number, requirement in by_number.items()}
+    judged = judge_texts(
+        cv_text,
+        {number: requirement.text for number, requirement in by_number.items()},
+        company_id=cv_file.company_id,
+        purpose=AiCall.Purpose.SCORING,
+        model=project.scoring_model,
+        prompt_version=project.scoring_prompt_version,
+        project_id=project.pk,
+        cv_id=cv_file.pk,
+        candidate_id=candidate_id,
+    )
+    return {by_number[number]: judgement for number, judgement in judged.items()}
+
+
+def judge_texts(
+    cv_text, wanted, *, company_id, purpose, model, prompt_version, ask=call_ai, **record_ids
+):
+    """{number: Judgement} for every wanted requirement ({number: text}), asking the AI (once,
+    plus the retry). `ask` is `call_ai`, or a wrapper the AI playground uses to count the answers
+    of a test run."""
+    pending = dict(wanted)
     judged, understood = {}, False
     for _ in range(1 + get_setting("ai.invalid_answer_retries")):
-        answer = call_ai(
-            cv_file.company_id,
-            purpose=AiCall.Purpose.SCORING,
-            prompt_version=project.scoring_prompt_version,
-            candidate_id=candidate_id,
-            model=project.scoring_model,
-            instructions=prompt_text(SCORING, project.scoring_prompt_version),
+        answer = ask(
+            company_id,
+            purpose=purpose,
+            prompt_version=prompt_version,
+            model=model,
+            instructions=prompt_text(SCORING, prompt_version),
             text=_question(pending, cv_text),
-            project_id=project.pk,
-            cv_id=cv_file.pk,
             max_output_tokens=get_setting("ai.evaluation_max_output_tokens"),
+            **record_ids,
         )
         try:
             found = check_answer(answer.text, set(pending), cv_text)
@@ -135,7 +153,7 @@ def judge(cv_file, requirements, cv_text, candidate_id):
         raise PermanentFailure(UNUSABLE_REASON)
     for number in pending:  # still wrong after the retry: no evidence, so missing
         judged[number] = Judgement(MISSING, "", LOW)
-    return {by_number[number]: judgement for number, judgement in judged.items()}
+    return judged
 
 
 def _needing_judgement(candidate, requirements):

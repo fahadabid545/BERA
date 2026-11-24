@@ -37,17 +37,21 @@ def list_of_whole_numbers(minimum, maximum):
     return is_valid
 
 
-def positive_number_or_none(maximum):
-    """A number above zero and up to `maximum`, or None for "not set"."""
+def positive_number(maximum):
+    """A number above zero and up to `maximum`."""
 
     def is_valid(value):
-        if value is None:
-            return True
         return (
             isinstance(value, (int, float)) and not isinstance(value, bool) and 0 < value <= maximum
         )
 
     return is_valid
+
+
+def positive_number_or_none(maximum):
+    """A number above zero and up to `maximum`, or None for "not set"."""
+    is_positive = positive_number(maximum)
+    return lambda value: value is None or is_positive(value)
 
 
 def list_of_file_types(value):
@@ -378,6 +382,9 @@ SETTINGS = [
     # Advanced > AI controls. None means no alert.
     SettingDefinition("ai.daily_spend_alert_usd", None, positive_number_or_none(10_000_000)),
     SettingDefinition("ai.monthly_spend_alert_usd", None, positive_number_or_none(10_000_000)),
+    # The AI playground (see ai/playground.py): test runs are paid from their own budget, in US
+    # dollars per UTC month, so they never touch a company's usage.
+    SettingDefinition("ai.playground_monthly_budget_usd", 10, positive_number(10_000_000)),
     # The cost estimate shown before processing (see cvs/estimate.py). Averages only: the screen
     # always calls the figures approximate.
     SettingDefinition("estimate.cv_text_tokens", 2500, whole_number(1, 200000)),

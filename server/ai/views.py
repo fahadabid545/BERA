@@ -1,5 +1,6 @@
 from django.http import Http404
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -7,7 +8,7 @@ from adminusers.models import AdminUser
 from adminusers.role_matrix import require_action
 from signin.authentication import AdminAuthentication
 
-from . import control, prompt_versions, spend_alerts
+from . import control, playground, prompt_versions, spend_alerts
 from . import model_settings as models_service
 from .models import AiModel
 from .serializers import (
@@ -19,6 +20,8 @@ from .serializers import (
     DeletePromptSerializer,
     MakeCurrentSerializer,
     MoveProjectSerializer,
+    PlaygroundBudgetSerializer,
+    PlaygroundRunSerializer,
     SelectModelsSerializer,
     SpendAlertsSerializer,
 )
@@ -206,3 +209,36 @@ class AiSpendAlerts(ModelSettingsView):
                 reason=values["reason"],
             )
         )
+
+
+class AiPlayground(ModelSettingsView):
+    """What the playground page offers, and the monthly test budget."""
+
+    def get(self, request):
+        require_action(request.user, "ai.playground")
+        return Response(playground.options())
+
+    def put(self, request):
+        require_action(request.user, "ai.playground")
+        serializer = PlaygroundBudgetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        values = serializer.validated_data
+        return Response(
+            playground.set_budget(
+                values["monthly_budget"], by=self.admin(), reason=values["reason"]
+            )
+        )
+
+
+class AiPlaygroundRun(ModelSettingsView):
+    """One test run. The CV is read in memory and thrown away; nothing is saved to a company."""
+
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        require_action(request.user, "ai.playground")
+        serializer = PlaygroundRunSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        values = serializer.validated_data
+        sent = values.pop("cv_file")
+        return Response(playground.run(file_name=sent.name, file_bytes=sent.read(), **values))

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getJson, postJson, uploadFiles } from "./api";
+import { getJson, postForm, postJson, uploadFiles } from "./api";
 import { startUpload } from "./session";
 
 const navigateTo = vi.fn();
@@ -199,5 +199,26 @@ describe("uploadFiles", () => {
     const sent = uploadFiles("/api/x/", [new File(["a"], "a.pdf")], () => {});
     FakeRequest.last.onerror?.();
     expect((await sent).ok).toBe(false);
+  });
+});
+
+describe("postForm", () => {
+  it("sends the form as it is, without a content type of its own", async () => {
+    const fetchMock = serverAnswering(OK);
+    const form = new FormData();
+    form.append("cv_file", new File(["a"], "a.pdf"));
+    expect(await postForm("/api/x/", form)).toEqual({ ok: true, data: { fine: true } });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(init.body).toBe(form);
+    expect((init.headers as Record<string, string>)["Content-Type"]).toBeUndefined();
+    expect((init.headers as Record<string, string>)["X-CSRF-Token"]).toBe("csrf-from-cookie");
+  });
+
+  it("answers in the shared error shape when the server refuses", async () => {
+    serverAnswering({ status: 409, body: { error: { code: "c", message: "No." } } });
+    expect(await postForm("/api/x/", new FormData())).toEqual({
+      ok: false,
+      error: { code: "c", message: "No." },
+    });
   });
 });

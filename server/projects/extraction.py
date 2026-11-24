@@ -65,25 +65,39 @@ def _fallback(message=FALLBACK_MESSAGE):
     return {"requirements": [], "warnings": [], "fallback": True, "message": message}
 
 
+def request_requirements(
+    job_description, *, company_id, model, purpose, project_id=None, ask=call_ai
+):
+    """(language, requirements) from the AI for a job description, or None when its answer cannot
+    be used. `ask` is `call_ai`, or a wrapper the AI playground uses to count a test run."""
+    answer = ask(
+        company_id,
+        purpose=purpose,
+        model=model,
+        instructions=get_setting("ai.requirement_extraction_prompt"),
+        text=job_description,
+        project_id=project_id,
+    )
+    return parse_answer(answer.text)
+
+
 def suggest_requirements(project):
     """Must-have and nice-to-have requirements for the project, up to the platform's total,
     with warnings. The model is the one pinned to the project."""
     require_editable(project)
     check_ai_allowed(project.company_id).raise_if_blocked()
     try:
-        answer = call_ai(
-            project.company_id,
-            purpose=AiCall.Purpose.REQUIREMENT_EXTRACTION,
+        parsed = request_requirements(
+            project.job_description,
+            company_id=project.company_id,
             model=project.reading_model,
-            instructions=get_setting("ai.requirement_extraction_prompt"),
-            text=project.job_description,
+            purpose=AiCall.Purpose.REQUIREMENT_EXTRACTION,
             project_id=project.pk,
         )
     except AiPaused as paused:
         return _fallback(str(paused))
     except AiUnavailable:
         return _fallback()
-    parsed = parse_answer(answer.text)
     if parsed is None:
         logger.warning("The AI gave requirements that could not be used.")
         return _fallback()

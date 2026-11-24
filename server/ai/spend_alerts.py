@@ -39,7 +39,7 @@ CONTROLS_PATH = "/admin/advanced/ai-controls"
 MONEY_PLACES = Decimal("0.01")
 
 
-def _period(kind, now):
+def period_of(kind, now):
     """(label stored with the alert, start of the period) for the UTC day or month of `now`."""
     moment = now.astimezone(UTC)
     if kind == AiSpendAlert.Kind.DAILY:
@@ -50,8 +50,12 @@ def _period(kind, now):
     return moment.strftime("%Y-%m"), start
 
 
-def spent_since(start):
-    total = AiCall.objects.filter(created_at__gte=start).aggregate(
+def spent_since(start, *, purpose=None):
+    """What AI calls cost since `start`: all of them, or only those of one purpose."""
+    calls = AiCall.objects.filter(created_at__gte=start)
+    if purpose:
+        calls = calls.filter(purpose=purpose)
+    total = calls.aggregate(
         total=Coalesce(Sum("estimated_cost"), Decimal(0), output_field=DecimalField())
     )["total"]
     return total
@@ -87,7 +91,7 @@ def check(now=None):
         limit = get_setting(setting_name)
         if limit is None:
             continue
-        label, start = _period(kind, now)
+        label, start = period_of(kind, now)
         spent = spent_since(start)
         if spent < Decimal(str(limit)):
             continue
@@ -111,8 +115,8 @@ def describe(now=None):
     return {
         "daily_limit": _setting_text(SETTING_NAMES[AiSpendAlert.Kind.DAILY]),
         "monthly_limit": _setting_text(SETTING_NAMES[AiSpendAlert.Kind.MONTHLY]),
-        "spent_today": _money(spent_since(_period(AiSpendAlert.Kind.DAILY, now)[1])),
-        "spent_this_month": _money(spent_since(_period(AiSpendAlert.Kind.MONTHLY, now)[1])),
+        "spent_today": _money(spent_since(period_of(AiSpendAlert.Kind.DAILY, now)[1])),
+        "spent_this_month": _money(spent_since(period_of(AiSpendAlert.Kind.MONTHLY, now)[1])),
     }
 
 

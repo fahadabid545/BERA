@@ -36,6 +36,10 @@ def _version(kind, number):
         raise AppError("prompt_not_found", NOT_FOUND_MESSAGE, status_code=404) from error
 
 
+def exists(kind, number):
+    return PromptVersion.objects.filter(kind=kind, number=number).exists()
+
+
 def prompt_text(kind, number):
     """The instructions of one version (what a project's pin points at)."""
     return _version(kind, number).text

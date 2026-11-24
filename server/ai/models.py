@@ -77,6 +77,10 @@ class AiCall(CompanyOwnedModel):
         OK = "ok"
         FAILED = "failed"
 
+    # No company only for the AI playground, whose calls count for no company (see constraints).
+    company = models.ForeignKey(
+        "companies.Company", null=True, on_delete=models.PROTECT, related_name="+"
+    )
     project_id = models.UUIDField(null=True)
     cv_id = models.UUIDField(null=True)
     candidate_id = models.UUIDField(null=True)
@@ -102,6 +106,11 @@ class AiCall(CompanyOwnedModel):
                     purpose__in=["reading", "scoring", "requirement_extraction", "playground"]
                 ),
                 name="aicall_purpose_is_known",
+            ),
+            models.CheckConstraint(
+                condition=Q(purpose="playground", company__isnull=True)
+                | (~Q(purpose="playground") & Q(company__isnull=False)),
+                name="aicall_company_only_when_not_playground",
             ),
             models.CheckConstraint(
                 condition=Q(result="ok", failure="") | Q(result="failed"),

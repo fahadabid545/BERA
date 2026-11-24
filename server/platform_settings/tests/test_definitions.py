@@ -134,6 +134,7 @@ EXPECTED_DEFAULTS = {
     "ai.auto_pause_minutes": 10,
     "ai.daily_spend_alert_usd": None,
     "ai.monthly_spend_alert_usd": None,
+    "ai.playground_monthly_budget_usd": 10,
     "estimate.cv_text_tokens": 2500,
     "estimate.reading_prompt_tokens": 600,
     "estimate.reading_output_tokens": 1200,

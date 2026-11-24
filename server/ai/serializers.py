@@ -110,6 +110,35 @@ class SpendLimit(serializers.DecimalField):
         )
 
 
+class PlaygroundRunSerializer(StrictSerializer):
+    """One test run. The limits are read when the serializer is made, so a changed setting
+    applies at once."""
+
+    cv_file = serializers.FileField()
+    reading_model = SafeTextField(max_length=MAX_NAME_LENGTH)
+    scoring_model = SafeTextField(max_length=MAX_NAME_LENGTH)
+    reading_prompt_version = PromptNumber()
+    scoring_prompt_version = PromptNumber()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from platform_settings.service import get_setting
+
+        self.fields["job_description"] = SafeTextField(
+            max_length=get_setting("projects.description_max_length"), multiline=True
+        )
+
+
+class PlaygroundBudgetSerializer(StrictSerializer):
+    monthly_budget = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        min_value=Decimal("0.01"),
+        coerce_to_string=False,
+    )
+    reason = SafeTextField(max_length=MAX_REASON_LENGTH)
+
+
 class SpendAlertsSerializer(StrictSerializer):
     daily_limit = SpendLimit()
     monthly_limit = SpendLimit()

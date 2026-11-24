@@ -53,13 +53,17 @@ class TestEveryCallIsRecorded:
         assert row.result == "ok" and row.failure == ""
         assert row.duration_ms >= 0 and row.created_at
 
-    @pytest.mark.parametrize(
-        "purpose", ["reading", "scoring", "requirement_extraction", "playground"]
-    )
-    def test_every_purpose_can_be_recorded(self, monkeypatch, purpose):
+    @pytest.mark.parametrize("purpose", ["reading", "scoring", "requirement_extraction"])
+    def test_every_company_purpose_can_be_recorded(self, monkeypatch, purpose):
         stub(monkeypatch, AiAnswer("{}", 1, 1))
         ask(make_company(), purpose=purpose)
         assert AiCall.objects.get().purpose == purpose
+
+    def test_the_playground_is_recorded_with_no_company(self, monkeypatch):
+        stub(monkeypatch, AiAnswer("{}", 1, 1))
+        call_ai(None, purpose="playground", model="m", instructions="i", text="t")
+        row = AiCall.objects.get()
+        assert (row.purpose, row.company_id) == ("playground", None)
 
     def test_an_unknown_purpose_is_refused_by_the_database(self, monkeypatch):
         from django.db import IntegrityError, transaction

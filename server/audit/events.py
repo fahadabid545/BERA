@@ -73,6 +73,7 @@ KINDS = _kinds(
     EventKind("admin.subscription_terminated", reason_required=True),
     EventKind("admin.pkr_rate_changed", reason_required=True),
     EventKind("admin.ai_spend_alerts_changed", reason_required=True),
+    EventKind("admin.ai_playground_budget_changed", reason_required=True),
     # Reserved: opening candidate content is refused for admin and support. An exception would be
     # explicit, time limited and justified in writing, and recorded with this kind.
     EventKind("admin.candidate_data_exception", reason_required=True),

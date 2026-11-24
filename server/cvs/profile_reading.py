@@ -35,25 +35,39 @@ def read_profile(cv_file, cv_text):
     if not check_ai_allowed(cv_file.company_id).allowed:
         raise PermanentFailure(AI_PAUSED_REASON)
     project = cv_file.project
-    tries = 1 + get_setting("ai.invalid_answer_retries")
-    for _ in range(tries):
-        answer = call_ai(
-            cv_file.company_id,
-            purpose=AiCall.Purpose.READING,
-            prompt_version=project.reading_prompt_version,
-            model=project.reading_model,
-            instructions=prompt_text(READING, project.reading_prompt_version),
+    profile, contact = request_profile(
+        cv_text,
+        company_id=cv_file.company_id,
+        purpose=AiCall.Purpose.READING,
+        model=project.reading_model,
+        prompt_version=project.reading_prompt_version,
+        project_id=project.pk,
+        cv_id=cv_file.pk,
+    )
+    return _save(cv_file, project, profile, contact)
+
+
+def request_profile(
+    cv_text, *, company_id, purpose, model, prompt_version, ask=call_ai, **record_ids
+):
+    """(profile, contact) checked against the CV text. An answer that is invalid or incomplete is
+    asked for once more (setting), then `PermanentFailure`. `ask` is `call_ai`, or a wrapper the
+    AI playground uses to count the answers of a test run."""
+    for _ in range(1 + get_setting("ai.invalid_answer_retries")):
+        answer = ask(
+            company_id,
+            purpose=purpose,
+            prompt_version=prompt_version,
+            model=model,
+            instructions=prompt_text(READING, prompt_version),
             text=cv_text,
-            project_id=project.pk,
-            cv_id=cv_file.pk,
             max_output_tokens=get_setting("ai.cv_reading_max_output_tokens"),
+            **record_ids,
         )
         try:
-            profile, contact = check_answer(answer.text, cv_text)
+            return check_answer(answer.text, cv_text)
         except UnusableAnswer:
             logger.warning("The AI gave a CV profile that could not be used.")
-            continue
-        return _save(cv_file, project, profile, contact)
     raise PermanentFailure(UNUSABLE_REASON)
 
 

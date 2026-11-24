@@ -10,7 +10,7 @@ Nothing sent or received is logged: job descriptions and CVs are personal data.
 
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 
 from django.conf import settings
@@ -39,6 +39,7 @@ class AiAnswer:
     text: str
     tokens_in: int
     tokens_out: int
+    estimated_cost: Decimal = Decimal(0)  # set by `call_ai`, from the model's prices
 
 
 def _send(*, model, instructions, text, max_output_tokens, timeout_seconds):
@@ -102,6 +103,9 @@ def call_ai(
     default) and `instructions` the prompt for the task. The cost is the model's price at the
     moment of the call (see `costs.py`) and is stored with the tokens, so a later price change
     never alters it. A failed call is recorded too, then `AiUnavailable` is raised.
+
+    The AI playground is the one caller with no company (`company_id=None`, purpose playground):
+    its calls are recorded for the test budget and are counted for no company.
     """
     ids = {
         "purpose": purpose,
@@ -129,14 +133,15 @@ def call_ai(
         raise
     cost = price_call(model, answer.tokens_in, answer.tokens_out)
     with transaction.atomic():
-        usage.add_tokens(
-            company_id,
-            answer.tokens_in,
-            answer.tokens_out,
-            cost,
-            cv_id=cv_id,
-            project_id=project_id,
-        )
+        if company_id is not None:
+            usage.add_tokens(
+                company_id,
+                answer.tokens_in,
+                answer.tokens_out,
+                cost,
+                cv_id=cv_id,
+                project_id=project_id,
+            )
         _record(
             company_id,
             started,
@@ -145,4 +150,4 @@ def call_ai(
             cost=cost,
             **ids,
         )
-    return answer
+    return replace(answer, estimated_cost=cost)
