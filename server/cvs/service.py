@@ -18,6 +18,7 @@ import privatefiles as storage
 from companies.models import Company
 from core.validation import safe_file_name
 from plans.limits import check_cvs_this_month, split_batch
+from platform_settings import maintenance
 from platform_settings.service import get_setting
 from privatefiles.errors import StorageUnavailable
 from projects.deletion import register_project_data
@@ -63,6 +64,8 @@ def _result(name, status, code="", message="", prompt=None, notice=""):
 def upload_block(company_id):
     """Why a CV sent now would be refused (subscription ended, or the month's allowance used),
     so the screen can say so before anyone tries. None when uploads are open."""
+    if maintenance.is_on():
+        return {"code": maintenance.CODE, "message": maintenance.message(), "prompt": None}
     check = check_cvs_this_month(company_id)
     if check.allowed:
         return None
@@ -82,6 +85,7 @@ def upload_rules(company_id):
 def upload_cvs(uploader, project, files, batch_id=None):
     """`files` are (name, size, read) triples in the order sent. Returns one result per file,
     in the same order. `batch_id` groups the files of one drop so it can be cancelled together."""
+    maintenance.refuse_if_on()
     require_editable(project)
     batch_id = batch_id or uuid.uuid4()
     results = [None] * len(files)

@@ -12,7 +12,7 @@ EMAIL_HOST_PASSWORD = _email["EMAIL_HOST_PASSWORD"]
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_FROM_ADDRESS = parse_sender_address(_email["EMAIL_FROM_ADDRESS"])
-DEFAULT_FROM_EMAIL = f"Bera <{EMAIL_FROM_ADDRESS}>"
+DEFAULT_FROM_EMAIL = EMAIL_FROM_ADDRESS
 WEB_BASE_URL = parse_web_base_url(_email["WEB_BASE_URL"])
 
 # Uploaded files live in a private Cloudflare R2 bucket (see privatefiles/r2.py).

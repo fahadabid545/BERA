@@ -1,9 +1,5 @@
-import { Button } from "@/components/ui";
+import { AdminMaintenance } from "@/components/admin/AdminMaintenance";
 
 export default function MaintenancePage() {
-  return (
-    <div className="page-actions">
-      <Button>Save</Button>
-    </div>
-  );
+  return <AdminMaintenance />;
 }

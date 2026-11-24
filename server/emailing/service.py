@@ -10,7 +10,9 @@ and finally logged. Only mistakes in the calling code (see rendering.py) raise.
 import logging
 import smtplib
 from datetime import timedelta
+from email.utils import formataddr
 
+from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.db import DatabaseError, transaction
 from django.utils import timezone
@@ -18,6 +20,7 @@ from django_q.models import Schedule
 from django_q.tasks import async_task, schedule
 
 from core.jobs import logged_job
+from platform_settings.branding import app_name, support_email
 from platform_settings.service import get_setting
 
 from .models import BouncedAddress, OutgoingEmail
@@ -26,7 +29,6 @@ from .rendering import render_email
 logger = logging.getLogger(__name__)
 
 DELIVER_JOB = "emailing.service.deliver_email"
-FROM_NAME = "Bera"
 
 
 def send_email(template_name, to_address, *, now=False, **values):
@@ -103,6 +105,8 @@ def _send_through_provider(email):
         subject=email.subject,
         body=email.text_body,
         to=[email.to_address],
+        from_email=formataddr((app_name(), settings.EMAIL_FROM_ADDRESS)),
+        reply_to=[support_email()],
         headers={"X-Bera-Template": email.template},
         connection=get_connection(),
     )

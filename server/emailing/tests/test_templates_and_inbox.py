@@ -15,6 +15,8 @@ from emailing.service import send_email
 from emailing.tests.flaky_backend import FlakyBackend
 
 TEMPLATES = list(CATALOG)
+# The button words as sent: the platform name is filled in (it is "Bera" until an admin changes it).
+BUTTONS = {name: CATALOG[name].button_label.format(app_name="Bera") for name in CATALOG}
 ADDRESS = "developer@example.test"
 
 pytestmark = pytest.mark.django_db
@@ -82,7 +84,7 @@ class TestEveryTemplate:
         values = sample_values(template)
         send_email(template, ADDRESS, now=True, **values)
         text, _ = parts_of(read(next(inbox.glob("*.eml"))))
-        assert CATALOG[template].button_label in text and values["link"] in text
+        assert BUTTONS[template] in text and values["link"] in text
         assert "<" not in text
 
     def test_it_has_exactly_one_main_button(self, inbox, template):
@@ -90,7 +92,7 @@ class TestEveryTemplate:
         send_email(template, ADDRESS, now=True, **values)
         _, html = parts_of(read(next(inbox.glob("*.eml"))))
         links = re.findall(r"<a [^>]*href=\"([^\"]+)\"[^>]*>([^<]+)</a>", html)
-        assert links == [(values["link"], CATALOG[template].button_label)]
+        assert links == [(values["link"], BUTTONS[template])]
 
     def test_its_link_points_to_the_website_and_holds_no_password(self, template):
         link = sample_values(template)["link"]
@@ -181,7 +183,7 @@ class TestLinks:
         ],
     )
     def test_a_link_to_anywhere_else_is_refused(self, url):
-        with pytest.raises(ValueError, match="Bera website"):
+        with pytest.raises(ValueError, match="platform.s own website"):
             validate_link(url)
 
     @pytest.mark.parametrize("name", ["password", "Password", "pwd", "pass", "secret", "passwd"])

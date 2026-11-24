@@ -1,5 +1,6 @@
 """The system emails. One layout (templates/emailing/message.*) gives every one of them the
-Bera name, a heading, a main button and a plain-text version; this file holds the words.
+platform name (a setting), a heading, a main button and a plain-text version; this file holds
+the words.
 
 Texts use {placeholders} filled from the values the sender passes. Later features that need
 another email add an entry here with their own ticket."""
@@ -20,7 +21,7 @@ GREETING = "Hi {name},"
 
 CATALOG = {
     "verify_email": EmailTemplate(
-        subject="Verify your email address for Bera",
+        subject="Verify your email address for {app_name}",
         heading="Verify your email address",
         paragraphs=(
             GREETING,
@@ -31,7 +32,7 @@ CATALOG = {
         variables=("name", "link", "expires_in"),
     ),
     "reset_password": EmailTemplate(
-        subject="Reset your Bera password",
+        subject="Reset your {app_name} password",
         heading="Reset your password",
         paragraphs=(
             GREETING,
@@ -43,20 +44,20 @@ CATALOG = {
         variables=("name", "link", "expires_in"),
     ),
     "team_invite": EmailTemplate(
-        subject="{inviter_name} invited you to {company_name} on Bera",
+        subject="{inviter_name} invited you to {company_name} on {app_name}",
         heading="You are invited",
         paragraphs=(
-            "{inviter_name} invited you to join {company_name} on Bera.",
+            "{inviter_name} invited you to join {company_name} on {app_name}.",
             "The invitation works once and expires in {expires_in}.",
         ),
         button_label="Accept invitation",
         variables=("inviter_name", "company_name", "link", "expires_in"),
     ),
     "admin_invite": EmailTemplate(
-        subject="{inviter_name} invited you to the Bera admin team",
+        subject="{inviter_name} invited you to the {app_name} admin team",
         heading="You are invited",
         paragraphs=(
-            "{inviter_name} invited you to join the Bera admin team as {role_name}.",
+            "{inviter_name} invited you to join the {app_name} admin team as {role_name}.",
             "The invitation works once and expires in {expires_in}. You choose your password "
             "there, and set up two-step verification when you first sign in.",
         ),
@@ -64,7 +65,7 @@ CATALOG = {
         variables=("inviter_name", "role_name", "link", "expires_in"),
     ),
     "password_changed": EmailTemplate(
-        subject="Your Bera password was changed",
+        subject="Your {app_name} password was changed",
         heading="Your password was changed",
         paragraphs=(
             GREETING,
@@ -75,7 +76,7 @@ CATALOG = {
         variables=("name", "when", "link"),
     ),
     "security_alert": EmailTemplate(
-        subject="Bera security alert",
+        subject="{app_name} security alert",
         heading="Security alert",
         paragraphs=(
             GREETING,
@@ -86,18 +87,18 @@ CATALOG = {
         variables=("name", "what", "when", "link"),
     ),
     "email_changed": EmailTemplate(
-        subject="Your Bera email address was changed",
+        subject="Your {app_name} email address was changed",
         heading="Your email address was changed",
         paragraphs=(
             GREETING,
             "The email address on your account was changed on {when}.",
-            "If this was not you, contact support right away.",
+            "If this was not you, contact support at {support_email} right away.",
         ),
         button_label="Contact support",
         variables=("name", "when", "link"),
     ),
     "new_sign_in": EmailTemplate(
-        subject="New sign-in to your Bera account",
+        subject="New sign-in to your {app_name} account",
         heading="New sign-in",
         paragraphs=(
             GREETING,
@@ -108,11 +109,11 @@ CATALOG = {
         variables=("name", "when", "device", "place", "link"),
     ),
     "already_registered": EmailTemplate(
-        subject="Someone tried to sign up to Bera with your email address",
+        subject="Someone tried to sign up to {app_name} with your email address",
         heading="You already have an account",
         paragraphs=(
             GREETING,
-            "Someone tried to create a Bera account with your email address, which already "
+            "Someone tried to create a {app_name} account with your email address, which already "
             "has one.",
             "If this was you, log in. If you forgot your password, you can reset it from the "
             "login page. If it was not you, you can ignore this email.",
@@ -121,25 +122,25 @@ CATALOG = {
         variables=("name", "link"),
     ),
     "usage_notice": EmailTemplate(
-        subject="Bera: {title}",
+        subject="{app_name}: {title}",
         heading="{title}",
         paragraphs=(GREETING, "{message}"),
         button_label="View billing",
         variables=("name", "title", "message", "link"),
     ),
     "account_notice": EmailTemplate(
-        subject="Bera: {title}",
+        subject="{app_name}: {title}",
         heading="{title}",
         paragraphs=(GREETING, "{message}"),
-        button_label="Open Bera",
+        button_label="Open {app_name}",
         variables=("name", "title", "message", "link"),
     ),
     "confirm_new_email": EmailTemplate(
-        subject="Confirm your new email address for Bera",
+        subject="Confirm your new email address for {app_name}",
         heading="Confirm your new email address",
         paragraphs=(
             GREETING,
-            "You asked to use this address for your Bera account. The link works once and "
+            "You asked to use this address for your {app_name} account. The link works once and "
             "expires in {expires_in}.",
             "If you did not ask for this, ignore this email. Nothing changes.",
         ),
@@ -147,7 +148,7 @@ CATALOG = {
         variables=("name", "link", "expires_in"),
     ),
     "download_ready": EmailTemplate(
-        subject="Your Bera download is ready",
+        subject="Your {app_name} download is ready",
         heading="Your download is ready",
         paragraphs=(
             GREETING,
@@ -158,7 +159,7 @@ CATALOG = {
         variables=("name", "link", "expires_in"),
     ),
     "deletion_scheduled": EmailTemplate(
-        subject="Your Bera company will be deleted",
+        subject="Your {app_name} company will be deleted",
         heading="Your company will be deleted",
         paragraphs=(
             GREETING,
@@ -169,7 +170,7 @@ CATALOG = {
         variables=("name", "when", "link"),
     ),
     "retention_warning": EmailTemplate(
-        subject="Some of your Bera data will be deleted soon",
+        subject="Some of your {app_name} data will be deleted soon",
         heading="Data will be deleted soon",
         paragraphs=(
             GREETING,
@@ -191,7 +192,7 @@ CATALOG = {
         variables=("name", "project", "summary", "link"),
     ),
     "subscription_ending": EmailTemplate(
-        subject="Your Bera subscription is ending soon",
+        subject="Your {app_name} subscription is ending soon",
         heading="Your subscription is ending",
         paragraphs=(
             GREETING,
@@ -202,7 +203,7 @@ CATALOG = {
         variables=("name", "when", "link"),
     ),
     "payment_problem": EmailTemplate(
-        subject="There is a problem with your Bera payment",
+        subject="There is a problem with your {app_name} payment",
         heading="Payment problem",
         paragraphs=(GREETING, "{message}"),
         button_label="Update payment method",

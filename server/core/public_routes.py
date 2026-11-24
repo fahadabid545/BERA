@@ -90,6 +90,18 @@ PUBLIC_ROUTES = [
         "the emailed link is the credential, and the route is limited per address.",
     ),
     PublicRoute(
+        route="api/auth/admin/accept-invite/",
+        category="accept_invite",
+        reason="An invited admin has no account yet. The single-use, expiring secret in the "
+        "emailed link is the credential, and the route is rate limited.",
+    ),
+    PublicRoute(
+        route="api/platform/",
+        category="website",
+        reason="Every screen, signed in or not, shows the platform's name, support address and "
+        "maintenance message. It holds no personal or account data.",
+    ),
+    PublicRoute(
         route="api/auth/company/refresh/",
         category="login",
         reason="A company user whose short access token ended must renew it with the refresh "

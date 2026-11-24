@@ -12,6 +12,7 @@ from companies.models import CompanyUser
 from core.errors import AppError
 from emailing.links import build_link
 from emailing.service import send_email
+from platform_settings.branding import contact_support
 from signin import service as signin
 from signin.kinds import ADMIN, COMPANY
 from signin.service import RevokeReason
@@ -22,10 +23,14 @@ OWN_ACCOUNT = "You cannot reset your own two-step verification. Ask another supe
 NOT_ON = "Two-step verification is not on for this account."
 IDENTITY_NOT_CHECKED = "Confirm that the person's identity was checked first."
 TITLE = "Two-step verification was turned off"
-MESSAGE = (
-    "Support turned off two-step verification on your account after checking your identity. "
-    "You were signed out everywhere. If this was not you, contact support right away."
-)
+
+
+def message():
+    return (
+        "Support turned off two-step verification on your account after checking your identity. "
+        "You were signed out everywhere. If this was not you, "
+        + contact_support("contact support right away")
+    )
 
 
 def _clear(person):
@@ -75,7 +80,7 @@ def turn_off_company_user_two_step(user_id, *, by, reason, identity_checked):
             person.email,
             name=person.name,
             title=TITLE,
-            message=MESSAGE,
+            message=message(),
             link=build_link("/login"),
         )
     return person

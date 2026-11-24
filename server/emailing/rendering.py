@@ -2,6 +2,8 @@ from datetime import UTC
 
 from django.template.loader import render_to_string
 
+from platform_settings.branding import app_name, support_email
+
 from .catalog import CATALOG
 from .links import validate_link
 
@@ -28,11 +30,16 @@ def render_email(template_name, values):
         raise ValueError(f"Email {template_name} needs: {', '.join(missing)}")
     validate_link(values["link"])
     filled = {name: str(values[name]) for name in template.variables}
+    # The name and the support address come from the platform settings, never from the sender.
+    filled["app_name"] = app_name()
+    filled["support_email"] = support_email()
     page = {
         "heading": template.heading.format(**filled),
         "paragraphs": [text.format(**filled) for text in template.paragraphs],
-        "button_label": template.button_label,
+        "button_label": template.button_label.format(**filled),
         "link": filled["link"],
+        "app_name": filled["app_name"],
+        "support_email": filled["support_email"],
     }
     # A line break in a subject would let a name inject mail headers.
     subject = " ".join(template.subject.format(**filled).split())

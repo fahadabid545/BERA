@@ -198,7 +198,7 @@ def test_the_two_field_keys_must_differ():
 def test_development_saves_emails_in_the_inbox_folder_and_sends_nothing():
     values = settings_of("development", WEB_BASE_URL="", EMAIL_FROM_ADDRESS="")
     assert values["email_backend"] == "emailing.backends.DevInboxBackend"
-    assert values["sender"] == "Bera <bera@example.test>"
+    assert values["sender"] == "bera@example.test"
     assert values["web"] == "http://localhost:3000"
 
 
@@ -206,7 +206,7 @@ def test_development_saves_emails_in_the_inbox_folder_and_sends_nothing():
 def test_staging_and_production_send_through_smtp_from_one_sender(app_env):
     values = settings_of(app_env)
     assert values["email_backend"] == "django.core.mail.backends.smtp.EmailBackend"
-    assert values["sender"] == "Bera <bera@example.com>"
+    assert values["sender"] == "bera@example.com"
     assert values["web"] == "https://app.example.com"
 
 

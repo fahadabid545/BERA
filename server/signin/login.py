@@ -14,13 +14,13 @@ from audit.service import record
 from companies.models import Company, CompanyUser
 from core.errors import AppError
 from core.field_protection import normalize_email
+from platform_settings.branding import contact_support
 from platform_settings.service import get_setting
 
 from . import guess_limit
 
 WRONG_CREDENTIALS = "Email or password is incorrect."
 VERIFY_EMAIL_FIRST = "Please verify your email"
-COMPANY_SUSPENDED = "Your company account is suspended. Please contact support."
 COMPANY_DELETION_PENDING = (
     "This company is scheduled for deletion. Use the link in the email we sent to undo it."
 )
@@ -66,7 +66,11 @@ def check_login(email, password):
     if person.status == CompanyUser.Status.BLOCKED:
         raise AppError("access_blocked", ACCESS_BLOCKED, status_code=403)
     if person.company.status == Company.Status.SUSPENDED:
-        raise AppError("company_suspended", COMPANY_SUSPENDED, status_code=403)
+        raise AppError(
+            "company_suspended",
+            contact_support("Your company account is suspended. Please contact support"),
+            status_code=403,
+        )
     if person.company.status == Company.Status.PENDING_DELETION:
         raise AppError("company_deletion_pending", COMPANY_DELETION_PENDING, status_code=403)
     if not person.email_verified:

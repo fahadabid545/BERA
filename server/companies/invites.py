@@ -26,6 +26,7 @@ from emailing.models import LinkToken
 from emailing.rendering import duration_text
 from emailing.service import send_email
 from plans.limits import check_team_size
+from platform_settings.branding import contact_support
 from platform_settings.service import get_setting
 
 from .models import Company, CompanyUser, Invitation
@@ -35,7 +36,6 @@ HOURS_PER_DAY = 24
 
 ACCOUNT_EXISTS = "This email already has an account."
 ALREADY_INVITED = "This email already has a pending invitation. Resend it instead."
-COMPANY_SUSPENDED = "This company account is suspended. Please contact support."
 
 
 def _open_tokens():
@@ -182,7 +182,11 @@ def accept_invitation(token, name, password):
     if invitation is None:
         raise link_refusal("link_invalid", "This link is not valid.")
     if invitation.company.status != Company.Status.ACTIVE:
-        raise AppError("company_suspended", COMPANY_SUSPENDED, status_code=403)
+        raise AppError(
+            "company_suspended",
+            contact_support("This company account is suspended. Please contact support"),
+            status_code=403,
+        )
     if CompanyUser.objects.filter(email=invitation.email).exists():
         raise AppError("account_exists", ACCOUNT_EXISTS, status_code=409)
     check_team_size(

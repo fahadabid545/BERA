@@ -59,7 +59,8 @@ FILE_STORAGE_BACKEND = "local"
 # Never served directly.
 PRIVATE_FILES_ROOT = Path(os.environ.get("PRIVATE_FILES_ROOT") or BASE_DIR.parent / "local_storage")
 EMAIL_FROM_ADDRESS = os.environ.get("EMAIL_FROM_ADDRESS", "").strip() or "bera@example.test"
-DEFAULT_FROM_EMAIL = f"Bera <{EMAIL_FROM_ADDRESS}>"
+# The sender's display name is the platform name setting, added when each email is sent.
+DEFAULT_FROM_EMAIL = EMAIL_FROM_ADDRESS
 # The AI provider key. Without one every AI call reports "unavailable" and the screens fall
 # back to manual entry.
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()

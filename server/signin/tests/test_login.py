@@ -181,7 +181,7 @@ class TestWhatTheRightPasswordLearnsAboutTheAccount:
         response = log_in()
         assert response.status_code == 403 and code_of(response) == "company_suspended"
         assert response.json()["error"]["message"] == (
-            "Your company account is suspended. Please contact support."
+            "Your company account is suspended. Please contact support at support@example.test."
         )
         assert not Session.objects.exists()
 

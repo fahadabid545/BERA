@@ -1,20 +1,24 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import MaintenancePage from "./page";
 
-describe("Maintenance page", () => {
-  it("shows its buttons and nothing else", () => {
-    const { container } = render(<MaintenancePage />);
-    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
-    expect(container.querySelectorAll("button, a, input, select, textarea")).toHaveLength(1);
-  });
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ enabled: false, message: "Fake message" }),
+    }),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
-  it("does nothing when a button is pressed", async () => {
-    const { container } = render(<MaintenancePage />);
-    const before = container.innerHTML;
-    for (const button of screen.getAllByRole("button")) await userEvent.click(button);
-    expect(container.innerHTML).toBe(before);
-  });
+it("shows the settings of its page", async () => {
+  render(<MaintenancePage />);
+  expect(await screen.findByText("Fake message")).toBeTruthy();
 });

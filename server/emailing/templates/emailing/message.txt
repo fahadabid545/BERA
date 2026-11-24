@@ -1,4 +1,4 @@
-{% autoescape off %}Bera
+{% autoescape off %}{{ app_name }}
 
 {{ heading }}
 
@@ -7,4 +7,5 @@
 {% endfor %}{{ button_label }}: {{ link }}
 
 If you did not expect this email, you can ignore it.
+Need help? Contact {{ support_email }}.
 {% endautoescape %}

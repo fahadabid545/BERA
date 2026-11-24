@@ -1,9 +1,5 @@
-import { Button } from "@/components/ui";
+import { AdminSettingsTable } from "@/components/admin/AdminSettingsTable";
 
 export default function PlatformValuesPage() {
-  return (
-    <div className="page-actions">
-      <Button>Save</Button>
-    </div>
-  );
+  return <AdminSettingsTable />;
 }

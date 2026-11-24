@@ -10,13 +10,13 @@ from adminusers.models import AdminUser
 from audit.service import record
 from companies.models import CompanyUser
 from core.errors import AppError
+from platform_settings.branding import app_name, contact_support
 from platform_settings.service import get_setting
 from signin import guess_limit
 
 from . import recovery_codes
 from .models import RecoveryCode
 
-ISSUER = "Bera"
 STEP_SECONDS = 30  # the standard authenticator step; apps assume it
 CODE_DIGITS = 6
 
@@ -24,10 +24,16 @@ WRONG_CODE = "That code is not correct. Try again."
 ADMIN_WRONG_CODE = (
     "That code is not correct. If you lost your device, another super admin must reset it."
 )
-LOST_DEVICE = (
-    "Lost your device and your recovery codes? Contact support. "
-    "We will check your identity before we can help."
-)
+
+
+def lost_device_message():
+    return (
+        "Lost your device and your recovery codes? "
+        + contact_support("Contact support")
+        + " We will check your identity before we can help."
+    )
+
+
 ALREADY_ON = "Two-step verification is already on."
 NOT_ON = "Two-step verification is not on."
 REQUIRED_BY_COMPANY = "Your company requires two-step verification, so it cannot be turned off."
@@ -111,7 +117,9 @@ def begin_setup(person):
         raise AppError("two_step_already_on", ALREADY_ON, status_code=409)
     person.two_step_secret = pyotp.random_base32()
     person.save(update_fields=["two_step_secret"])
-    uri = pyotp.TOTP(person.two_step_secret).provisioning_uri(name=person.email, issuer_name=ISSUER)
+    uri = pyotp.TOTP(person.two_step_secret).provisioning_uri(
+        name=person.email, issuer_name=app_name()
+    )
     return {"secret": person.two_step_secret, "uri": uri}
 
 

@@ -8,6 +8,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+
 
 def whole_number(minimum, maximum):
     def is_valid(value):
@@ -80,7 +83,27 @@ def list_of_words(maximum_items):
 
 def short_text(maximum):
     def is_valid(value):
-        return isinstance(value, str) and 0 < len(value.strip()) <= maximum
+        return (
+            isinstance(value, str)
+            and 0 < len(value.strip()) <= maximum
+            # One line: a name or message with a line break could break an email header.
+            and not any(character < " " or character == "\x7f" for character in value)
+        )
+
+    return is_valid
+
+
+def email_address(maximum):
+    """One valid email address of at most `maximum` characters."""
+
+    def is_valid(value):
+        if not isinstance(value, str) or not 0 < len(value) <= maximum or value != value.strip():
+            return False
+        try:
+            validate_email(value)
+        except ValidationError:
+            return False
+        return True
 
     return is_valid
 
@@ -187,6 +210,15 @@ class SettingDefinition:
 percent = whole_number(0, 100)
 
 SETTINGS = [
+    # General: what emails and notices call the platform and where they send people for help.
+    SettingDefinition("general.app_name", "Bera", short_text(60)),
+    SettingDefinition("general.support_email", "support@example.test", email_address(254)),
+    # Maintenance mode (see platform_settings/maintenance.py): while on, companies see the message
+    # and cannot upload; admins sign in as usual.
+    SettingDefinition("maintenance.enabled", False, yes_or_no),
+    SettingDefinition(
+        "maintenance.message", "We are doing maintenance. Please come back soon.", short_text(500)
+    ),
     # Passwords
     SettingDefinition("passwords.min_length", 12, whole_number(8, 128)),
     SettingDefinition("passwords.block_common_passwords", True, yes_or_no),

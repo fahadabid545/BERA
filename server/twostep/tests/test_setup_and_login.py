@@ -8,7 +8,7 @@ from platform_settings.service import get_setting
 from signin.models import Session
 from twostep.models import RecoveryCode
 from twostep.recovery_codes import normalise
-from twostep.service import LOST_DEVICE
+from twostep.service import lost_device_message
 
 from .helpers import (
     LOGIN,
@@ -175,7 +175,8 @@ class TestRecoveryCodes:
         assert second_step(log_in().json()["challenge"], other_codes[0]).status_code == 400
 
     def test_the_lost_device_message_tells_what_to_do(self):
-        assert "Contact support" in LOST_DEVICE and "recovery codes" in LOST_DEVICE
+        assert "Contact support" in lost_device_message()
+        assert "recovery codes" in lost_device_message()
 
 
 class TestGuessingCodes:

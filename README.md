@@ -1825,6 +1825,38 @@ invitations; `POST invitations/` invites; `POST invitations/<id>/resend/` and `.
   `admin.invite_accepted`, plus the existing `admin.role_changed` and `admin.status_changed`. The
   address is never written to the log.
 
+## Admin settings
+
+Super admin only (`settings.view` to read, `settings.change` to change; the server refuses
+everyone else). One API under `/api/admin/settings/`: `GET ?page=` (`general`, `limits`,
+`rate_limits`, `security`, or none for every editable value) lists each setting with its value,
+default and whether it is still the default; `PUT {"values": {...}}` saves one or several, all or
+none; `POST <key>/reset/` goes back to the default. `GET/POST maintenance/` is the maintenance
+switch. `GET /api/platform/` (no sign-in) gives the platform name, support address and maintenance
+message to every screen.
+
+- **Pages:** General (app name, support email), Platform values (every editable value with its
+  default, grouped), Limits (upload size, files per batch, team invite expiry, team size), Rate
+  limiting (every `rate_limits.*` value), Security (session lengths, password rules and the
+  admin two-step status), AI controls (the existing pause switch and spend alerts) and Maintenance.
+- **Applies at once:** values are read where they are used (`get_setting`) and a save clears the
+  cache, so nothing needs a restart. A value saved equal to its default is stored as no override.
+- **Audited:** `admin.setting_changed` and `admin.setting_reset` record who, when and the old and
+  new value (long values are cut; a setting listed in `admin_settings.SECRET_STYLE` records only
+  that it changed). No reason is asked. `admin.maintenance_changed` needs a written reason.
+- **Not edited here:** settings with their own screen: the AI models and prompt versions, the
+  spend alerts and playground budget, the PKR rate, and maintenance mode.
+- **Rules between settings:** the shortest password cannot exceed the longest.
+- **App name and support email** (`general.app_name`, `general.support_email`) replace every
+  hard-coded name and address: the header, subject, button and footer of every email, the sender
+  name and reply-to, the authenticator app's issuer, the suspended and reset messages, and the
+  "You do not have access" page. A test fails if either is written into the code again. The public
+  website pages read the same settings in their own tickets.
+- **Maintenance mode:** while on, every company page shows the message and uploads are refused
+  (503 `maintenance_mode`); everything else, and all of the admin panel, works as usual.
+- **Admin two-step verification** is always required. It has no setting, flag or environment
+  variable that skips it; the Security page only shows how many admins have set it up.
+
 ## Jobs monitor
 
 Admin > Operations > Jobs (`cvs/job_monitor.py`; both admin roles: actions `job.view`,

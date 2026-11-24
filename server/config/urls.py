@@ -1,5 +1,7 @@
 from django.urls import include, path
 
+from platform_settings.views import platform_info
+
 urlpatterns = [
     path("api/", include("core.urls")),
     path("api/auth/", include("signin.urls")),
@@ -11,6 +13,8 @@ urlpatterns = [
     path("api/company/", include("notifications.urls")),
     path("api/company/announcements/", include("announcements.company_urls")),
     path("api/admin/data-requests/", include("datarequests.urls")),
+    path("api/admin/settings/", include("platform_settings.admin_urls")),
+    path("api/platform/", platform_info),
     path("api/admin/announcements/", include("announcements.admin_urls")),
     path("api/company/activity/", include("activity.urls")),
     path("api/company/charts/", include("cvs.company_urls")),

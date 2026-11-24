@@ -8,6 +8,7 @@ from core.errors import AppError
 from emailing.links import build_link
 from emailing.service import send_email
 from plans.subscriptions import owner_of
+from platform_settings.branding import contact_support
 from signin import service as signin
 from signin.service import RevokeReason
 
@@ -16,7 +17,6 @@ from .models import Company
 ALREADY_SUSPENDED = "This company is already suspended."
 NOT_SUSPENDED = "This company is not suspended."
 SUSPENDED_TITLE = "Your company account was suspended"
-SUSPENDED_MESSAGE = "Your company account was suspended. Please contact support."
 RESTORED_TITLE = "Your company account is active again"
 RESTORED_MESSAGE = "Your company account is active again. You can sign in."
 
@@ -43,7 +43,11 @@ def suspend_company(company_id, *, by, reason):
         company.save(update_fields=["status"])
         signin.revoke_company_sessions(company.pk, RevokeReason.COMPANY_SUSPENDED)
         record("admin.company_suspended", actor=by, target=company, reason=reason)
-        _tell_the_owner(company.pk, SUSPENDED_TITLE, SUSPENDED_MESSAGE)
+        _tell_the_owner(
+            company.pk,
+            SUSPENDED_TITLE,
+            contact_support("Your company account was suspended. Please contact support"),
+        )
     return company
 
 

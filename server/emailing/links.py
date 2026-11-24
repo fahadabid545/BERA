@@ -24,7 +24,7 @@ def validate_link(url):
     parts = urlsplit(url)
     site = urlsplit(settings.WEB_BASE_URL)
     if (parts.scheme, parts.netloc) != (site.scheme, site.netloc) or "@" in parts.netloc:
-        raise ValueError("An email link must point to the Bera website.")
+        raise ValueError("An email link must point to the platform's own website.")
     names = {name.lower() for name, _ in parse_qsl(parts.query + "&" + parts.fragment)}
     if names & FORBIDDEN_QUERY_NAMES:
         raise ValueError("An email link must never carry a password.")
