@@ -518,6 +518,9 @@ SETTINGS = [
     SettingDefinition("data_requests.due_days", 30, whole_number(1, 365)),
     SettingDefinition("data_requests.max_note_length", 300, whole_number(1, 1000)),
     SettingDefinition("data_requests.list_limit", 100, whole_number(1, 1000)),
+    # The audit log viewer (audit/log_viewer.py): entries per page, most entries one export holds.
+    SettingDefinition("audit_log.page_size", 50, whole_number(1, 500)),
+    SettingDefinition("audit_log.export_max_rows", 50_000, whole_number(1, 1_000_000)),
     # Announcement banners (see announcements/). The ceiling is the column size of the message.
     SettingDefinition("announcements.max_message_length", 300, whole_number(1, 2000)),
 ]

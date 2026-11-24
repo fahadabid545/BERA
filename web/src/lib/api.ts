@@ -43,19 +43,26 @@ async function renewSession(): Promise<boolean> {
   }
 }
 
-async function request<T>(path: string, init: RequestInit, mayRenew = true): Promise<ApiResult<T>> {
+async function request<T>(
+  path: string,
+  init: RequestInit,
+  mayRenew = true,
+  asFile = false,
+): Promise<ApiResult<T>> {
   let response: Response;
   try {
     response = await send(path, init);
   } catch {
     return { ok: false, error: UNREACHABLE };
   }
+  // A file arrives as it is; a refusal is always the shared JSON error.
+  if (response.ok && asFile) return { ok: true, data: (await response.blob()) as T };
   const body = await response.json().catch(() => null);
   if (response.ok) return { ok: true, data: body as T };
   const error = body?.error as ApiError | undefined;
   if (response.status === 401 && error?.code === NOT_SIGNED_IN) {
     // The short-lived sign-in ended while the person was working: renew it and carry on once.
-    if (mayRenew && (await renewSession())) return request<T>(path, init, false);
+    if (mayRenew && (await renewSession())) return request<T>(path, init, false, asFile);
     sessionEnded();
   }
   return {
@@ -66,6 +73,11 @@ async function request<T>(path: string, init: RequestInit, mayRenew = true): Pro
 
 export function getJson<T>(path: string) {
   return request<T>(path, { method: "GET" });
+}
+
+/** A file the server makes on request (a CSV export). A refusal comes back as the shared error. */
+export function getFile(path: string) {
+  return request<Blob>(path, { method: "GET" }, true, true);
 }
 
 export function postJson<T>(path: string, body: unknown) {

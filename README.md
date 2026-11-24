@@ -1857,6 +1857,27 @@ message to every screen.
 - **Admin two-step verification** is always required. It has no setting, flag or environment
   variable that skips it; the Security page only shows how many admins have set it up.
 
+## Audit log viewer
+
+Settings > Audit log (super admin only: `audit_log.view`; support is refused by the server).
+`GET /api/admin/audit-log/` lists entries newest first with filters, `GET .../export/` downloads
+the same filtered entries as a CSV.
+
+- **Filters** (all optional, combinable): `person` (at least 3 letters of a name or email of an
+  admin or company person), `company` (id), `action` (one of the audit kinds in
+  `audit/events.py`), `from_date` and `to_date` (UTC days, both included). Unknown or invalid
+  filters are refused.
+- **Stays fast on a large log:** no total is counted and no offset is used. Entries are ordered by
+  time and id and a page starts after the `cursor` of the last entry of the page before; the
+  `next` marker is null on the last page. A page holds `audit_log.page_size` (50) entries. The
+  indexes on company, person, action and (time, id) serve the filters and the order.
+- **Export:** CSV (opens in Excel and Sheets; cells starting like a formula are quoted), written in
+  chunks. It follows the filters. More than `audit_log.export_max_rows` (50,000) matching entries
+  is refused with 400 `audit_export_too_large` and a message to narrow the dates or filters.
+- **The export is itself logged** (`admin.audit_log_exported`: who, when, the filters used and how
+  many rows; what was typed to find a person is never kept). It holds the entries that existed when
+  it began, so not its own entry. The log holds no secrets or candidate contents.
+
 ## Jobs monitor
 
 Admin > Operations > Jobs (`cvs/job_monitor.py`; both admin roles: actions `job.view`,

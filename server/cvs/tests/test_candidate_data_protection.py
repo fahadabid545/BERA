@@ -261,7 +261,10 @@ class TestAdminScreensAndExportsHoldNoCandidateContent:
             )
             for method in ("get", "options", "head"):
                 answer = getattr(admin, method)(path)
-                assert_clean(answer.content.decode())
+                # An export is streamed: read what it sends, so it is checked as well.
+                streamed = getattr(answer, "streaming_content", None)
+                text = b"".join(streamed).decode() if streamed else answer.content.decode()
+                assert_clean(text)
                 assert_clean(json.dumps(dict(answer.headers)))
 
     def test_the_audit_log_and_activity_list_hold_no_candidate_content(self, stored):

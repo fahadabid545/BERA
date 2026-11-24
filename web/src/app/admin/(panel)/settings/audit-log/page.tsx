@@ -1,10 +1,5 @@
-import { Button } from "@/components/ui";
+import { AuditLogViewer } from "@/components/admin/AuditLogViewer";
 
 export default function AuditLogPage() {
-  return (
-    <div className="page-actions">
-      <Button variant="secondary">Filters</Button>
-      <Button variant="secondary">Export</Button>
-    </div>
-  );
+  return <AuditLogViewer />;
 }

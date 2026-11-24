@@ -50,6 +50,8 @@ class AuditEvent(models.Model):
             models.Index(fields=["company_id", "created_at"]),
             models.Index(fields=["actor_kind", "actor_id", "created_at"]),
             models.Index(fields=["kind", "created_at"]),
+            # Newest first, with the paging cursor: keeps an unfiltered or date-only view fast.
+            models.Index(fields=["created_at", "id"], name="audit_newest_first"),
         ]
 
     def save(self, *args, **kwargs):
