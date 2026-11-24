@@ -61,6 +61,7 @@ KINDS_NAMED_IN_THE_TICKET = {
 # UsagePeriod, UsageCounter, CvUsage: usage/tests/test_usage_counting.py (kept apart per company).
 # NotificationChoice, NotificationSent: notifications/tests/test_notifications.py (TestChoices).
 # PaymentEvent: plans/tests/test_payment_events.py (TestAnotherCompany).
+# CheckoutAttempt: plans/tests/test_checkout.py (TestAnotherCompany).
 # AnnouncementDismissal: announcements/tests/test_announcements.py (TestDismissing).
 REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Invitation",
@@ -68,6 +69,7 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Subscription",
     "LimitOverride",
     "PaymentEvent",
+    "CheckoutAttempt",
     "AnnouncementDismissal",
     "UsagePeriod",
     "UsageCounter",

@@ -332,6 +332,8 @@ SETTINGS = [
     # How many billing periods the Usage tab lists, newest first.
     SettingDefinition("usage.history_periods", 12, whole_number(1, 120)),
     SettingDefinition("billing.past_due_grace_days", 7, whole_number(0, 90)),
+    # How long a payment page stays open (the provider allows 30 minutes to 24 hours).
+    SettingDefinition("billing.checkout_minutes", 30, whole_number(30, 1440)),
     # How many days before a subscription ends its owner is emailed.
     SettingDefinition("notifications.subscription_ending_days", 7, whole_number(1, 60)),
     SettingDefinition("account.deletion_grace_days", 14, whole_number(0, 365)),

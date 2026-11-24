@@ -22,6 +22,7 @@ urlpatterns = [
     path("api/company/dashboard/", include("cvs.dashboard_urls")),
     path("api/company/downloads/", include("cvs.package_urls")),
     path("api/company/usage/", include("plans.company_urls")),
+    path("api/company/billing/", include("plans.billing_urls")),
     path("api/admin/plans/", include("plans.urls")),
     path("api/admin/payments/", include("plans.payment_urls")),
     path("api/admin/ai/", include("ai.urls")),

@@ -101,6 +101,7 @@ EXPECTED_DEFAULTS = {
     "usage.warning_percents": [80, 100],
     "usage.history_periods": 12,
     "billing.past_due_grace_days": 7,
+    "billing.checkout_minutes": 30,
     "notifications.subscription_ending_days": 7,
     "scoring.must_have_weight_percent": 70,
     "scoring.nice_to_have_weight_percent": 30,

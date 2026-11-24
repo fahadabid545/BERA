@@ -35,6 +35,7 @@ ROLES_ALLOWED = {
     "team.remove": OWNER_ONLY,
     "team.transfer_ownership": OWNER_ONLY,
     "billing.view": OWNER_ONLY,
+    "billing.pay": OWNER_ONLY,
     "settings.change": OWNER_ONLY,
     "advanced.open": OWNER_ONLY,
     "company.delete": OWNER_ONLY,

@@ -74,6 +74,10 @@ class Subscription(CompanyOwnedModel):
     renewal = models.BooleanField(default=False)
     # When payment first failed; the grace period counts from here.
     past_due_since = models.DateTimeField(null=True)
+    # The payment provider's ids, kept for the webhook and renewal tickets. Empty for a company
+    # that never paid by card (free grants, no plan). Not secrets, but never shown to the company.
+    stripe_customer_id = models.CharField(max_length=255, blank=True)
+    stripe_subscription_id = models.CharField(max_length=255, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -140,5 +144,38 @@ class PaymentEvent(CompanyOwnedModel):
             ),
             models.CheckConstraint(
                 condition=Q(currency__regex=r"^[A-Z]{3}$"), name="paymentevent_currency_is_iso"
+            ),
+        ]
+
+
+class CheckoutAttempt(CompanyOwnedModel):
+    """One visit to the payment provider's secure page. It makes a double click safe (an open
+    attempt for the same plan is reused) and activation once-only (a paid attempt is marked
+    `activated` in the same step that activates the subscription). Holds no card data."""
+
+    class Status(models.TextChoices):
+        OPEN = "open"
+        ACTIVATED = "activated"
+        REPLACED = "replaced"  # the company chose another plan; the old page was closed
+
+    plan = models.ForeignKey(Plan, on_delete=models.PROTECT, related_name="+")
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.OPEN)
+    # What the page asked for, kept so a paid session is only trusted if it matches.
+    amount_minor = models.PositiveBigIntegerField()
+    currency = models.CharField(max_length=3)
+    stripe_session_id = models.CharField(max_length=255, blank=True)
+    payment_page_url = models.URLField(max_length=2000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["stripe_session_id"],
+                condition=~Q(stripe_session_id=""),
+                name="one_attempt_per_provider_session",
+            ),
+            models.CheckConstraint(
+                condition=Q(status__in=["open", "activated", "replaced"]),
+                name="checkout_status_is_known",
             ),
         ]

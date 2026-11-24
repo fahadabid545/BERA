@@ -493,6 +493,35 @@ after the owner has confirmed with the payment provider that a Canadian account 
 The PKR to USD rate set by the super admin (`billing.pkr_per_usd`) is still used for estimated
 revenue and margin.
 
+### Checkout (BERA-164)
+
+An owner buys a plan on the payment provider's (Stripe) own page; card details never reach this
+server. It is a **monthly recurring Stripe subscription** in USD at the plan's USD price
+(`plans/pricing.py::charge_price`, never PKR), with the card saved by Stripe. Test mode only:
+`plans/stripe_client.py` refuses any key that is not `sk_test_`/`rk_test_`, and is the only file
+that talks to Stripe. Secret `STRIPE_SECRET_KEY` (held by the app only; required in staging and
+production; see `.env.example`).
+
+- `POST /api/company/billing/checkout/` `{plan_id}` (owner only, action `billing.pay`) returns the
+  payment page address. A plan that is hidden or archived is not found; a company that already has a
+  running plan (even a free grant) is refused (`already_subscribed`).
+- **Double click:** one `CheckoutAttempt` per page. A second click for the same plan while the page is
+  open returns the same page and creates nothing; every create call to Stripe carries the attempt's id
+  as its idempotency key. Choosing another plan first closes the old page (if Stripe will not close
+  it, `checkout_in_progress`). The page stays open `billing.checkout_minutes` (30).
+- `POST /api/company/billing/checkout/confirm/` `{session_id}` is called by the return page
+  `/company/billing/return`. The server asks Stripe; it activates the plan (state Active, one month from
+  now, renewal on) only when the session is complete and paid and matches the company, amount and
+  currency that were asked for. Result is `activated`, `pending`, `cancelled` or `closed`. The attempt is
+  marked `activated` in the same step, so opening the return page twice activates once. A failed or
+  cancelled payment (`?checkout=cancelled`) changes nothing.
+- Stripe's customer and subscription ids are kept on the company's `Subscription`
+  (`stripe_customer_id`, `stripe_subscription_id`) for BERA-165 (webhook) and BERA-167 (renewals,
+  cancellation, reminder, grace period). None of those is built here. Free grants by a super admin never
+  go through checkout.
+- Extra bank verification (3-D Secure) is handled by Stripe's page; the return page only reads the
+  outcome.
+
 ### Plans management
 
 Super admins manage the subscription plans under `/api/admin/plans/` (list and create; read,

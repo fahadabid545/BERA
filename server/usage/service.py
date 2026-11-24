@@ -20,7 +20,7 @@ from .models import CvUsage, UsageCounter, UsagePeriod
 Status = CvUsage.Status
 
 
-def _month_start(anchor, months):
+def add_months(anchor, months):
     """The anchor moved by whole months, keeping its day (shortened in short months)."""
     index = anchor.year * 12 + anchor.month - 1 + months
     year, month = divmod(index, 12)
@@ -40,11 +40,11 @@ def window_for(company_id, moment):
     """(start, end) of the monthly period holding `moment`."""
     anchor = _anchor(company_id)
     months = (moment.year * 12 + moment.month) - (anchor.year * 12 + anchor.month)
-    while _month_start(anchor, months) > moment:
+    while add_months(anchor, months) > moment:
         months -= 1
-    while _month_start(anchor, months + 1) <= moment:
+    while add_months(anchor, months + 1) <= moment:
         months += 1
-    return _month_start(anchor, months), _month_start(anchor, months + 1)
+    return add_months(anchor, months), add_months(anchor, months + 1)
 
 
 def _lock(company_id):

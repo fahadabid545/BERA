@@ -31,6 +31,7 @@ MEMBER_MAY_NOT = [
     "team.remove",
     "team.transfer_ownership",
     "billing.view",
+    "billing.pay",
     "settings.change",
     "advanced.open",
     "project.delete",

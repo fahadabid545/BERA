@@ -182,9 +182,10 @@ def _apply(subscription, new_state, *, source, by=None, reason="", kind=None, **
     return subscription
 
 
-def activate(company_id, plan, *, period_start, period_end, renewal=True):
+def activate(company_id, plan, *, period_start, period_end, renewal=True, **provider_ids):
     """A payment succeeded (first payment, renewal or plan change). Moves a waiting price or
-    limit change of the plan into effect at the same time."""
+    limit change of the plan into effect at the same time. `provider_ids` are the payment
+    provider's customer and subscription ids, kept on the record."""
     apply_pending_change(plan)
     return _change(
         company_id,
@@ -196,6 +197,7 @@ def activate(company_id, plan, *, period_start, period_end, renewal=True):
         period_end=period_end,
         renewal=renewal,
         past_due_since=None,
+        **provider_ids,
     )
 
 
