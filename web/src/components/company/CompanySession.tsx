@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { getJson, type ApiError } from "@/lib/api";
 
+import { AnnouncementBanners } from "./AnnouncementBanners";
 import { CompanyFrame } from "./CompanyFrame";
 import type { CompanyRole } from "./navigation";
 import { RoleProvider } from "./role";
@@ -45,7 +46,10 @@ export function CompanySession({ children }: { children: ReactNode }) {
   }
   return (
     <CompanyFrame companyName={me.company_name} userName={me.name} role={me.role}>
-      <RoleProvider value={me.role}>{children}</RoleProvider>
+      <RoleProvider value={me.role}>
+        <AnnouncementBanners />
+        {children}
+      </RoleProvider>
     </CompanyFrame>
   );
 }

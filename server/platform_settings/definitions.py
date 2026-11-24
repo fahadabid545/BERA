@@ -480,6 +480,8 @@ SETTINGS = [
     SettingDefinition("requirements.near_duplicate_percent", 85, whole_number(50, 100)),
     # Live screen updates
     SettingDefinition("live_updates.max_delay_seconds", 3, whole_number(1, 60)),
+    # Announcement banners (see announcements/). The ceiling is the column size of the message.
+    SettingDefinition("announcements.max_message_length", 300, whole_number(1, 2000)),
 ]
 
 DEFINITIONS = {definition.key: definition for definition in SETTINGS}

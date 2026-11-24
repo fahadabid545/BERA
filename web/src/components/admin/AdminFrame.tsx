@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { PanelFrame } from "@/components/panel/PanelFrame";
 
 import { AdminTopBar } from "./AdminTopBar";
+import { AdminRoleProvider } from "./role";
 import { blockedAdminHrefs, visibleAdminNavigation, type AdminRole } from "./navigation";
 
 /** The shared frame of the admin area. It looks different from the company panel on purpose. */
@@ -24,7 +25,7 @@ export function AdminFrame({
       blockedHrefs={blockedAdminHrefs(role)}
       topBar={<AdminTopBar userName={userName} />}
     >
-      {children}
+      <AdminRoleProvider value={role}>{children}</AdminRoleProvider>
     </PanelFrame>
   );
 }

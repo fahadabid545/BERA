@@ -24,6 +24,9 @@ SUPPORT_MAY = [
     "announcement.read",
 ]
 SUPPORT_MAY_NOT = [
+    "announcement.create",
+    "announcement.edit",
+    "announcement.delete",
     "plan.change",
     "price.change",
     "model.change",

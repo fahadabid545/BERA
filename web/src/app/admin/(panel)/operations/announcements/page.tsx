@@ -1,9 +1,5 @@
-import { Button } from "@/components/ui";
+import { AdminAnnouncements } from "@/components/admin/AdminAnnouncements";
 
 export default function AnnouncementsPage() {
-  return (
-    <div className="page-actions">
-      <Button>New announcement</Button>
-    </div>
-  );
+  return <AdminAnnouncements />;
 }

@@ -33,6 +33,7 @@ import {
 } from "@/components/company/BillingPrompt";
 
 import { AdminSample } from "./AdminSample";
+import { AnnouncementSample } from "./AnnouncementSample";
 import { ComparisonSample } from "./ComparisonSample";
 import { DashboardSample } from "./DashboardSample";
 import { DeleteConfirmation } from "./DeleteConfirmation";
@@ -200,6 +201,11 @@ export default function DesignSample() {
       <section className="sample-section" aria-labelledby="sample-admin">
         <h2 id="sample-admin">Admin overview</h2>
         <AdminSample />
+      </section>
+
+      <section className="sample-section" aria-labelledby="sample-announcement">
+        <h2 id="sample-announcement">Announcement banner</h2>
+        <AnnouncementSample />
       </section>
 
       <section className="sample-section" aria-labelledby="sample-cards">

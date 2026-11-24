@@ -76,6 +76,9 @@ KINDS = _kinds(
     EventKind("admin.ai_playground_budget_changed", reason_required=True),
     EventKind("admin.job_retried"),
     EventKind("admin.job_cancelled"),
+    EventKind("admin.announcement_created"),
+    EventKind("admin.announcement_edited"),
+    EventKind("admin.announcement_deleted"),
     # Reserved: opening candidate content is refused for admin and support. An exception would be
     # explicit, time limited and justified in writing, and recorded with this kind.
     EventKind("admin.candidate_data_exception", reason_required=True),

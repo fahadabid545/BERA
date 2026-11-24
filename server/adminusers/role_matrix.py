@@ -33,6 +33,9 @@ ROLES_ALLOWED = {
     "admin_user.view": SUPER_ONLY,
     "advanced.open": SUPER_ONLY,
     # Changes only super admins may make.
+    "announcement.create": SUPER_ONLY,
+    "announcement.edit": SUPER_ONLY,
+    "announcement.delete": SUPER_ONLY,
     "plan.change": SUPER_ONLY,
     "price.change": SUPER_ONLY,
     "model.change": SUPER_ONLY,

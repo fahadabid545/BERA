@@ -1,20 +1,30 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+
+import { AdminRoleProvider } from "@/components/admin/role";
 
 import AnnouncementsPage from "./page";
 
-describe("Announcements page", () => {
-  it("shows its buttons and nothing else", () => {
-    const { container } = render(<AnnouncementsPage />);
-    expect(screen.getByRole("button", { name: "New announcement" })).toBeTruthy();
-    expect(container.querySelectorAll("button, a, input, select, textarea")).toHaveLength(1);
-  });
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [], plans: [], companies: [] }),
+    }),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
-  it("does nothing when a button is pressed", async () => {
-    const { container } = render(<AnnouncementsPage />);
-    const before = container.innerHTML;
-    for (const button of screen.getAllByRole("button")) await userEvent.click(button);
-    expect(container.innerHTML).toBe(before);
-  });
+it("shows New announcement to a super admin", async () => {
+  render(
+    <AdminRoleProvider value="super">
+      <AnnouncementsPage />
+    </AdminRoleProvider>,
+  );
+  expect(await screen.findByRole("button", { name: "New announcement" })).toBeTruthy();
 });

@@ -19,6 +19,9 @@ function stubMe(reply: Reply | (() => Reply)) {
     if (path === "/api/company/usage/") {
       return new Response(JSON.stringify({ error: { code: "x", message: "x" } }), { status: 403 });
     }
+    if (path === "/api/company/announcements/") {
+      return new Response(JSON.stringify({ items: [] }), { status: 200 });
+    }
     const { status = 200, body } = typeof reply === "function" ? reply() : reply;
     return new Response(JSON.stringify(body), { status });
   });
