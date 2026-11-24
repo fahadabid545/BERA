@@ -233,6 +233,11 @@ def tick():
         kick(1)
 
 
+def stuck_cutoff(now):
+    """A CV that began its try before this moment is stuck."""
+    return now - timedelta(minutes=get_setting("processing.stuck_minutes"))
+
+
 @logged_job
 def sweep():
     """Once a minute. Puts a CV that has been stuck in one try too long back in line (or fails
@@ -241,7 +246,7 @@ def sweep():
     now = _now()
     control.end_expired_pause(now)  # an automatic pause that is over: resume by itself
     spend_alerts.check(now)  # email the super admins once when spending passes a limit
-    cutoff = now - timedelta(minutes=get_setting("processing.stuck_minutes"))
+    cutoff = stuck_cutoff(now)
     with transaction.atomic():
         stuck = CvFile.objects.select_for_update(skip_locked=True, of=("self",)).filter(
             status__in=(READING, SCORING), started_at__lt=cutoff

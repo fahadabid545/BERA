@@ -1739,6 +1739,26 @@ A super admin sets a daily and a monthly limit in US dollars on Advanced > AI co
   (`AiSpendAlert`), so later checks in the same day or month send nothing. A new day or month, or a
   changed limit that is crossed, is a new crossing.
 
+## Jobs monitor
+
+Admin > Operations > Jobs (`cvs/job_monitor.py`; both admin roles: actions `job.view`,
+`job.retry`, `job.cancel`). A job is one CV in background processing.
+
+- `GET /api/admin/jobs/?state=&company=` lists jobs grouped by company with a count per company
+  and state, at most `admin_jobs.list_limit` (100) jobs with the real total. States: waiting,
+  running, failed, and stuck (a worker has had it longer than `processing.stuck_minutes`). Each job
+  shows its company, project, tries and a reason; no file name or CV content is ever shown.
+- `POST /api/admin/jobs/<id>/retry/`: a failed job goes back in line through the same code the
+  company's Retry uses (so the monthly limit is checked and 409 is returned when there is no room);
+  a stuck job goes back in line with fresh tries and its old claim dropped, so the worker that held
+  it can no longer change it. Retrying never repeats usage (a usage entry already open or counted is
+  left as it is) and a second retry of the same job is refused with 409.
+- `POST /api/admin/jobs/<id>/cancel/`: only a waiting or stuck job; it is never counted and gives
+  its allowance back. Running work is let finish, as when a company cancels an upload.
+- Both actions are audited (`admin.job_retried`, `admin.job_cancelled`, with the company).
+- Failed jobs are also a row ("Failed jobs") in the Attention tab of the overview, with a Review
+  list (`kind=pending&key=failed_jobs` on the dashboard detail route).
+
 ## AI playground
 
 A super admin tries the reading and scoring on one CV and one job description at Admin > AI >

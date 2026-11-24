@@ -31,6 +31,7 @@ from ai.models import AiCall
 from companies.models import Company
 from core.errors import form_error
 from core.scoping import require_role
+from cvs import job_monitor
 from cvs.charts import per_day, percent_change
 from cvs.dashboard import card, checked_period, in_days, windows
 from cvs.models import CandidateScore
@@ -315,6 +316,8 @@ def _pending(role, subscriptions):
     }
     if _can(role, "ai.view"):
         pending["failed_ai_calls"] = _failed_calls(now).count()
+    if _can(role, "job.view"):
+        pending["failed_jobs"] = job_monitor.failed_count()
     return pending
 
 
@@ -392,6 +395,17 @@ def _call_item(call):
     }
 
 
+def _job_item(job):
+    return {
+        "type": "job",
+        "id": job["id"],
+        "company_id": job["company_id"],
+        "company": job["company"],
+        "reason": job["reason"],
+        "at": job["since"],
+    }
+
+
 def detail(role, kind, key, raw_days):
     """{"total", "items"}: companies (or AI calls for admins who may see them) behind a card or
     a mark; at most `dashboard.detail_limit` items with the real total."""
@@ -444,6 +458,13 @@ def detail(role, kind, key, raw_days):
         require_action_for(role, "ai.view")
         calls = _failed_calls(timezone.now()).order_by("-created_at")
         return {"total": calls.count(), "items": [_call_item(call) for call in calls[:limit]]}
+    if kind == "pending" and key == "failed_jobs":
+        require_action_for(role, "job.view")
+        jobs = job_monitor.list_jobs(state=job_monitor.FAILED)
+        return {
+            "total": jobs["total"],
+            "items": [_job_item(job) for job in jobs["items"][:limit]],
+        }
     if kind in ("ai_purpose", "ai_model") and key:
         require_action_for(role, "ai.view")
         column = "purpose" if kind == "ai_purpose" else "model"

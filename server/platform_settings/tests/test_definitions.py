@@ -67,6 +67,7 @@ EXPECTED_DEFAULTS = {
     "processing.retry_waits_seconds": [30, 120],
     "processing.stuck_minutes": 5,
     "processing.list_limit": 200,
+    "admin_jobs.list_limit": 100,
     "duplicates.phone_digits": 9,
     "storage.retry_waits_seconds": [1, 3],
     "storage.download_link_hours": 24,

@@ -73,7 +73,7 @@ const superData = (over: Partial<AdminData> = {}): AdminData => ({
     trend,
     top_companies: [company("a", { cvs_scored: 30, tokens: 1500, cost: 4.25 })],
   },
-  pending: { past_due: 4, grants_expiring: 0, suspended: 2, failed_ai_calls: 9 },
+  pending: { past_due: 4, grants_expiring: 0, suspended: 2, failed_ai_calls: 9, failed_jobs: 3 },
   recent: [{ ...company("n"), created_at: new Date().toISOString() }],
   revenue: {
     mrr: 12900,
@@ -108,7 +108,7 @@ const supportData = (): AdminData => {
     ...rest,
     role: "support",
     cards: { companies: card(3, 200), cvs_scored: card(40, 10) },
-    pending: { past_due: 4, grants_expiring: 0, suspended: 2 },
+    pending: { past_due: 4, grants_expiring: 0, suspended: 2, failed_jobs: 3 },
     usage: {
       trend: { ...trend, metrics: { cvs_scored: trend.metrics.cvs_scored } },
       top_companies: [company("a", { cvs_scored: 30 })],
@@ -327,9 +327,9 @@ describe("Attention", () => {
     serve(superData());
     const user = userEvent.setup();
     show("attention");
-    expect(await screen.findByText("15 pending")).toBeTruthy();
+    expect(await screen.findByText("18 pending")).toBeTruthy();
     const buttons = screen.getAllByRole("button", { name: "Review" });
-    expect(buttons).toHaveLength(4);
+    expect(buttons).toHaveLength(5);
     expect((buttons[1] as HTMLButtonElement).disabled).toBe(true);
     await user.click(buttons[3]);
     await vi.waitFor(() =>
@@ -339,17 +339,59 @@ describe("Attention", () => {
     );
   });
 
+  it("lists failed jobs as a row of its own and opens it", async () => {
+    serve(superData());
+    const user = userEvent.setup();
+    show("attention");
+    expect(await screen.findByText("Failed jobs")).toBeTruthy();
+    await user.click(screen.getAllByRole("button", { name: "Review" })[4]);
+    await vi.waitFor(() =>
+      expect(String(fetchMock.mock.calls.at(-1)?.[0])).toContain("kind=pending&key=failed_jobs"),
+    );
+  });
+
   it("leaves the AI row out for support", async () => {
     serve(supportData());
     show("attention");
-    expect(await screen.findByText("6 pending")).toBeTruthy();
-    expect(screen.getAllByRole("button", { name: "Review" })).toHaveLength(3);
+    expect(await screen.findByText("9 pending")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Review" })).toHaveLength(4);
+    expect(screen.getByText("Failed jobs")).toBeTruthy();
     expect(screen.queryByText("Failed AI calls")).toBeNull();
   });
 });
 
 describe("AdminDetailDialog", () => {
   const detail = { kind: "state", key: "active", title: "Companies: Active" };
+  it("lists a failed job with its company, its reason and the day", async () => {
+    fetchMock.mockResolvedValue(
+      json({
+        total: 1,
+        items: [
+          {
+            type: "job",
+            id: "j1",
+            company_id: "7",
+            company: "Fake Company",
+            reason: "We could not read this file.",
+            at: "2026-11-15T10:00:00Z",
+          },
+        ],
+      }),
+    );
+    render(
+      <AdminDetailDialog
+        detail={{ kind: "pending", key: "failed_jobs", title: "Failed jobs" }}
+        onClose={vi.fn()}
+      />,
+    );
+    expect((await screen.findByRole("link", { name: "Fake Company" })).getAttribute("href")).toBe(
+      "/admin/companies/7",
+    );
+    expect(screen.getByText("We could not read this file.")).toBeTruthy();
+    expect(screen.getByText("Failed")).toBeTruthy();
+    expect(screen.getByText("2026-11-15")).toBeTruthy();
+  });
+
   it("lists companies as links with their plan, state and usage", async () => {
     fetchMock.mockResolvedValue(
       json({

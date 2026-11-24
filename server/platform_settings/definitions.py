@@ -283,6 +283,8 @@ SETTINGS = [
     SettingDefinition("processing.retry_waits_seconds", [30, 120], list_of_whole_numbers(1, 3600)),
     SettingDefinition("processing.stuck_minutes", 5, whole_number(1, 120)),
     SettingDefinition("processing.list_limit", 200, whole_number(10, 2000)),
+    # The admin jobs monitor (see cvs/job_monitor.py): most jobs listed at once.
+    SettingDefinition("admin_jobs.list_limit", 100, whole_number(10, 2000)),
     # Duplicate detection: two CVs with a phone number ending in the same digits (at least
     # this many) are likely the same person.
     SettingDefinition("duplicates.phone_digits", 9, whole_number(6, 15)),

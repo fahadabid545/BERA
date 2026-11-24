@@ -21,11 +21,19 @@ type CallRow = {
   cost: number;
   at: string;
 };
-type Body = { total: number; items: (CompanyRow | CallRow)[] };
+type JobRow = {
+  type: "job";
+  id: string;
+  company_id: string;
+  company: string;
+  reason: string;
+  at: string;
+};
+type Body = { total: number; items: (CompanyRow | CallRow | JobRow)[] };
 
 const DATE_LENGTH = 10;
 
-function Row({ item }: { item: CompanyRow | CallRow }) {
+function Row({ item }: { item: CompanyRow | CallRow | JobRow }) {
   if (item.type === "company") {
     return (
       <>
@@ -37,6 +45,18 @@ function Row({ item }: { item: CompanyRow | CallRow }) {
           {item.cvs_scored !== undefined && <span>CVs scored {whole(item.cvs_scored)}</span>}
           {item.tokens !== undefined && <span>Tokens {whole(item.tokens)}</span>}
           {item.cost !== undefined && <span>AI cost {usd(item.cost)}</span>}
+        </span>
+      </>
+    );
+  }
+  if (item.type === "job") {
+    return (
+      <>
+        <TextLink href={`/admin/companies/${item.company_id}`}>{item.company}</TextLink>
+        <span className="detail-list__facts">
+          <Tag variant="danger">Failed</Tag>
+          <span>{item.reason}</span>
+          <span>{item.at.slice(0, DATE_LENGTH)}</span>
         </span>
       </>
     );

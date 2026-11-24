@@ -32,6 +32,7 @@ const PENDING_ROWS = [
   { key: "grants_expiring", label: "Free grants ending soon", colour: "blue" },
   { key: "suspended", label: "Suspended companies", colour: "amber" },
   { key: "failed_ai_calls", label: "Failed AI calls", colour: "coral" },
+  { key: "failed_jobs", label: "Failed jobs", colour: "coral" },
 ] as const;
 
 function CompanyLink({ company }: { company: CompanyRow }) {

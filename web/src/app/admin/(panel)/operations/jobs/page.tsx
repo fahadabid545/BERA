@@ -1,10 +1,5 @@
-import { Button } from "@/components/ui";
+import { AdminJobs } from "@/components/admin/AdminJobs";
 
 export default function JobsPage() {
-  return (
-    <div className="page-actions">
-      <Button>Retry</Button>
-      <Button variant="secondary">Cancel job</Button>
-    </div>
-  );
+  return <AdminJobs />;
 }
