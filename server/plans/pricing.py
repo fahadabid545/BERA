@@ -9,6 +9,7 @@ PAKISTAN = "PK"
 USD = "USD"
 PKR = "PKR"
 PKR_MISSING_NOTE = "Shown in US dollars because no price in Pakistani rupees is set."
+PKR_ESTIMATE_NOTE = "Estimate only. You are charged in US dollars."
 
 
 @dataclass(frozen=True)
@@ -16,6 +17,20 @@ class Price:
     currency: str
     amount: Decimal
     note: str | None = None
+    approximate: bool = False  # shown for information; not what the company is charged
+
+
+def charge_currency():
+    """The one place that says which currency customers are charged in: always US dollars, in
+    every country (the payment account is in Canada). Charging Pakistani rupees later is a change
+    here only, once the payment provider has confirmed that account can do it."""
+    return USD
+
+
+def charge_price(plan):
+    """What checkout, invoices and renewals charge for a plan, whatever the buyer's country."""
+    currency = charge_currency()
+    return Price(currency, getattr(plan, f"price_{currency.lower()}"))
 
 
 def price_for(plan, country):
@@ -25,4 +40,4 @@ def price_for(plan, country):
         return Price(USD, plan.price_usd)
     if plan.price_pkr is None:
         return Price(USD, plan.price_usd, PKR_MISSING_NOTE)
-    return Price(PKR, plan.price_pkr)
+    return Price(PKR, plan.price_pkr, PKR_ESTIMATE_NOTE, approximate=charge_currency() != PKR)

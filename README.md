@@ -480,6 +480,19 @@ unknown country sees USD. Billing, upgrade and renewal pop-ups and plan display 
 company must call it with the company's locked country. A company's country is set at sign up and
 no route changes it (support only).
 
+### Charge currency (decision, BERA-163)
+
+The payment account is in Canada, and **every customer is charged in USD only, in every country**.
+Checkout, invoices and renewals always use the plan's USD price (a plan cannot be active without
+one). Pakistan companies still see the PKR price on the pricing page and in the panel, but it is
+marked `approximate` with a note ("Estimate only. You are charged in US dollars."), and every plan
+in `GET /api/plans/` also carries `charged` (the USD amount). The charge currency lives in one
+function, `plans/pricing.py::charge_currency()`; `charge_price(plan)` is what payment code must
+use. PKR charging is **not built**: switching it on later is a change in that one function, only
+after the owner has confirmed with the payment provider that a Canadian account can charge PKR.
+The PKR to USD rate set by the super admin (`billing.pkr_per_usd`) is still used for estimated
+revenue and margin.
+
 ### Plans management
 
 Super admins manage the subscription plans under `/api/admin/plans/` (list and create; read,

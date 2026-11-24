@@ -5,7 +5,13 @@ from django.test import override_settings
 from rest_framework.test import APIClient
 
 from plans.models import Plan
-from plans.pricing import PKR_MISSING_NOTE, price_for
+from plans.pricing import (
+    PKR_ESTIMATE_NOTE,
+    PKR_MISSING_NOTE,
+    charge_currency,
+    charge_price,
+    price_for,
+)
 from plans.service import active_plans
 
 URL = "/api/plans/"
@@ -46,7 +52,21 @@ def visitor_sees(country_header=None):
 class TestPriceFor:
     def test_pakistan_sees_the_pkr_price(self):
         price = price_for(make_plan(), "PK")
-        assert (price.currency, price.amount, price.note) == ("PKR", Decimal("3000.00"), None)
+        assert (price.currency, price.amount) == ("PKR", Decimal("3000.00"))
+
+    def test_the_pkr_price_is_marked_as_an_estimate(self):
+        price = price_for(make_plan(), "PK")
+        assert (price.approximate, price.note) == (True, PKR_ESTIMATE_NOTE)
+
+    def test_a_usd_price_is_not_an_estimate(self):
+        assert price_for(make_plan(), "US").approximate is False
+        assert price_for(make_plan(pkr=None), "PK").approximate is False
+
+    @pytest.mark.parametrize("country", ["PK", "US", "DE", None, "XX"])
+    def test_everyone_is_charged_the_usd_price(self, country):
+        plan = make_plan()
+        assert charge_currency() == "USD"
+        assert (charge_price(plan).currency, charge_price(plan).amount) == ("USD", Decimal("10.00"))
 
     @pytest.mark.parametrize("country", ["pk", " PK ", "Pk"])
     def test_pakistan_is_found_whatever_the_spelling(self, country):
@@ -97,12 +117,23 @@ class TestThePublicList:
     def test_a_visitor_in_pakistan_sees_pkr(self):
         make_plan()
         price = visitor_sees("PK")[0]["price"]
-        assert price == {"currency": "PKR", "amount": "3000.00", "note": None}
+        assert price == {
+            "currency": "PKR",
+            "amount": "3000.00",
+            "note": PKR_ESTIMATE_NOTE,
+            "approximate": True,
+        }
+        assert visitor_sees("PK")[0]["charged"] == {"currency": "USD", "amount": "10.00"}
 
     def test_a_visitor_elsewhere_sees_usd(self):
         make_plan()
         price = visitor_sees("DE")[0]["price"]
-        assert price == {"currency": "USD", "amount": "10.00", "note": None}
+        assert price == {
+            "currency": "USD",
+            "amount": "10.00",
+            "note": None,
+            "approximate": False,
+        }
 
     def test_an_unknown_country_sees_usd(self):
         make_plan()
