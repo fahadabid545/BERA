@@ -52,6 +52,17 @@ CATALOG = {
         button_label="Accept invitation",
         variables=("inviter_name", "company_name", "link", "expires_in"),
     ),
+    "admin_invite": EmailTemplate(
+        subject="{inviter_name} invited you to the Bera admin team",
+        heading="You are invited",
+        paragraphs=(
+            "{inviter_name} invited you to join the Bera admin team as {role_name}.",
+            "The invitation works once and expires in {expires_in}. You choose your password "
+            "there, and set up two-step verification when you first sign in.",
+        ),
+        button_label="Accept invitation",
+        variables=("inviter_name", "role_name", "link", "expires_in"),
+    ),
     "password_changed": EmailTemplate(
         subject="Your Bera password was changed",
         heading="Your password was changed",

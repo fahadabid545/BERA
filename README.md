@@ -1801,6 +1801,30 @@ export functions of the company panel.
 - The overview's Attention tab has an "Open data requests" row (open and in progress; completed
   ones leave it) and its Review lists them most urgent first, overdue ones marked.
 
+## Admin users
+
+Settings > Admin users (super admin only: `admin_user.view` to see, `admin_user.manage` to change;
+support is refused by the server whatever the page shows). Routes under `/api/admin/admin-users/`:
+`GET` lists the admins (name, email, role, status, whether two-step is set up) and the waiting
+invitations; `POST invitations/` invites; `POST invitations/<id>/resend/` and `.../revoke/`;
+`POST <id>/role/` and `POST <id>/status/` (`active` or `blocked`, shown as Enable and Disable).
+
+- **Invite:** name, email, role and a written reason (required, it creates another account). The
+  invitee gets an email with one link, valid for `tokens.admin_invite_days` (7) and single use;
+  nothing else secret is in the email. They choose their own password on `/admin/accept-invite`,
+  then sign in at `/admin/login`, where two-step setup is compulsory. Resend replaces the link (the
+  old one stops working); revoke ends the invitation.
+- **Refused:** an email that already belongs to an admin (active, disabled or removed: enable that
+  account instead) or already has a pending invitation (409 `account_exists`, `already_invited`).
+- **Two-step verification** is required of every admin by the existing sign-in rule; there is no
+  per-admin switch. A lost device is reset with the existing reset route.
+- **Disable and role changes** need a written reason. The last active super admin can be neither
+  disabled nor demoted (409 `last_super_admin`); a pending invitation does not count as another
+  super admin. A disabled admin's sessions stop working at once.
+- **Audit:** `admin.invited` (with reason), `admin.invite_resent`, `admin.invite_revoked`,
+  `admin.invite_accepted`, plus the existing `admin.role_changed` and `admin.status_changed`. The
+  address is never written to the log.
+
 ## Jobs monitor
 
 Admin > Operations > Jobs (`cvs/job_monitor.py`; both admin roles: actions `job.view`,

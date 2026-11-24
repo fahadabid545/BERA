@@ -52,6 +52,7 @@ class LinkToken(models.Model):
         VERIFY_EMAIL = "verify_email"
         RESET_PASSWORD = "reset_password"
         TEAM_INVITE = "team_invite"
+        ADMIN_INVITE = "admin_invite"
         CHANGE_EMAIL = "change_email"
         UNDO_DELETION = "undo_deletion"
 
@@ -71,6 +72,7 @@ class LinkToken(models.Model):
                         "verify_email",
                         "reset_password",
                         "team_invite",
+                        "admin_invite",
                         "change_email",
                         "undo_deletion",
                     ]

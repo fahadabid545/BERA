@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import company_views, profitability_views
+from . import admin_user_views, company_views, profitability_views
 from . import control_views as views
 
 urlpatterns = [
@@ -17,5 +17,11 @@ urlpatterns = [
     path("company-users/<str:id>/block/", views.BlockMember.as_view()),
     path("company-users/<str:id>/unblock/", views.UnblockMember.as_view()),
     path("company-users/<str:id>/two-step/off/", views.TurnOffCompanyUserTwoStep.as_view()),
+    path("admin-users/", admin_user_views.TeamList.as_view()),
+    path("admin-users/invitations/", admin_user_views.InviteAdmin.as_view()),
+    path("admin-users/invitations/<int:id>/resend/", admin_user_views.ResendInvite.as_view()),
+    path("admin-users/invitations/<int:id>/revoke/", admin_user_views.RevokeInvite.as_view()),
+    path("admin-users/<int:id>/role/", admin_user_views.ChangeRole.as_view()),
+    path("admin-users/<int:id>/status/", admin_user_views.ChangeStatus.as_view()),
     path("admin-users/<str:id>/two-step/reset/", views.ResetAdminTwoStep.as_view()),
 ]

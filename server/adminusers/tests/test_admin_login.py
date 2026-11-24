@@ -275,9 +275,9 @@ def _login_cookies(account):
 
 
 class TestThereIsNoPublicAdminSignUp:
-    @pytest.mark.parametrize(
-        "path", ["sign-up", "signup", "register", "create", "invite", "accept-invite"]
-    )
+    # `accept-invite` is not listed: it exists, but only a single-use invitation link opens it
+    # (adminusers/tests/test_admin_team.py).
+    @pytest.mark.parametrize("path", ["sign-up", "signup", "register", "create", "invite"])
     def test_no_admin_account_can_be_made_from_outside(self, path):
         response = APIClient().post(
             f"/api/auth/admin/{path}/",

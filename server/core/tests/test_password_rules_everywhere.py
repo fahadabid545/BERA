@@ -80,11 +80,25 @@ def accept_invite(password):
     )
 
 
+def accept_admin_invite(password):
+    from adminusers.models import AdminInvitation
+
+    invitation = AdminInvitation.objects.create(
+        name="Fake Invitee", email="admin-invitee@example.test", role="support"
+    )
+    token = issue_link_token("admin_invite", invitation.token_subject, 1)
+    body = {"token": token, "password": password, "confirm_password": password}
+    return APIClient(REMOTE_ADDR="203.0.113.5").post(
+        "/api/auth/admin/accept-invite/", body, format="json"
+    )
+
+
 PLACES = {
     "sign up": sign_up,
     "reset": reset,
     "profile": change,
     "accept invite": accept_invite,
+    "accept admin invite": accept_admin_invite,
 }
 
 

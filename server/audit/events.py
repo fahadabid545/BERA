@@ -47,6 +47,10 @@ KINDS = _kinds(
     # Admin actions. One that changes another account or a company needs a written reason;
     # reading things needs none.
     EventKind("admin.first_super_admin_created"),
+    EventKind("admin.invited", reason_required=True),
+    EventKind("admin.invite_resent"),
+    EventKind("admin.invite_revoked"),
+    EventKind("admin.invite_accepted"),
     EventKind("admin.role_changed", reason_required=True),
     EventKind("admin.status_changed", reason_required=True),
     EventKind("admin.member_blocked", reason_required=True),

@@ -1,20 +1,24 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import AdminUsersPage from "./page";
 
-describe("Admin users page", () => {
-  it("shows its buttons and nothing else", () => {
-    const { container } = render(<AdminUsersPage />);
-    expect(screen.getByRole("button", { name: "Invite admin" })).toBeTruthy();
-    expect(container.querySelectorAll("button, a, input, select, textarea")).toHaveLength(1);
-  });
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ admins: [], invitations: [] }),
+    }),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
-  it("does nothing when a button is pressed", async () => {
-    const { container } = render(<AdminUsersPage />);
-    const before = container.innerHTML;
-    for (const button of screen.getAllByRole("button")) await userEvent.click(button);
-    expect(container.innerHTML).toBe(before);
-  });
+it("shows the admin team page with Invite admin", async () => {
+  render(<AdminUsersPage />);
+  expect(await screen.findByRole("button", { name: "Invite admin" })).toBeTruthy();
 });

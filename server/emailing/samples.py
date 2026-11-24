@@ -16,6 +16,12 @@ def sample_values(template_name):
             "link": link,
             "expires_in": duration_text(7, "day"),
         },
+        "admin_invite": {
+            "inviter_name": "Fake Super Admin",
+            "role_name": "support",
+            "link": link,
+            "expires_in": duration_text(7, "day"),
+        },
         "password_changed": shared,
         "email_changed": shared,
         "new_sign_in": {**shared, "device": "Firefox on Windows", "place": "Germany"},

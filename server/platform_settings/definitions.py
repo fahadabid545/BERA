@@ -207,6 +207,7 @@ SETTINGS = [
     SettingDefinition("tokens.email_verification_hours", 24, whole_number(1, 720)),
     SettingDefinition("tokens.password_reset_hours", 1, whole_number(1, 72)),
     SettingDefinition("tokens.team_invite_days", 7, whole_number(1, 90)),
+    SettingDefinition("tokens.admin_invite_days", 7, whole_number(1, 90)),
     SettingDefinition("tokens.email_change_hours", 24, whole_number(1, 720)),
     # Email: how long to wait before each new attempt when the provider fails. The number
     # of entries is the number of retries.
