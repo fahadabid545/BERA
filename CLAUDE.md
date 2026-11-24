@@ -59,8 +59,9 @@ and why, and ask before proceeding. Never bend a rule silently.
 - Every feature ships with automated tests in the same change.
 - Tests must cover the happy path **and every edge case listed in the ticket**.
 - Bug fixes include a test that fails before the fix and passes after it.
-- All tests must pass before committing. Never skip, disable, or delete a test
-  to make the suite pass.
+- The tests of the ticket and the code it touches must pass before committing. The whole suite
+  runs every 5 tickets (see "Before every push"). Never skip, disable, or delete a test to make
+  the suite pass.
 
 ## Error reporting
 - Use one consistent error-reporting mechanism across the whole project: a
@@ -90,9 +91,12 @@ and why, and ask before proceeding. Never bend a rule silently.
   (fake value) and the README in the same change; `scripts/scan_secrets.py` runs on every change.
 
 ## Before every push
-- Run `python scripts/scan_secrets.py` and the normal tests (`python -m pytest`, plus the web
-  tests when the web app changed) locally, and push only when both are clean. `git add` new
-  files first: the secret scan only sees files git knows about.
+- Every ticket: run `python scripts/scan_secrets.py`, ruff, prettier and tsc, and the tests of
+  the ticket and of the code it touches (server and, when the web app changed, web). Push only
+  when all are clean. `git add` new files first: the secret scan only sees files git knows about.
+- Every 5 tickets: run the whole suite (`python -m pytest`, and the web tests). Fix every failure
+  and run the whole suite again, until it is clean. Say in the ticket report which ticket number
+  of the 5 it was, and when the whole suite last ran.
 
 ## Definition of done
 A ticket is done only when:
