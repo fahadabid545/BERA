@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Q
 
 from core.models import CompanyOwnedModel
+from core.protected_fields import EncryptedTextField
 
 
 class Plan(models.Model):
@@ -195,3 +196,52 @@ class CheckoutAttempt(CompanyOwnedModel):
                 name="checkout_status_is_known",
             ),
         ]
+
+
+class BillingDetails(CompanyOwnedModel):
+    """Who invoices are made out to. One record per company, required (name and address) before
+    the first payment. The address country is its own field: it is never the company's locked
+    sign-up country, and editing it never changes that one. Personal data, so stored encrypted;
+    the owner alone can read or change it. `stripe_customer_id` is the provider's customer made
+    from these details (empty until the first payment is started)."""
+
+    name = EncryptedTextField(purpose="billing_details.name")
+    address_line1 = EncryptedTextField(purpose="billing_details.address_line1")
+    address_line2 = EncryptedTextField(purpose="billing_details.address_line2", blank=True)
+    city = EncryptedTextField(purpose="billing_details.city")
+    state = EncryptedTextField(purpose="billing_details.state", blank=True)
+    postal_code = EncryptedTextField(purpose="billing_details.postal_code", blank=True)
+    country = models.CharField(max_length=2)
+    tax_number = EncryptedTextField(purpose="billing_details.tax_number", blank=True)
+    stripe_customer_id = models.CharField(max_length=255, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["company"], name="one_billing_details_per_company")
+        ]
+
+
+class Invoice(CompanyOwnedModel):
+    """A paid invoice from the payment provider, stored when its paid notice arrives. The name,
+    address and tax number are the snapshot the invoice was made with: editing the company's
+    billing details later never touches an invoice already here. The provider's links are
+    served only to the owner, through `plans.invoices`, and are never logged or emailed."""
+
+    provider_invoice_id = models.CharField(max_length=255, unique=True)
+    number = models.CharField(max_length=100, blank=True)
+    amount_minor = models.PositiveBigIntegerField()
+    currency = models.CharField(max_length=3)  # ISO code, upper case
+    issued_at = models.DateTimeField()
+    period_start = models.DateTimeField(null=True)
+    period_end = models.DateTimeField(null=True)
+    plan = models.ForeignKey(Plan, null=True, on_delete=models.PROTECT, related_name="+")
+    billed_to_name = EncryptedTextField(purpose="invoice.billed_to_name", blank=True)
+    billed_to_address = EncryptedTextField(purpose="invoice.billed_to_address", blank=True)
+    billed_to_tax_number = EncryptedTextField(purpose="invoice.billed_to_tax_number", blank=True)
+    hosted_url = EncryptedTextField(purpose="invoice.hosted_url", blank=True)
+    pdf_url = EncryptedTextField(purpose="invoice.pdf_url", blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["company", "-issued_at"], name="invoice_company_time")]

@@ -152,6 +152,7 @@ def add_projects(company, owner_user, count):
 
 def paid_upgrade_event(company, plan, *, start, end, event_id=None, amount=500):
     invoice = {
+        "id": f"in_{uuid.uuid4().hex[:12]}",
         "object": "invoice",
         "customer": "cus_test_1",
         "subscription": SUB,
@@ -167,6 +168,7 @@ def paid_upgrade_event(company, plan, *, start, end, event_id=None, amount=500):
 
 def renewal_event(company, *, start, end, event_id=None, amount=1000):
     invoice = {
+        "id": f"in_{uuid.uuid4().hex[:12]}",
         "object": "invoice",
         "customer": "cus_test_1",
         "subscription": SUB,

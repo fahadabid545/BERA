@@ -18,6 +18,7 @@ from platform_settings.service import get_setting
 from usage.service import add_months
 
 from . import stripe_client
+from .billing_details import ensure_customer, require_details
 from .models import CheckoutAttempt, Plan
 from .pricing import charge_price
 from .subscriptions import State, activate, effective_state, get_subscription
@@ -76,6 +77,7 @@ def start_checkout(company_id, plan_id):
             raise _refuse(
                 "already_subscribed", "Your company already has a plan. It cannot be bought again."
             )
+        details = require_details(company_id)
         live = list(_live_attempts(company_id, now))
         same = next((a for a in live if a.plan_id == plan.pk and a.payment_page_url), None)
         if same is not None:
@@ -93,6 +95,7 @@ def start_checkout(company_id, plan_id):
                 attempt.pk
             ),  # a retry of this very attempt never makes a second page
             company_id=company_id,
+            customer_id=ensure_customer(details),
             plan=plan,
             currency=price.currency,
             amount_minor=attempt.amount_minor,

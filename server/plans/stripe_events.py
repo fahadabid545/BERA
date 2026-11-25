@@ -18,6 +18,7 @@ from django.db import transaction
 
 from companies.models import Company
 
+from .invoices import store_invoice
 from .models import CheckoutAttempt, Plan
 from .payments import record_event
 from .plan_change import warn_over_limits
@@ -131,6 +132,7 @@ def handle_invoice_paid(event):
         if not created:
             return DUPLICATE
         _apply_paid_period(invoice, subscription, plan, provider_subscription_id, paid_at)
+        store_invoice(company_id, plan, invoice, issued_at=paid_at, period=_paid_period(invoice))
     return HANDLED
 
 

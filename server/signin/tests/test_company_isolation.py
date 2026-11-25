@@ -62,6 +62,7 @@ KINDS_NAMED_IN_THE_TICKET = {
 # NotificationChoice, NotificationSent: notifications/tests/test_notifications.py (TestChoices).
 # PaymentEvent: plans/tests/test_payment_events.py (TestAnotherCompany).
 # CheckoutAttempt: plans/tests/test_checkout.py (TestAnotherCompany).
+# BillingDetails, Invoice: plans/tests/test_invoices.py (TestBillingDetails, TestDownloading).
 # AnnouncementDismissal: announcements/tests/test_announcements.py (TestDismissing).
 REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "Invitation",
@@ -70,6 +71,8 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "LimitOverride",
     "PaymentEvent",
     "CheckoutAttempt",
+    "BillingDetails",
+    "Invoice",
     "AnnouncementDismissal",
     "UsagePeriod",
     "UsageCounter",

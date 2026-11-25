@@ -585,6 +585,39 @@ shown to the company comes from `GET /api/company/usage/` (`plan_id`, `pending_c
 - Not in this ticket: the email before renewal, the Cancel button, grace period behaviour and
   reactivation (BERA-167); refund notices.
 
+### Invoices and billing details (BERA-168)
+
+Owner only for everything here (`billing.view` for invoices, `billing.pay` for the details).
+
+- **Invoices are Stripe's own.** No invoice file is generated here. When `invoice.paid` arrives
+  (BERA-165) the invoice is stored once (`Invoice`, unique by Stripe's invoice id): number, date,
+  amount, plan, period, and the name, address and tax number it was made out with (Stripe's own
+  copy; our details at that moment if the notice has none). That snapshot never changes, so
+  editing billing details never alters an old invoice. A free-granted subscription has no invoices
+  and the page says so.
+- **List and download:** `GET /api/company/billing/invoices/` (no links) and
+  `GET /api/company/billing/invoices/<id>/link/?kind=pdf|hosted` returns Stripe's address, only
+  after the owner check and only for the company's own invoice (another company's id is a 404).
+  The links are stored encrypted, sent with `Cache-Control: no-store`, and are never put in emails,
+  logs or the audit log.
+- **Billing details** (`GET/PUT /api/company/billing/details/`): name, address line 1, city and
+  country are required; line 2, state, postal code and the tax number are optional. The tax number
+  has a light check only (at most 40 characters of letters, digits, space and `. - /`), never a
+  per-country format. Everything is stored encrypted. Editing is audited (`billing.details_changed`)
+  with old and new values, except the tax number, which is recorded only as "changed". Saving
+  updates Stripe's customer first (when it exists), so a provider failure leaves everything as it
+  was.
+- **Required before the first payment:** checkout is refused with 409 `billing_details_required`
+  (naming the missing fields) until name and address are filled. Starting checkout creates the
+  Stripe customer from the details (once, kept in `BillingDetails.stripe_customer_id`) and the
+  payment page uses it, so invoices carry the name, address and tax number (the tax number is sent
+  as the invoice custom field "Tax number", not as a typed tax id).
+- **Country:** the billing address country is its own field. It is never the company's locked
+  sign-up country (which decides the PKR display price) and editing it never changes that one.
+  How the billing country is used for tax is decided in the Taxes ticket (BERA-170).
+- Removing a company (BERA-148) removes its billing details and stored invoices with its other
+  data; Stripe keeps its own copies.
+
 ### Renewal and cancellation (BERA-167)
 
 Routes (all owner only, `billing.pay`; no company or customer id is ever read from the request):
@@ -617,7 +650,8 @@ Routes (all owner only, `billing.pay`; no company or customer id is ever read fr
 **Stripe portal configuration (repeat in production).** In the Stripe Dashboard, Settings, Billing,
 Customer portal (this is configured separately in test mode and in live mode, so do it in both):
 allow only **Update payment method** and **View invoice history**. Turn **off** subscription
-cancellation, subscription update (plan switching), quantity changes and pause. Plan changes and
+cancellation, subscription update (plan switching), quantity changes, pause and **customer
+information** (billing details are edited in the app, BERA-168). Plan changes and
 cancellation go through the app's own flows (BERA-166 and BERA-167). Save the configuration (the
 default configuration is the one used).
 

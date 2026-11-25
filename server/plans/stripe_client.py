@@ -41,6 +41,7 @@ def create_checkout_session(
     *,
     idempotency_key,
     company_id,
+    customer_id,
     plan,
     currency,
     amount_minor,
@@ -56,6 +57,7 @@ def create_checkout_session(
             idempotency_key=idempotency_key,
             max_network_retries=NETWORK_RETRIES,
             mode="subscription",
+            customer=customer_id,
             client_reference_id=str(company_id),
             metadata={"company_id": str(company_id), "plan_id": str(plan.pk)},
             subscription_data={
@@ -226,3 +228,50 @@ def create_portal_session(*, customer_id, return_url):
     except stripe.StripeError as error:
         raise _provider_error() from error
     return session["url"]
+
+
+TAX_NUMBER_FIELD = "Tax number"  # the label on invoices; Stripe copies it onto each invoice
+
+
+def _customer_fields(*, company_id, name, address, tax_number):
+    """What the provider needs to print on invoices; nothing else about the company is sent."""
+    return {
+        "name": name,
+        "address": address,
+        "metadata": {"company_id": str(company_id)},
+        "invoice_settings": {
+            "custom_fields": [{"name": TAX_NUMBER_FIELD, "value": tax_number}] if tax_number else ""
+        },
+    }
+
+
+def create_customer(*, idempotency_key, company_id, name, address, tax_number):
+    try:
+        customer = stripe.Customer.create(
+            api_key=_key(),
+            idempotency_key=idempotency_key,
+            max_network_retries=NETWORK_RETRIES,
+            **_customer_fields(
+                company_id=company_id, name=name, address=address, tax_number=tax_number
+            ),
+        )
+    except stripe.StripeError as error:
+        raise _provider_error() from error
+    return customer["id"]
+
+
+def update_customer(customer_id, *, company_id, name, address, tax_number):
+    """New details apply to invoices made from now on; the provider never changes one it has
+    already finalised."""
+    try:
+        stripe.Customer.modify(
+            customer_id,
+            api_key=_key(),
+            idempotency_key=f"customer-update-{customer_id}-{uuid4()}",
+            max_network_retries=NETWORK_RETRIES,
+            **_customer_fields(
+                company_id=company_id, name=name, address=address, tax_number=tax_number
+            ),
+        )
+    except stripe.StripeError as error:
+        raise _provider_error() from error

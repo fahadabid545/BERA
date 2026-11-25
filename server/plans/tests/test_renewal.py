@@ -285,7 +285,8 @@ class TestFailedRenewalAndGrace:
         paid = event_of(
             "invoice.paid",
             {
-                "object": "invoice", "customer": CUSTOMER, "subscription": SUB,
+                "id": "in_test_renewal", "object": "invoice", "customer": CUSTOMER,
+                "subscription": SUB,
                 "billing_reason": "subscription_cycle", "amount_paid": 1000,
                 "amount_due": 1000, "currency": "usd",
                 "lines": {"data": [{"period": {

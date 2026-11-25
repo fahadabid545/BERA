@@ -67,6 +67,7 @@ def invoice(
     company, plan, *, start, end, reason="subscription_cycle", amount=1000, sub=SUB, **extra
 ):
     return {
+        "id": f"in_{uuid.uuid4().hex[:12]}",
         "object": "invoice",
         "customer": "cus_test_1",
         "subscription": sub,

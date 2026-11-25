@@ -11,7 +11,7 @@ from rest_framework.test import APIClient
 from core.errors import AppError
 from core.tests.factories import make_company, make_company_user
 from plans import stripe_client
-from plans.models import CheckoutAttempt, Subscription
+from plans.models import BillingDetails, CheckoutAttempt, Subscription
 from plans.subscriptions import activate, get_subscription, grant_free
 from plans.tests.test_regional_pricing import make_plan
 from signin import service
@@ -65,10 +65,24 @@ class FakeProvider:
         session.customer, session.subscription = customer, subscription
 
 
+def give_billing_details(company):
+    """Name and address are required before a first payment (BERA-168)."""
+    return BillingDetails.objects.get_or_create(
+        company=company,
+        defaults={
+            "name": "Fake Trading Ltd",
+            "address_line1": "1 Fake Street",
+            "city": "Faketown",
+            "country": "GB",
+        },
+    )[0]
+
+
 @pytest.fixture
 def provider():
     fake = FakeProvider()
     with (
+        patch.object(stripe_client, "create_customer", lambda **sent: "cus_test_1"),
         patch.object(stripe_client, "create_checkout_session", fake.create),
         patch.object(stripe_client, "retrieve_checkout_session", fake.retrieve),
         patch.object(stripe_client, "expire_checkout_session", fake.expire),
@@ -77,6 +91,7 @@ def provider():
 
 
 def client_for(company, role="owner"):
+    give_billing_details(company)
     person = make_company_user(company, role=role)
     issued = service.start_session(
         user_id=person.pk, role=role, company_id=company.pk, kind="company"
@@ -366,10 +381,13 @@ class TestConfirming:
 
 class TestProviderErrors:
     def test_a_provider_failure_gives_a_plain_message_and_leaves_no_attempt(self, company, owner):
-        with patch.object(
-            stripe_client,
-            "create_checkout_session",
-            side_effect=AppError("payment_provider_error", "x", status_code=502),
+        with (
+            patch.object(stripe_client, "create_customer", lambda **sent: "cus_test_1"),
+            patch.object(
+                stripe_client,
+                "create_checkout_session",
+                side_effect=AppError("payment_provider_error", "x", status_code=502),
+            ),
         ):
             reply = owner.post(START, {"plan_id": make_plan().pk}, format="json")
         assert reply.status_code == 502
@@ -403,6 +421,7 @@ class TestTheProviderClient:
                 stripe_client.create_checkout_session(
                     idempotency_key="k",
                     company_id=1,
+                    customer_id="cus_test_1",
                     plan=plan,
                     currency="USD",
                     amount_minor=1000,
@@ -424,6 +443,7 @@ class TestTheProviderClient:
         ) == ("usd", 1000)
         assert sent["metadata"] == {"company_id": "1", "plan_id": str(plan.pk)}
         assert sent["client_reference_id"] == "1"
+        assert sent["customer"] == "cus_test_1"
 
     def test_closing_a_page_the_provider_refuses_to_close_reports_it(self):
         with override_settings(STRIPE_SECRET_KEY=TEST_KEY):

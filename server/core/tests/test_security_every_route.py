@@ -53,6 +53,7 @@ OTHER = {"company": "admin", "admin": "company"}
 
 def address(route):
     route = re.sub(r"<int:\w+>", "1", route)  # any whole-number part of an address
+    route = re.sub(r"<uuid:\w+>", "00000000-0000-0000-0000-000000000000", route)
     return "/" + re.sub(r"<str:\w+>", "x", route)
 
 
