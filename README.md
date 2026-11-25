@@ -2766,6 +2766,70 @@ Results (the owner fills these in; leave empty until measured):
 | Production slowdown during the run | | | |
 | Server size or worker change made | | | |
 
+## Launch checklist (BERA-184)
+
+The owner ticks this list before opening to everyone. One command checks what a program can check
+and prints every item as `OK`, `NOT OK` or `owner must confirm`:
+
+```bash
+python manage.py check_launch_ready
+```
+
+(Run it in `server/` on the production server, as root, with the production environment loaded the
+same way as the other commands there (see the backup commands); it refuses to run anywhere else. It
+needs root, because it reads the firewall, the web server and the SSH
+settings in use. `--staging-env` and `--production-env` name the two environment files, by default
+`/etc/bera/staging.env` and `/etc/bera/production.env`.)
+
+- There is no option to skip an item. A program that cannot be run (missing, no rights, too slow) is
+  `NOT OK`, never a pass.
+- It exits with an error when any item is `NOT OK`. An `owner must confirm` item is something no
+  program can see (a decision, a setting inside Stripe or Cloudflare, an email arriving in a real
+  inbox): the command lists what to confirm, and the owner ticks it below. The launch is open only
+  when the command exits cleanly **and** every box below is ticked.
+- `launch.restore_test_max_age_days` (8) is the one new platform setting: how old the last passed
+  restore test may be. The age of the last backup is `backup.late_after_hours` (26).
+
+| # | Item | The command checks | The owner confirms |
+| --- | --- | --- | --- |
+| 1 | Two-step reset by a super admin works and is audited | Only super admins hold the action, and the audit entry needs a reason. Tests (`adminusers/tests/test_admin_controls.py`, `TestTurningOffACompanyUsersTwoStep`) prove it turns two-step off, signs the person out of every session, emails them, writes the audit entry with the reason and that the identity was checked, and that the support role is refused | |
+| 2 | At least two active super admins | The count | |
+| 3 | Starter, Growth and Scale are active | Each exists once, is active, has a US dollar price and every number | |
+| 4 | The pricing page shows only active plans with matching prices | Asks the real public pricing route and compares | |
+| 5 | Legal pages ready | Terms and Privacy text in place, `legal.reviewed` on with a reviewer name and the current text version, and the Privacy text says deleted data stays in backups for `backup.retention_days` days | |
+| 6 | Live payments | A live Stripe key is in use with `STRIPE_ALLOW_LIVE_KEYS=true`, and the webhook secret is set | Taxes (BERA-170) decided and written down before going live; the webhook receives events; the billing portal allows card updates and invoices only; a test payment, a refund and a failed payment were tried in test mode |
+| 7 | Backups | A successful backup within the last 26 hours; a passed restore test within the last 8 days | The encryption key has an offline copy; the R2 lifecycle rule is set |
+| 8 | Monitoring | Both heartbeat addresses are set (https) | The outside uptime check exists and a test alert was received |
+| 9 | Server | Cloudflare-only firewall loaded, origin pulls on in the web server, SSH key-only, staging and production share nothing, secret scan clean, library check clean (accepted findings need a review date) | |
+| 10 | Volume test (BERA-182) | | Run on the real server with a fake AI and with the real AI; targets and results filled in |
+| 11 | AI | An OpenAI key is set; a model is enabled; reading and scoring prompts exist; AI is not paused; the monthly AI spend limit is set | The kill switch was tried once on the real server |
+| 12 | Email and names | The support email looks real; email is set up to send for real | The app name is right; a contact form test message arrives; sign-up, verification, reset and invite emails arrive in a real inbox |
+| 13 | Public side | An announcement that has not ended exists; `web/public/og-cover.png` exists; the public address is https | |
+| 14 | Private beta (BERA-183) | | Done; no New feedback left that blocks the launch |
+| 15 | Pre-launch security review (BERA-181) | The written review exists and the library check has no open high finding | |
+
+Checklist for the owner (tick when the command shows the item `OK` or you confirmed it yourself):
+
+- [ ] 1. Two-step reset by a super admin works and is audited
+- [ ] 2. At least two active super admins
+- [ ] 3. Starter, Growth and Scale active with prices and numbers
+- [ ] 4. Pricing page shows only active plans, prices match
+- [ ] 5. Legal pages ready and reviewed
+- [ ] 6. Taxes decided; live payments on; webhook, billing portal and test cases confirmed
+- [ ] 7. Backups verified; key copy offline; R2 lifecycle rule set
+- [ ] 8. Monitoring and a test alert received
+- [ ] 9. Server protection, separation, secrets and libraries clean
+- [ ] 10. Volume test run on the real server and results written down
+- [ ] 11. Real AI key, models, prompts, kill switch and cost limit
+- [ ] 12. Support email, app name and real emails arriving
+- [ ] 13. Announcement ready, sharing image present, public address https
+- [ ] 14. Private beta done, no launch-blocking feedback left
+- [ ] 15. Pre-launch security review passed
+
+Only simulated here: every item is tested with canned answers for the firewall, web server, SSH and
+the scripts, and with fake data. Nothing was run on a real server, with real Stripe, backups or
+AI. The first real run of `check_launch_ready` will show which items still need work.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

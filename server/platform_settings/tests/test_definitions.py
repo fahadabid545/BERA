@@ -51,6 +51,7 @@ EXPECTED_DEFAULTS = {
     "backup.retention_days": 30,
     "backup.minimum_kept": 7,
     "backup.late_after_hours": 26,
+    "launch.restore_test_max_age_days": 8,
     "contact.max_name_length": 100,
     "contact.max_message_length": 3000,
     "contact.retention_days": 90,

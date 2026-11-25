@@ -561,6 +561,7 @@ SETTINGS = [
     # Backups that are never removed, newest first, even when older than the retention.
     SettingDefinition("backup.minimum_kept", 7, whole_number(1, 365)),
     SettingDefinition("backup.late_after_hours", 26, whole_number(1, 168)),
+    SettingDefinition("launch.restore_test_max_age_days", 8, whole_number(1, 60)),
     SettingDefinition("contact.max_name_length", 100, whole_number(1, 200)),
     SettingDefinition("contact.max_message_length", 3000, whole_number(1, 10000)),
     SettingDefinition("contact.retention_days", 90, whole_number(1, 3650)),
