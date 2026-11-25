@@ -25,6 +25,9 @@ class RequiredSetting:
     secret: bool = True
     # Which processes hold it. The app never holds the migrator's password, nor the reverse.
     roles: tuple = ("app", "migrations")
+    # Where it is required: staging sends no real email, so it holds no SMTP account and
+    # production has no email folder.
+    environments: tuple = REAL_ENVIRONMENTS
 
 
 REQUIRED_SETTINGS = [
@@ -33,9 +36,12 @@ REQUIRED_SETTINGS = [
     RequiredSetting("MIGRATION_DATABASE_URL", roles=("migrations",)),
     RequiredSetting("FIELD_ENCRYPTION_KEY"),
     RequiredSetting("FIELD_HASH_KEY"),
-    RequiredSetting("EMAIL_HOST", secret=False),
-    RequiredSetting("EMAIL_HOST_USER", secret=False),
-    RequiredSetting("EMAIL_HOST_PASSWORD"),
+    RequiredSetting("EMAIL_HOST", secret=False, environments=("production",)),
+    RequiredSetting("EMAIL_HOST_USER", secret=False, environments=("production",)),
+    RequiredSetting("EMAIL_HOST_PASSWORD", environments=("production",)),
+    RequiredSetting(
+        "STAGING_EMAIL_FOLDER", secret=False, roles=("app",), environments=("staging",)
+    ),
     RequiredSetting("EMAIL_FROM_ADDRESS", secret=False),
     RequiredSetting("OPENAI_API_KEY", roles=("app",)),
     RequiredSetting("STRIPE_SECRET_KEY", roles=("app",)),
@@ -105,7 +111,7 @@ def check_required_settings(environ, app_env, role="app"):
     real = app_env in REAL_ENVIRONMENTS
     missing, placeholders = [], []
     for setting in REQUIRED_SETTINGS:
-        if role not in setting.roles:
+        if role not in setting.roles or (real and app_env not in setting.environments):
             continue
         if not real and setting.name not in REQUIRED_IN_DEVELOPMENT:
             continue

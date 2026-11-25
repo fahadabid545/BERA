@@ -676,6 +676,90 @@ information** (billing details are edited in the app, BERA-168). Plan changes an
 cancellation go through the app's own flows (BERA-166 and BERA-167). Save the configuration (the
 default configuration is the one used).
 
+### Staging and production (BERA-177)
+
+Staging and production run side by side on one Linux server, each with its own database, secrets,
+ports, addresses, storage bucket and processes. Nothing is shared.
+
+**Local simulation, not the real server.** The deploy and the rollback were shown working in this
+repository's container with `--simulation` (plain processes instead of systemd, two local databases,
+ports 18001/13001 and 18002/13002). That proves the scripts and the order of steps, not the real
+machine. **The first deploy to the real server is run by the owner with the same scripts, starting
+with `--dry-run`.**
+
+**Files.** `deploy/bera_deploy.py` (deploy, rollback, service files, dry run), `deploy/env/*.env.example`
+(every setting for each environment, fake values), `deploy/nginx/bera.example.conf`,
+`scripts/check_environments.py` (the separation check), `server/config/separation.py`.
+
+**On the server.** A normal user `bera` (never root) owns `/srv/bera` and the env files in `/etc/bera`
+(`staging.env`, `production.env`, mode 600, readable only by that user, outside every release):
+
+```
+/srv/bera/<env>/releases/<id>/   one folder per release (the last 5 are kept)
+/srv/bera/<env>/current          link to the live release;  previous = the one before
+/srv/bera/backups/production/    a database dump before every production deploy, kept
+```
+
+**First set-up (owner, once).** Create the user and folders; copy `deploy/env/<env>.env.example` to
+`/etc/bera/<env>.env` and replace every value (`chmod 600`, owner `bera`); create the two databases
+and their accounts (`provision_database_roles`); run
+`python deploy/bera_deploy.py units production --out /etc/systemd/system` (and `staging`), then
+`systemctl enable` the six services; install the nginx example with the real certificates; then
+`python scripts/check_environments.py /etc/bera/staging.env /etc/bera/production.env`.
+
+**Deploy.** `python deploy/bera_deploy.py deploy <staging|production> [--ref <git ref>]`. Add
+`--dry-run` to print every step and change nothing. It: checks the env file (mode 600, owner, right
+`APP_ENV`) and that staging and production share nothing; unpacks the ref into a new release;
+installs and builds; **production only: dumps the database first and keeps the dump**; runs the
+migrations; switches `current` in one step; restarts the three services; runs a health check
+(`/api/health/` and the web page). **If the check fails it switches back to the previous release by
+itself, restarts, and reports the failure** (the failed release is kept for study). It keeps the last
+5 releases and always prints the reminder below.
+
+**Rollback.** `python deploy/bera_deploy.py rollback <env> [--to <release>]` switches back (default: the
+previous release), restarts and health-checks. It never touches the database.
+
+> **Rule for every migration: a rollback does not undo database changes, so every migration must work
+> with both the old and the new release. Add first (columns, tables, as nullable or with a default),
+> and remove only in a later release.** The deploy script prints this reminder every time.
+
+**Memory and processes** (one small server holding both environments and the database; these are
+starting figures to check against the real machine with `free -m`, set once in `RESOURCES` in
+`deploy/bera_deploy.py` and used by the service files):
+
+| Service | Production | Staging |
+| --- | --- | --- |
+| API (gunicorn workers, memory limit) | 2, 700M | 1, 350M |
+| Background worker (processes, memory limit) | 2, 600M | 1, 350M |
+| Web (Node heap, memory limit) | 256 MB, 350M | 160 MB, 250M |
+
+That is about 2.6 GB of limits for both environments, before PostgreSQL and nginx. Each service has
+`MemoryMax`, restarts on failure, and runs with `NoNewPrivileges`, `ProtectSystem=strict` and
+`ProtectHome`.
+
+**Separation check.** `check_environments.py` (also run by every deploy when both env files exist)
+fails if any secret (compared by hash), database account, password or name, bucket, port or
+address is the same in both. It prints setting names only, never a value.
+
+**Staging cannot send real email.** It saves every email as a file in `STAGING_EMAIL_FOLDER`; read
+them with `python manage.py list_staging_emails` (and `--show <file name>`). Staging refuses to start
+with any `EMAIL_HOST`, `EMAIL_HOST_USER` or `EMAIL_HOST_PASSWORD`; production refuses to start with the
+folder.
+
+**Staging cannot take real payments.** It accepts test payment keys only and refuses
+`STRIPE_ALLOW_LIVE_KEYS`. Production also stays on test keys: a live key is accepted only when
+`STRIPE_ALLOW_LIVE_KEYS=true` is set on purpose, which the owner does only after the tax decision
+(BERA-170) is made. Neither environment can reach the other's data: different database names and
+accounts, buckets and secrets, and the check above.
+
+**Fake data.** Staging holds only fake CVs. `python manage.py seed_staging_data` (staging only) creates a
+fake admin, company and three obviously fake CVs with random passwords shown once (it needs one
+active plan first). **A production backup is never restored into staging.** The restore drills
+(BERA-178) use a separate throwaway database that is deleted afterwards.
+
+**Web build.** The lock file now pins Next.js 16.4.6 (still inside `^16.4.3`): version 16.4.3 made
+`next build` stop with a security notice, which would have stopped every deploy.
+
 ### Taxes (BERA-170): postponed
 
 Tax handling is postponed in writing. It depends on the business registration and on the payment

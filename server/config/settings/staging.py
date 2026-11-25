@@ -1,4 +1,10 @@
-from config.environment import parse_origins, parse_proxy_count, require_settings
+from config.environment import (
+    parse_origins,
+    parse_proxy_count,
+    require_settings,
+    staging_email_folder,
+    stripe_live_allowed,
+)
 
 from .base import *  # noqa: F403
 from .deployed import *  # noqa: F403
@@ -19,3 +25,9 @@ SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_HSTS_SECONDS = 31_536_000  # one year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
+# Staging sends no real email: every message is saved as a readable file in this folder
+# (`python manage.py list_staging_emails` shows them) and it takes no real payments.
+EMAIL_BACKEND = "emailing.backends.DevInboxBackend"
+EMAIL_FILE_PATH = staging_email_folder()
+STRIPE_ALLOW_LIVE_KEYS = stripe_live_allowed("staging")

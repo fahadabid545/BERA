@@ -17,6 +17,7 @@ from core.errors import AppError
 logger = logging.getLogger(__name__)
 
 TEST_KEY_PREFIXES = ("sk_test_", "rk_test_")
+LIVE_KEY_PREFIXES = ("sk_live_", "rk_live_")
 UNAVAILABLE_CODE = "payments_unavailable"
 PROVIDER_CODE = "payment_provider_error"
 PROVIDER_MESSAGE = "We could not reach the payment page. Please try again in a moment."
@@ -25,7 +26,8 @@ NETWORK_RETRIES = 2  # safe: every create call carries an idempotency key
 
 def _key():
     key = settings.STRIPE_SECRET_KEY
-    if not key.startswith(TEST_KEY_PREFIXES):
+    live_ok = settings.STRIPE_ALLOW_LIVE_KEYS and key.startswith(LIVE_KEY_PREFIXES)
+    if not (key.startswith(TEST_KEY_PREFIXES) or live_ok):
         raise AppError(
             UNAVAILABLE_CODE, "Card payments are not available right now.", status_code=503
         )

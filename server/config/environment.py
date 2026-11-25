@@ -125,3 +125,47 @@ def parse_pretend_country(text):
     if code and code not in COUNTRY_CODES:
         raise ConfigurationError("DEVELOPMENT_PRETEND_COUNTRY must be a two-letter country code.")
     return code
+
+
+SMTP_SETTING_NAMES = ("EMAIL_HOST", "EMAIL_HOST_USER", "EMAIL_HOST_PASSWORD")
+LIVE_STRIPE_PREFIXES = ("sk_live_", "rk_live_")
+TEST_STRIPE_PREFIXES = ("sk_test_", "rk_test_")
+
+
+def staging_email_folder(environ=os.environ):
+    """Staging saves its emails in a folder and sends none. It refuses to start with any real
+    email account set, so a copied production file can never make it email real people."""
+    present = [name for name in SMTP_SETTING_NAMES if environ.get(name, "").strip()]
+    if present:
+        raise ConfigurationError(
+            f"Staging must not have a real email account: remove {', '.join(present)}.",
+            {"present": present},
+        )
+    return require_settings(["STAGING_EMAIL_FOLDER"], environ)["STAGING_EMAIL_FOLDER"]
+
+
+def refuse_staging_email_folder(environ=os.environ):
+    """Production must really send email: the folder is for staging only."""
+    if environ.get("STAGING_EMAIL_FOLDER", "").strip():
+        raise ConfigurationError("Production must not use the staging email folder.")
+
+
+def stripe_live_allowed(app_env, environ=os.environ):
+    """Real card payments stay off until the owner says so with STRIPE_ALLOW_LIVE_KEYS=true in
+    production. Staging never takes real payments, whatever its settings say. A live key without
+    the flag (or any live key in staging) stops the start."""
+    flag = environ.get("STRIPE_ALLOW_LIVE_KEYS", "").strip().lower()
+    if flag not in ("", "true", "false"):
+        raise ConfigurationError("STRIPE_ALLOW_LIVE_KEYS must be true or false.")
+    allowed = flag == "true"
+    key = environ.get("STRIPE_SECRET_KEY", "").strip()
+    if app_env == "staging" and (allowed or key.startswith(LIVE_STRIPE_PREFIXES)):
+        raise ConfigurationError("Staging must use payment test keys only.")
+    if key.startswith(LIVE_STRIPE_PREFIXES) and not allowed:
+        raise ConfigurationError(
+            "A live payment key needs STRIPE_ALLOW_LIVE_KEYS=true, which the owner sets only "
+            "after the tax decision (BERA-170)."
+        )
+    if key and not key.startswith(TEST_STRIPE_PREFIXES + LIVE_STRIPE_PREFIXES):
+        raise ConfigurationError("STRIPE_SECRET_KEY is not a payment provider key.")
+    return allowed

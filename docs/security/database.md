@@ -44,6 +44,7 @@ Locally, `python scripts/dev.py` does steps 3 to 5 with fake passwords.
 from core.field_protection import normalize_email
 from core.protected_fields import EncryptedTextField, LookupHashField
 
+
 class Candidate(CompanyOwnedModel):
     email = EncryptedTextField(purpose="candidate.email")
     email_lookup = LookupHashField(of="email", purpose="candidate.email", normalize=normalize_email)

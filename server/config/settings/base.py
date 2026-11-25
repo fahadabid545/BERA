@@ -68,6 +68,8 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
 # The payment provider's secret key. Test mode only for now: `plans/stripe_client.py` refuses
 # any key that is not a test key.
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
+# Live keys are accepted only when production sets this on purpose (config/environment.py).
+STRIPE_ALLOW_LIVE_KEYS = False
 # Signs the payment provider's notifications; one that does not match is rejected.
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
 WEB_BASE_URL = os.environ.get("WEB_BASE_URL", "").strip().rstrip("/") or "http://localhost:3000"
@@ -118,7 +120,8 @@ REST_FRAMEWORK = {
 Q_CLUSTER = {
     "name": "bera",
     "orm": "default",
-    "workers": 2,
+    # How many background processes: staging and production set their own (see deploy/).
+    "workers": int(os.environ.get("Q_CLUSTER_WORKERS", "2")),
     "timeout": 60,
     "retry": 120,
     "queue_limit": 50,

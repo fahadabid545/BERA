@@ -37,9 +37,13 @@ FAKE_VALUES = {
 
 def load_settings(app_env, **overrides):
     # The test run itself uses the migrator account; a started app does not.
-    ignored = {*FAKE_VALUES, "DATABASE_ROLE"}
+    ignored = {*FAKE_VALUES, "DATABASE_ROLE", "STAGING_EMAIL_FOLDER", "STRIPE_ALLOW_LIVE_KEYS"}
     environ = {key: value for key, value in os.environ.items() if key not in ignored}
-    environ.update({"APP_ENV": app_env, "PYTHONPATH": str(SERVER_DIR), **FAKE_VALUES, **overrides})
+    values = dict(FAKE_VALUES)
+    if app_env == "staging":  # staging saves its emails in a folder and holds no SMTP account
+        values = {k: v for k, v in values.items() if not k.startswith("EMAIL_HOST")}
+        values["STAGING_EMAIL_FOLDER"] = "/tmp/fake-staging-emails"
+    environ.update({"APP_ENV": app_env, "PYTHONPATH": str(SERVER_DIR), **values, **overrides})
     script = (
         "import json, config.settings as s;"
         "print(json.dumps({'debug': s.DEBUG, 'hosts': s.ALLOWED_HOSTS,"
@@ -207,9 +211,8 @@ def test_development_saves_emails_in_the_inbox_folder_and_sends_nothing():
 
 
 @pytest.mark.parametrize("app_env", ["staging", "production"])
-def test_staging_and_production_send_through_smtp_from_one_sender(app_env):
+def test_staging_and_production_send_from_one_sender(app_env):
     values = settings_of(app_env)
-    assert values["email_backend"] == "django.core.mail.backends.smtp.EmailBackend"
     assert values["sender"] == "bera@example.com"
     assert values["web"] == "https://app.example.com"
 
@@ -245,3 +248,56 @@ def test_staging_and_production_ignore_the_pretend_country(app_env):
 def test_development_refuses_a_pretend_country_that_is_not_a_country_code(bad):
     result = load_settings("development", DEVELOPMENT_PRETEND_COUNTRY=bad)
     assert result.returncode != 0 and "DEVELOPMENT_PRETEND_COUNTRY" in result.stderr
+
+
+class TestEmailInStagingAndProduction:
+    def test_staging_saves_emails_in_a_folder(self):
+        values = settings_of("staging")
+        assert values["email_backend"] == "emailing.backends.DevInboxBackend"
+
+    @pytest.mark.parametrize("name", ["EMAIL_HOST", "EMAIL_HOST_USER", "EMAIL_HOST_PASSWORD"])
+    def test_staging_refuses_to_start_with_a_real_email_account(self, name):
+        result = load_settings("staging", **{name: "smtp.example.com"})
+        assert result.returncode != 0
+        assert name in result.stderr
+        assert "smtp.example.com" not in result.stderr
+
+    def test_staging_needs_its_email_folder(self):
+        result = load_settings("staging", STAGING_EMAIL_FOLDER="")
+        assert result.returncode != 0
+        assert "STAGING_EMAIL_FOLDER" in result.stderr
+
+    def test_production_sends_real_email(self):
+        assert settings_of("production")["email_backend"].endswith("smtp.EmailBackend")
+
+    def test_production_refuses_to_start_with_the_staging_folder(self):
+        result = load_settings("production", STAGING_EMAIL_FOLDER="/tmp/fake-staging-emails")
+        assert result.returncode != 0
+        assert "staging email folder" in result.stderr
+
+
+class TestPaymentKeys:
+    LIVE = "sk_live_only9c4e7a1b5d2f8e63"  # nosecret: fake
+
+    def test_production_refuses_a_live_key_without_the_flag(self):
+        result = load_settings("production", STRIPE_SECRET_KEY=self.LIVE)
+        assert result.returncode != 0
+        assert "STRIPE_ALLOW_LIVE_KEYS" in result.stderr
+        assert self.LIVE not in result.stderr
+
+    def test_production_allows_a_live_key_only_with_the_flag(self):
+        result = load_settings(
+            "production", STRIPE_SECRET_KEY=self.LIVE, STRIPE_ALLOW_LIVE_KEYS="true"
+        )
+        assert result.returncode == 0, result.stderr
+
+    def test_production_starts_with_a_test_key_and_no_flag(self):
+        assert load_settings("production").returncode == 0
+
+    @pytest.mark.parametrize("flag", ["true", "yes", "1"])
+    def test_staging_refuses_the_flag_and_live_keys(self, flag):
+        assert load_settings("staging", STRIPE_ALLOW_LIVE_KEYS=flag).returncode != 0
+        assert load_settings("staging", STRIPE_SECRET_KEY=self.LIVE).returncode != 0
+
+    def test_a_flag_that_is_not_true_or_false_stops_the_start(self):
+        assert load_settings("production", STRIPE_ALLOW_LIVE_KEYS="maybe").returncode != 0

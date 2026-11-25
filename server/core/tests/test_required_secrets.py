@@ -25,10 +25,24 @@ REAL = {
     "JWT_COMPANY_SECRET": "test-only-company-signing-key-3a9f1c7e5b",
     "JWT_ADMIN_SECRET": "test-only-admin-signing-key-8d2e6b4f0a",
     "TRUSTED_PROXY_COUNT": "1",
+    "STAGING_EMAIL_FOLDER": "/var/lib/bera/staging-emails",
 }
 ENVIRONMENTS = ["staging", "production"]
 # The migrator's address is held only by the process that changes the structure.
 APP_SETTINGS = [name for name in REAL if name != "MIGRATION_DATABASE_URL"]
+# Staging has an email folder and no email account; production the other way round.
+NEEDED = {
+    (setting.name, app_env)
+    for setting in REQUIRED_SETTINGS
+    if "app" in setting.roles
+    for app_env in setting.environments
+}
+APP_SETTING_CASES = [
+    (name, app_env)
+    for name in APP_SETTINGS
+    for app_env in ENVIRONMENTS
+    if (name, app_env) in NEEDED
+]
 MIGRATION_SETTINGS = [s.name for s in REQUIRED_SETTINGS if "migrations" in s.roles]
 
 
@@ -50,8 +64,7 @@ def test_real_values_pass(app_env):
     check_required_settings(REAL, app_env)
 
 
-@pytest.mark.parametrize("app_env", ENVIRONMENTS)
-@pytest.mark.parametrize("name", APP_SETTINGS)
+@pytest.mark.parametrize(("name", "app_env"), APP_SETTING_CASES)
 def test_a_missing_setting_stops_staging_and_production(name, app_env):
     error = refusal({**REAL, name: " "}, app_env)
     assert error.details == {"missing": [name], "placeholders": []}
@@ -59,7 +72,17 @@ def test_a_missing_setting_stops_staging_and_production(name, app_env):
 
 def test_every_missing_setting_is_listed_at_once():
     error = refusal({}, "production")
-    assert error.details["missing"] == APP_SETTINGS_IN_ORDER
+    assert error.details["missing"] == [
+        name for name in APP_SETTINGS_IN_ORDER if (name, "production") in NEEDED
+    ]
+
+
+def test_staging_needs_its_email_folder_and_no_email_account():
+    assert refusal({**REAL, "STAGING_EMAIL_FOLDER": ""}, "staging").details["missing"] == [
+        "STAGING_EMAIL_FOLDER"
+    ]
+    environ = {k: v for k, v in REAL.items() if not k.startswith("EMAIL_HOST")}
+    check_required_settings(environ, "staging")
 
 
 def test_the_app_never_needs_the_migrator_password_and_the_migrator_never_the_apps():
@@ -85,7 +108,6 @@ def test_a_placeholder_password_in_the_migrator_address_is_refused():
     assert error.details["placeholders"] == ["MIGRATION_DATABASE_URL"]
 
 
-@pytest.mark.parametrize("app_env", ENVIRONMENTS)
 @pytest.mark.parametrize(
     "name",
     [
@@ -114,7 +136,10 @@ def test_a_placeholder_password_in_the_migrator_address_is_refused():
         "REPLACE_ME_WITH_A_REAL_SECRET_VALUE",
     ],
 )
+@pytest.mark.parametrize("app_env", ENVIRONMENTS)
 def test_a_placeholder_secret_stops_staging_and_production(name, placeholder, app_env):
+    if (name, app_env) not in NEEDED:
+        return  # staging holds no email account, so there is no password to check
     error = refusal({**REAL, name: placeholder}, app_env)
     assert error.details == {"missing": [], "placeholders": [name]}
 
