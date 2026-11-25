@@ -708,6 +708,12 @@ else; the links carry no plan or price, and the plan is chosen on the billing pa
 the normal session rules (one silent renewal when only the refresh token is still valid, false for a
 blocked user, a suspended company or an ended session) and uses the general rate limit.
 
+### Website content (BERA-173)
+
+The approved wording of Home, Features and How it works is kept word for word in
+`web/src/components/website/content.ts`; the pages only lay it out with the shared `Card` and
+design tokens (so both themes follow). Change the text there only when the owner approves new text.
+
 ### Contact form (BERA-172)
 
 `/contact` sends a message to the support address (`general.support_email`) and stores it.
