@@ -44,6 +44,7 @@ export const ADMIN_NAVIGATION: readonly NavigationItem<AdminRole>[] = [
       },
       { label: "Announcements", href: "/admin/operations/announcements" },
       { label: "Data requests", href: "/admin/operations/data-requests" },
+      { label: "Feedback", href: "/admin/operations/feedback" },
     ],
   },
   {

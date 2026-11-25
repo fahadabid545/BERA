@@ -268,6 +268,7 @@ SETTINGS = [
     SettingDefinition("rate_limits.upload_files_per_10_minutes", 100, whole_number(1, 100000)),
     SettingDefinition("rate_limits.downloads_per_minute", 60, whole_number(1, 10000)),
     SettingDefinition("rate_limits.contact_per_hour", 3, whole_number(1, 10000)),
+    SettingDefinition("rate_limits.feedback_per_hour", 10, whole_number(1, 10000)),
     SettingDefinition("rate_limits.other_requests_per_minute", 120, whole_number(1, 100000)),
     SettingDefinition("rate_limits.live_updates_per_minute", 600, whole_number(1, 100000)),
     # Repeated abuse: this many refused requests within the window block the source.
@@ -535,6 +536,9 @@ SETTINGS = [
     SettingDefinition("data_requests.due_days", 30, whole_number(1, 365)),
     SettingDefinition("data_requests.max_note_length", 300, whole_number(1, 1000)),
     SettingDefinition("data_requests.list_limit", 100, whole_number(1, 1000)),
+    SettingDefinition("feedback.max_message_length", 2000, whole_number(1, 5000)),
+    SettingDefinition("feedback.max_note_length", 300, whole_number(1, 1000)),
+    SettingDefinition("feedback.list_limit", 100, whole_number(1, 1000)),
     # The audit log viewer (audit/log_viewer.py): entries per page, most entries one export holds.
     SettingDefinition("audit_log.page_size", 50, whole_number(1, 500)),
     SettingDefinition("audit_log.export_max_rows", 50_000, whole_number(1, 1_000_000)),

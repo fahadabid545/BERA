@@ -13,6 +13,8 @@ urlpatterns = [
     path("api/company/", include("notifications.urls")),
     path("api/company/announcements/", include("announcements.company_urls")),
     path("api/admin/data-requests/", include("datarequests.urls")),
+    path("api/company/feedback/", include("feedback.company_urls")),
+    path("api/admin/feedback/", include("feedback.admin_urls")),
     path("api/admin/audit-log/", include("audit.viewer_urls")),
     path("api/admin/settings/", include("platform_settings.admin_urls")),
     path("api/platform/", platform_info),

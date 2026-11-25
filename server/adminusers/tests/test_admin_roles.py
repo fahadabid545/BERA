@@ -21,6 +21,7 @@ SUPPORT_MAY = [
     "job.cancel",
     "team_member.block",
     "data_request.handle",
+    "feedback.handle",
     "announcement.read",
 ]
 SUPPORT_MAY_NOT = [

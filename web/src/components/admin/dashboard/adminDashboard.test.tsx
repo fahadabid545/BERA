@@ -366,6 +366,48 @@ describe("Attention", () => {
     );
   });
 
+  it("lists new feedback as a row of its own and opens it", async () => {
+    const data = superData();
+    serve({ ...data, pending: { ...data.pending, feedback: 3 } });
+    const user = userEvent.setup();
+    show("attention");
+    expect(await screen.findByText("New feedback")).toBeTruthy();
+    await user.click(screen.getAllByRole("button", { name: "Review" })[5]);
+    await vi.waitFor(() =>
+      expect(String(fetchMock.mock.calls.at(-1)?.[0])).toContain("kind=pending&key=feedback"),
+    );
+  });
+
+  it("shows feedback with its company, kind and date, and never its text", async () => {
+    fetchMock.mockResolvedValue(
+      json({
+        total: 1,
+        items: [
+          {
+            type: "feedback",
+            id: "abc",
+            company_id: 7,
+            company: "Fake Company",
+            feedback_kind: "idea",
+            at: "2026-11-20T10:00:00Z",
+          },
+        ],
+      }),
+    );
+    render(
+      <AdminDetailDialog
+        detail={{ kind: "pending", key: "feedback", title: "New feedback" }}
+        onClose={vi.fn()}
+      />,
+    );
+    expect((await screen.findByRole("link", { name: "Fake Company" })).getAttribute("href")).toBe(
+      "/admin/companies/7",
+    );
+    for (const words of ["Idea", "2026-11-20"]) {
+      expect(screen.getByText(words)).toBeTruthy();
+    }
+  });
+
   it("shows a data request with its type, status and due date, and marks an overdue one", async () => {
     fetchMock.mockResolvedValue(
       json({

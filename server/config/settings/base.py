@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "announcements",
     "contact",
     "datarequests",
+    "feedback",
     "projects",
     "ai",
     "cvs",

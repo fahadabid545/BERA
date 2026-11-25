@@ -37,7 +37,7 @@ const sidebar = () => screen.getByRole("navigation", { name: "Admin" });
 
 const SUB_MENUS = {
   AI: ["Playground", "Models", "Prompts"],
-  Operations: ["Jobs", "Payments", "Cost vs revenue", "Announcements", "Data requests"],
+  Operations: ["Jobs", "Payments", "Cost vs revenue", "Announcements", "Data requests", "Feedback"],
   Settings: ["General", "Audit log", "Admin users"],
   Advanced: [
     "Platform values",
@@ -92,6 +92,7 @@ describe("sidebar items", () => {
       "Jobs",
       "Announcements",
       "Data requests",
+      "Feedback",
     ]);
     renderFrame("support");
     for (const name of ["Advanced", "AI", "Settings", "Plans and Pricing"]) {

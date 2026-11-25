@@ -105,6 +105,7 @@ KINDS = _kinds(
     EventKind("admin.legal_review_reset"),
     EventKind("admin.data_request_created"),
     EventKind("admin.data_request_status_changed"),
+    EventKind("admin.feedback_status_changed"),
     EventKind("admin.announcement_created"),
     EventKind("admin.announcement_edited"),
     EventKind("admin.announcement_deleted"),

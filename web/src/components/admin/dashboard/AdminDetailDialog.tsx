@@ -39,10 +39,19 @@ type RequestRow = {
   due_on: string;
   overdue: boolean;
 };
-type AnyRow = CompanyRow | CallRow | JobRow | RequestRow;
+type FeedbackRow = {
+  type: "feedback";
+  id: string;
+  company_id: number;
+  company: string;
+  feedback_kind: "bug" | "idea" | "question";
+  at: string;
+};
+type AnyRow = CompanyRow | CallRow | JobRow | RequestRow | FeedbackRow;
 type Body = { total: number; items: AnyRow[] };
 
 const DATE_LENGTH = 10;
+const FEEDBACK_KIND_WORDS = { bug: "Bug", idea: "Idea", question: "Question" };
 
 function Row({ item }: { item: AnyRow }) {
   if (item.type === "company") {
@@ -69,6 +78,17 @@ function Row({ item }: { item: AnyRow }) {
           <Tag variant="neutral">{item.status === "open" ? "Open" : "In progress"}</Tag>
           <span>Due {item.due_on}</span>
           {item.overdue && <Tag variant="danger">Overdue</Tag>}
+        </span>
+      </>
+    );
+  }
+  if (item.type === "feedback") {
+    return (
+      <>
+        <TextLink href={`/admin/companies/${item.company_id}`}>{item.company}</TextLink>
+        <span className="detail-list__facts">
+          <span>{FEEDBACK_KIND_WORDS[item.feedback_kind]}</span>
+          <span>{item.at.slice(0, DATE_LENGTH)}</span>
         </span>
       </>
     );

@@ -36,6 +36,7 @@ from cvs.charts import per_day, percent_change
 from cvs.dashboard import card, checked_period, in_days, windows
 from cvs.models import CandidateScore
 from datarequests import service as data_requests
+from feedback import service as feedback_service
 from plans import revenue
 from plans.models import Plan, Subscription
 from plans.subscriptions import State, effective_state
@@ -370,6 +371,8 @@ def _pending(role, subscriptions):
         pending["failed_jobs"] = job_monitor.failed_count()
     if _can(role, "data_request.handle"):
         pending["data_requests"] = data_requests.open_count()
+    if _can(role, "feedback.handle"):
+        pending["feedback"] = feedback_service.new_count()
     return pending
 
 
@@ -471,6 +474,18 @@ def _request_item(item):
     }
 
 
+def _feedback_item(item):
+    """What the overview shows of feedback: who and when, never what was written."""
+    return {
+        "type": "feedback",
+        "id": item["id"],
+        "company_id": item["company_id"],
+        "company": item["company"],
+        "feedback_kind": item["kind"],
+        "at": item["created_at"],
+    }
+
+
 def detail(role, kind, key, raw_days):
     """{"total", "items"}: companies (or AI calls for admins who may see them) behind a card or
     a mark; at most `dashboard.detail_limit` items with the real total."""
@@ -534,6 +549,10 @@ def detail(role, kind, key, raw_days):
         require_action_for(role, "data_request.handle")
         waiting = data_requests.attention_items(limit)
         return {"total": waiting["total"], "items": [_request_item(i) for i in waiting["items"]]}
+    if kind == "pending" and key == "feedback":
+        require_action_for(role, "feedback.handle")
+        waiting = feedback_service.attention_items(limit)
+        return {"total": waiting["total"], "items": [_feedback_item(i) for i in waiting["items"]]}
     if kind in ("ai_purpose", "ai_model") and key:
         require_action_for(role, "ai.view")
         column = "purpose" if kind == "ai_purpose" else "model"

@@ -2124,7 +2124,7 @@ behind it, and every name links to its company page. The chosen tab is kept in t
 | Revenue | Revenue against AI cost with the margin; plan mix; subscriptions by state | super |
 | Usage | The pace of scoring and AI calls; the companies using the platform most | both (tokens, cost, AI calls: super only) |
 | AI | Token budget; calls by purpose and failure rate; cost by model; whether AI work is paused | super |
-| Attention | Past-due subscriptions, free grants ending soon, suspended companies, failed AI calls | both (failed AI calls: super only) |
+| Attention | Past-due subscriptions, free grants ending soon, suspended companies, failed AI calls, open data requests, new feedback | both (failed AI calls: super only) |
 
 - `GET /api/admin/dashboard/?days=`: the cards. `GET /api/admin/dashboard/detail/?kind=&key=&days=`:
   what is behind one (`metric`, `state`, `plan`, `pending`, `ai_purpose`, `ai_model`).
@@ -2466,6 +2466,60 @@ export functions of the company panel.
   `admin.data_request_status_changed`; never the name or the note).
 - The overview's Attention tab has an "Open data requests" row (open and in progress; completed
   ones leave it) and its Review lists them most urgent first, overdue ones marked.
+
+## Feedback and private beta (BERA-183)
+
+### Feedback
+
+- **Company panel:** "Send feedback" in the user menu, for every signed-in person (owner and member).
+  A kind (bug, idea, question), a message and the page it was sent from (filled in, never typed;
+  only a `/company` page without a query or fragment is accepted). No attachments. The company and
+  the person come from the sign-in, never from the request. `POST /api/company/feedback/`.
+- **Limits** (platform settings): `rate_limits.feedback_per_hour` (10 per person per hour; a wait is
+  said in plain words), `feedback.max_message_length` (2000), `feedback.max_note_length` (300),
+  `feedback.list_limit` (100).
+- **Admin panel:** Operations > Feedback (both roles: `feedback.handle`). Lists company, user,
+  kind, message, date and status (New, Reviewing, Fixed, Won't fix) with filters for status, kind
+  and date (`GET /api/admin/feedback/?status=&kind=&since=&until=`, newest first, cut at
+  `feedback.list_limit` with the real total). `PATCH <id>/` changes the status and/or a short
+  internal note, which the company never sees. Every change of status is audited
+  (`admin.feedback_status_changed`: ids and old/new status only). The overview's Attention tab has
+  a "New feedback" row (status New only); its Review lists company, kind and date, never the text.
+- **Privacy:** the message is company data. It is stored encrypted, belongs to the company
+  (`CompanyOwnedModel`, so company deletion removes it), is readable only by admins, and is never
+  written to a log, an audit entry or an email. Nothing is emailed when feedback arrives; the
+  overview only counts it.
+
+### Beta plan
+
+There is no beta flag and no invite-only sign-up. Beta companies sign up normally; the super admin
+then gives each one a free subscription.
+
+| Item | Decision |
+| --- | --- |
+| Who | Recruiters the owner invites personally, one account owner per company (each company has at most 3 accounts) |
+| How many companies | ______ (owner fills in) |
+| Start and end dates | ______ to ______ (owner fills in) |
+| Free access | Admin > Companies > the company > "Grant free subscription": the plan with every feature to test, and an end date at the end of the beta. The audit log keeps who granted it and why |
+| What to ask them to test | Sign up and verify; create a project and requirements; upload 10 to 30 real CVs (a batch is at most 30); read the ranked list, filters, comparison and the candidate page; download a package; share a report; invite a team member; change retention settings |
+| Collecting feedback | "Send feedback" in the app (bug, idea, question). The owner reads Operations > Feedback every working day, sets each item to Reviewing, then Fixed or Won't fix, with a short note |
+| List of fixes | The feedback list itself: filter by status. Each item is Fixed (done) or Reviewing (planned); the Won't fix ones carry the reason in the note |
+| When the free period ends | The subscription ends on its end date: the account becomes view and download only. Nothing is deleted by the end of the period; a company's own retention setting still applies as before. The owner is emailed before it ends (`notifications.subscription_ending_days`) and the company can buy a plan at any time to get full access back |
+| Stopping early | Admin > Companies > the company > end the free subscription (reason required) |
+
+Before the beta starts, the owner has to run the first real deploy, switch on real email sending and
+the real AI key, and have the legal text reviewed (see the earlier sections). Only the code and its
+tests exist so far: no real recruiter, real AI or real server has been used for this ticket, and the
+beta itself (invitations, dates, the feedback received and the fixes made) is still to be done and
+recorded here by the owner.
+
+| Result | Value |
+| --- | --- |
+| Companies in the beta | |
+| Feedback received (bug / idea / question) | |
+| Fixed | |
+| Planned | |
+| Won't fix | |
 
 ## Admin users
 

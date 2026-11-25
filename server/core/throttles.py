@@ -64,6 +64,13 @@ class ContactThrottle(RuleThrottle):
     subject = staticmethod(address_subject)
 
 
+class FeedbackThrottle(RuleThrottle):
+    """Per signed-in person, so one person cannot flood the admins with feedback."""
+
+    rule = rate_limits.FEEDBACK
+    subject = staticmethod(account_subject)
+
+
 class PerEmailThrottle(RuleThrottle):
     """Per email, so one person's inbox cannot be flooded from many addresses."""
 

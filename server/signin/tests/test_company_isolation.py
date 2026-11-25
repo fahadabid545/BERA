@@ -64,7 +64,9 @@ KINDS_NAMED_IN_THE_TICKET = {
 # CheckoutAttempt: plans/tests/test_checkout.py (TestAnotherCompany).
 # BillingDetails, Invoice: plans/tests/test_invoices.py (TestBillingDetails, TestDownloading).
 # AnnouncementDismissal: announcements/tests/test_announcements.py (TestDismissing).
+# Feedback: feedback/tests/test_feedback.py (no company route reads it; TestCompanyData).
 REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
+    "Feedback",
     "Invitation",
     "ActivityEntry",
     "Subscription",

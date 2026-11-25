@@ -380,7 +380,7 @@ class TestPending:
         pending = board(boss)["pending"]
         assert pending == {
             "past_due": 1, "grants_expiring": 1, "suspended": 1,
-            "failed_ai_calls": 1, "failed_jobs": 0, "data_requests": 0,
+            "failed_ai_calls": 1, "failed_jobs": 0, "data_requests": 0, "feedback": 0,
         }  # fmt: skip
 
     def test_the_windows_come_from_the_settings(self, boss):
