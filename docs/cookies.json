@@ -1,0 +1,58 @@
+[
+  {
+    "name": "bera_company_access",
+    "storage": "cookie",
+    "purpose": "Keeps a company user signed in (short-lived sign-in token, HttpOnly).",
+    "essential": true,
+    "set_by": "our code"
+  },
+  {
+    "name": "bera_company_refresh",
+    "storage": "cookie",
+    "purpose": "Renews a company user's sign-in without asking for the password again (HttpOnly, sent only to its own address).",
+    "essential": true,
+    "set_by": "our code"
+  },
+  {
+    "name": "bera_admin_access",
+    "storage": "cookie",
+    "purpose": "Keeps an admin signed in (short-lived sign-in token, HttpOnly).",
+    "essential": true,
+    "set_by": "our code"
+  },
+  {
+    "name": "bera_admin_refresh",
+    "storage": "cookie",
+    "purpose": "Renews an admin's sign-in without asking for the password again (HttpOnly, sent only to its own address).",
+    "essential": true,
+    "set_by": "our code"
+  },
+  {
+    "name": "bera_csrf",
+    "storage": "cookie",
+    "purpose": "Protects signed-in actions from forged requests; the page copies it into a request header.",
+    "essential": true,
+    "set_by": "our code"
+  },
+  {
+    "name": "bera-theme",
+    "storage": "localStorage",
+    "purpose": "Remembers the light or dark theme the visitor chose. Stays in the browser and is never sent to the server.",
+    "essential": true,
+    "set_by": "our code"
+  },
+  {
+    "name": "Cloudflare security cookie",
+    "storage": "cookie",
+    "purpose": "Cloudflare may set its own security cookie when the site is behind it. Not set by our code.",
+    "essential": true,
+    "set_by": "outside our code"
+  },
+  {
+    "name": "Stripe hosted pages cookies",
+    "storage": "cookie",
+    "purpose": "Stripe's hosted payment and billing pages set their own cookies on Stripe's own domain. Not set by our code.",
+    "essential": true,
+    "set_by": "outside our code"
+  }
+]

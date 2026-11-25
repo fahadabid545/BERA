@@ -714,6 +714,24 @@ The approved wording of Home, Features and How it works is kept word for word in
 `web/src/components/website/content.ts`; the pages only lay it out with the shared `Card` and
 design tokens (so both themes follow). Change the text there only when the owner approves new text.
 
+### Cookie notice (BERA-176)
+
+**There are no non-essential cookies, so no cookie notice is shown.** Everything the site stores is
+needed for it to work: the sign-in cookies (`bera_company_*`, `bera_admin_*`), the CSRF cookie
+(`bera_csrf`) and the theme choice in the browser's `localStorage` (`bera-theme`, never sent to the
+server). There is no analytics, advertising or tracking.
+
+`docs/cookies.json` lists every cookie and browser storage key with its purpose and whether it is
+essential. It also lists what is **outside our code**: when the site is behind Cloudflare it may set
+its own security cookie, and Stripe's hosted pages set their own cookies on Stripe's own domain.
+
+Tests fail (server `core/tests/test_cookie_list.py`, web `src/lib/cookieList.test.ts`) if the server
+sets a cookie that is not on the list, if code outside the known files uses browser storage or writes
+a cookie, if a non-essential entry is added for our code, or if an analytics or tracking library
+appears in the dependencies. The failure says to update the list and that a cookie notice is then
+required before release. That notice would be new work with wording from the owner; nothing for it is
+built now (no component, switch or flag).
+
 ### Search engines and sharing (BERA-175)
 
 Every public page (Home, Features, How it works, Pricing, FAQ, Contact, Terms, Privacy, Log in, Sign
