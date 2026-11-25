@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import checkout_views, invoice_views, renewal_views
+from . import card_views, checkout_views, invoice_views, renewal_views
 
 urlpatterns = [
     path("checkout/", checkout_views.CheckoutView.as_view()),
@@ -10,6 +10,9 @@ urlpatterns = [
     path("cancel/", renewal_views.CancelRenewalView.as_view()),
     path("resume/", renewal_views.ResumeRenewalView.as_view()),
     path("portal/", renewal_views.BillingPortalView.as_view()),
+    path("card/", card_views.CardView.as_view()),
+    path("card/update/", card_views.CardUpdateView.as_view()),
+    path("card/check/", card_views.CardCheckView.as_view()),
     path("details/", invoice_views.BillingDetailsView.as_view()),
     path("invoices/", invoice_views.InvoiceListView.as_view()),
     path("invoices/<uuid:id>/link/", invoice_views.InvoiceLinkView.as_view()),

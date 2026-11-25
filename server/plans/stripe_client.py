@@ -215,19 +215,71 @@ def end_subscription(subscription_id):
     return True
 
 
-def create_portal_session(*, customer_id, return_url):
+CARD_UPDATE_FLOW = {"type": "payment_method_update"}  # opens the portal on the card screen
+
+
+def create_portal_session(*, customer_id, return_url, flow=None):
     """The address of the provider's own billing page (card update and invoices). What it
-    allows is set in the provider's portal settings, never here."""
+    allows is set in the provider's portal settings, never here. A `flow` opens it straight on
+    one screen."""
+    extra = {"flow_data": flow} if flow else {}
     try:
         session = stripe.billing_portal.Session.create(
             api_key=_key(),
             max_network_retries=NETWORK_RETRIES,
             customer=customer_id,
             return_url=return_url,
+            **extra,
         )
     except stripe.StripeError as error:
         raise _provider_error() from error
     return session["url"]
+
+
+def default_card(customer_id, subscription_id=""):
+    """The card the provider charges by default: its id and what is printed on a card receipt
+    (brand, last four digits, expiry), or None. Read from the provider every time and never
+    stored here. The subscription's own card wins over the customer's."""
+    try:
+        method = None
+        if subscription_id:
+            method = stripe.Subscription.retrieve(
+                subscription_id, expand=["default_payment_method"], api_key=_key()
+            )["default_payment_method"]
+        if not method:
+            customer = stripe.Customer.retrieve(
+                customer_id, expand=["invoice_settings.default_payment_method"], api_key=_key()
+            )
+            method = customer["invoice_settings"]["default_payment_method"]
+    except stripe.StripeError as error:
+        raise _provider_error() from error
+    card = method.get("card") if method else None
+    if not card:
+        return None
+    return {
+        "payment_method_id": method["id"],
+        "brand": card["brand"],
+        "last4": card["last4"],
+        "exp_month": card["exp_month"],
+        "exp_year": card["exp_year"],
+    }
+
+
+def retry_open_invoice(subscription_id):
+    """Asks the provider to charge the subscription's open invoice again, now that the card
+    changed. Never blocks the caller (the card is already updated): a declined card or an outage
+    is logged and reported as False. The paid notice, not this call, restores access."""
+    try:
+        invoice = stripe.Subscription.retrieve(
+            subscription_id, expand=["latest_invoice"], api_key=_key()
+        )["latest_invoice"]
+        if not invoice or invoice["status"] != "open":
+            return False
+        stripe.Invoice.pay(invoice["id"], api_key=_key())
+    except (stripe.StripeError, AppError):
+        logger.warning("An open invoice could not be paid again.", exc_info=True)
+        return False
+    return True
 
 
 TAX_NUMBER_FIELD = "Tax number"  # the label on invoices; Stripe copies it onto each invoice

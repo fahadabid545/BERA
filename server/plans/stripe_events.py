@@ -15,6 +15,7 @@ import logging
 from datetime import UTC, datetime
 
 from django.db import transaction
+from django.db.models import Q
 
 from companies.models import Company
 
@@ -239,7 +240,24 @@ def handle_subscription_deleted(event):
     return HANDLED
 
 
+def handle_card_added(event):
+    """A card was added to a customer: remembered by time only, so an owner coming back from the
+    card page is told the truth even when the provider cannot be read at that moment."""
+    from .models import Subscription
+
+    customer_id = str(event["data"]["object"].get("customer") or "")
+    if not customer_id:
+        return UNMATCHED
+    added_at = _at(event["created"])
+    matched = Subscription.objects.filter(stripe_customer_id=customer_id).filter(
+        Q(card_changed_at__isnull=True) | Q(card_changed_at__lt=added_at)
+    )
+    matched.update(card_changed_at=added_at)
+    return HANDLED
+
+
 HANDLERS = {
+    "payment_method.attached": handle_card_added,
     "invoice.paid": handle_invoice_paid,
     "invoice.payment_failed": handle_payment_failed,
     "customer.subscription.deleted": handle_subscription_deleted,

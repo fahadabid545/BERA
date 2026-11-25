@@ -65,19 +65,31 @@ def resume_renewal(company_id, *, by=None):
         return resume(company_id, by=by)
 
 
-def open_billing_portal(company_id, *, by):
-    """The provider's own page, for the company's own customer record only (our stored id, never
-    anything from the request). Allowed in every state that has a customer, Past due and
-    view-only included, so a failed card can always be fixed."""
+def billed_subscription(company_id):
+    """The company's subscription, when it has a provider customer (our stored id, never one from
+    the request). Allowed in every state that has a customer, Past due and view-only included,
+    so a failed card can always be fixed."""
     subscription = get_subscription(company_id)
     if not subscription.stripe_customer_id:
         raise _refuse(
             "no_billing_account", "There is no card billing for your company yet. Buy a plan first."
         )
-    url = stripe_client.create_portal_session(
+    return subscription
+
+
+def portal_address(subscription, *, return_path, flow=None):
+    """The provider's own page for this company's customer. The return address is always the
+    app's own, and it carries only a marker, never a result."""
+    return stripe_client.create_portal_session(
         customer_id=subscription.stripe_customer_id,
-        return_url=f"{settings.WEB_BASE_URL}{PORTAL_RETURN_PATH}",
+        return_url=f"{settings.WEB_BASE_URL}{return_path}",
+        flow=flow,
     )
+
+
+def open_billing_portal(company_id, *, by):
+    subscription = billed_subscription(company_id)
+    url = portal_address(subscription, return_path=PORTAL_RETURN_PATH)
     record_security_event(
         "security.billing_portal_opened",
         actor=by,

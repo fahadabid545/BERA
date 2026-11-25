@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { CardManagement, type CardResult } from "@/components/company/CardManagement";
 import { useCompanyRole } from "@/components/company/role";
 import { Button, Card, Dialog, Tag } from "@/components/ui";
 import { getJson, postJson } from "@/lib/api";
@@ -59,6 +60,7 @@ export function PlanCheckout() {
   const query = useSearchParams();
   const cancelled = query.get("checkout") === "cancelled";
   const cameBackFromPortal = query.get("portal") === "returned";
+  const cameBackFromCard = query.get("card") === "returned";
   const [plans, setPlans] = useState<SalePlan[]>([]);
   const [billing, setBilling] = useState<Billing | null>(null);
   const [chosen, setChosen] = useState<SalePlan | null>(null);
@@ -66,6 +68,7 @@ export function PlanCheckout() {
   const [stopping, setStopping] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [cardResult, setCardResult] = useState<CardResult | null>(null);
 
   const loadBilling = useCallback(async () => {
     const result = await getJson<Billing>(USAGE_URL);
@@ -82,7 +85,8 @@ export function PlanCheckout() {
 
   const processing = billing?.pending_change?.processing ?? false;
   // Access returns only when the provider's paid notice arrives, never because of the return trip.
-  const paymentProcessing = cameBackFromPortal && billing?.state === "past_due";
+  const paymentProcessing =
+    (cameBackFromPortal || cardResult === "updated") && billing?.state === "past_due";
   const waitingForNotice = processing || paymentProcessing;
   useEffect(() => {
     if (!waitingForNotice || !billing) return;
@@ -183,6 +187,13 @@ export function PlanCheckout() {
             </Button>
           )}
         </div>
+      )}
+      {isOwner && billing?.can_manage_billing && (
+        <CardManagement
+          returned={cameBackFromCard}
+          refreshSeconds={billing.refresh_seconds}
+          onResult={setCardResult}
+        />
       )}
       {waiting?.kind === "upgrade" && (
         <p role="status">

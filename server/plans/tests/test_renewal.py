@@ -46,8 +46,8 @@ class FakeProvider:
         self.ended.append(subscription_id)
         return True
 
-    def portal(self, *, customer_id, return_url):
-        self.portals.append({"customer_id": customer_id, "return_url": return_url})
+    def portal(self, *, customer_id, return_url, flow=None):
+        self.portals.append({"customer_id": customer_id, "return_url": return_url, "flow": flow})
         return "https://billing.example.test/session"
 
 

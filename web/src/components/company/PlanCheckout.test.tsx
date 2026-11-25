@@ -58,6 +58,7 @@ let sent: { path: string; body: unknown }[];
 let billing: object;
 let checkoutReply: () => Response;
 let changeReply: () => Response;
+let cardResult: string;
 
 function reply(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status });
@@ -70,9 +71,11 @@ function show(role: "owner" | "member", plans = [PLAN]) {
       if (init?.method === "POST") {
         posts += 1;
         sent.push({ path, body: JSON.parse(String(init.body)) });
+        if (path === "/api/company/billing/card/check/") return reply({ result: cardResult });
         return path.includes("change-plan") ? changeReply() : checkoutReply();
       }
       if (path === "/api/company/usage/") return reply(billing);
+      if (path === "/api/company/billing/card/") return reply({ card: null });
       return reply(plans);
     }),
   );
@@ -89,6 +92,7 @@ beforeEach(() => {
   billing = NO_PLAN;
   changeReply = () => reply({ result: "processing", url: null });
   query = "";
+  cardResult = "none";
   navigateTo.mockReset();
   checkoutReply = () =>
     new Response(JSON.stringify({ url: "https://pay.example.test/1" }), { status: 200 });
@@ -371,6 +375,35 @@ describe("renewal and cancellation", () => {
     billing = ON_STARTER;
     show("owner");
     await screen.findByRole("button", { name: "Manage billing" });
+    expect(screen.queryByText("Payment processing")).toBeNull();
+  });
+
+  it("shows payment processing after a card update on a Past due company, from the server's answer", async () => {
+    query = "card=returned";
+    cardResult = "updated";
+    billing = { ...ON_STARTER, state: "past_due", refresh_seconds: 0 };
+    show("owner");
+    expect(await screen.findByText("Payment processing")).toBeTruthy();
+    billing = { ...ON_STARTER, refresh_seconds: 0 };
+    await waitFor(() => expect(screen.queryByText("Payment processing")).toBeNull());
+    expect(await screen.findByRole("button", { name: "Cancel subscription" })).toBeTruthy();
+  });
+
+  it("does not show payment processing when the card was not changed", async () => {
+    query = "card=returned";
+    cardResult = "not_changed";
+    billing = { ...ON_STARTER, state: "past_due", refresh_seconds: 0 };
+    show("owner");
+    await screen.findByText("Not changed");
+    expect(screen.queryByText("Payment processing")).toBeNull();
+  });
+
+  it("does not claim processing from the card marker alone", async () => {
+    query = "card=returned";
+    cardResult = "checking";
+    billing = { ...ON_STARTER, state: "past_due", refresh_seconds: 60 };
+    show("owner");
+    await screen.findByText("Checking your card");
     expect(screen.queryByText("Payment processing")).toBeNull();
   });
 

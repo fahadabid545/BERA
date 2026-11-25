@@ -647,6 +647,27 @@ Routes (all owner only, `billing.pay`; no company or customer id is ever read fr
   security event `security.billing_portal_opened` in the audit log. Coming back never restores
   access: the screen shows "Payment processing" until Stripe's paid notice arrives.
 
+**Update card (BERA-169).** The owner's "Update card" button (`POST /api/company/billing/card/update/`,
+`billing.pay`) opens the same Stripe portal session as "Manage billing", straight on the card screen
+(`flow_data` `payment_method_update`), with the same fixed return address plus a marker only:
+`/company/billing?card=returned`. Nothing about the result is in the address.
+
+- **The result is read, not believed.** On return the page asks `POST .../card/check/`. The server
+  compares the customer's (or subscription's) default card at Stripe with the one saved when the page
+  was opened (the Stripe id only), or uses Stripe's `payment_method.attached` notice when it has
+  arrived. The page shows "Card updated", "Not changed", or "Checking your card" (asks again) when
+  Stripe cannot be read yet. The answer is saved once, so asking again changes nothing.
+- **Card shown** (`GET .../card/`, owner only, `no-store`): brand, last four digits and expiry, read
+  from Stripe each time. No card data is stored in our database, logs or audit log.
+- **Past due:** it opens in every state with a customer. A new card does not restore access: the
+  server asks Stripe to pay the open invoice again (once), the page shows "Payment processing", and
+  access returns only on the paid-invoice notice (BERA-165).
+- **Audit:** opening and the result are security events (`security.card_update_opened`,
+  `security.card_update_result`, with the state or the result word only).
+- **Stripe setup:** add `payment_method.attached` to the events of the webhook endpoint (an extra
+  that makes the result faster when Stripe cannot be read; the page works without it). The portal
+  configuration below is unchanged.
+
 **Stripe portal configuration (repeat in production).** In the Stripe Dashboard, Settings, Billing,
 Customer portal (this is configured separately in test mode and in live mode, so do it in both):
 allow only **Update payment method** and **View invoice history**. Turn **off** subscription

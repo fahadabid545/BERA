@@ -26,6 +26,9 @@ DESCRIPTIONS = {
     "security.abuse_blocked": "A source was blocked for too many requests or wrong attempts.",
     "security.download_volume": "One user downloaded an unusually large number of CVs in an hour.",
     "security.billing_portal_opened": "A company owner opened the payment provider's billing page.",
+    "security.card_update_opened": "A company owner opened the payment provider's card page.",
+    "security.card_update_result": "A company owner came back from the payment provider's card "
+    "page and the result was recorded.",
 }
 
 

@@ -93,6 +93,14 @@ class Subscription(CompanyOwnedModel):
     pending_plan = models.ForeignKey(Plan, null=True, on_delete=models.PROTECT, related_name="+")
     pending_change = models.CharField(max_length=20, choices=Change.choices, blank=True)
     pending_since = models.DateTimeField(null=True)
+    # The last "Update card" visit. `card_update_started_with` is the provider's id of the card that
+    # was the default when it opened (an id, never card details), so the result can be read from
+    # the provider as "the default changed". `card_changed_at` is the provider's own notice that a
+    # card was added; the outcome is saved once it is known.
+    card_update_started_at = models.DateTimeField(null=True)
+    card_update_started_with = models.CharField(max_length=255, blank=True)
+    card_update_outcome = models.CharField(max_length=20, blank=True)
+    card_changed_at = models.DateTimeField(null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
