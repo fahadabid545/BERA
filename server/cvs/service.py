@@ -79,6 +79,15 @@ def files_in_progress(user_id):
     return CvFile.objects.filter(uploaded_by_id=user_id, status__in=CvFile.ACTIVE_STATUSES).count()
 
 
+def batch_id_from(value):
+    """The id the upload area gives to everything dropped together; none, or anything that is
+    not an id, means this request is a batch of its own."""
+    try:
+        return uuid.UUID(str(value)) if value else None
+    except ValueError:
+        return None
+
+
 def upload_rules(company_id, user_id=None):
     """What the upload area checks before sending; the server checks again."""
     return {

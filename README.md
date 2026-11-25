@@ -2830,6 +2830,57 @@ Only simulated here: every item is tested with canned answers for the firewall, 
 the scripts, and with fake data. Nothing was run on a real server, with real Stripe, backups or
 AI. The first real run of `check_launch_ready` will show which items still need work.
 
+## API access (BERA-185)
+
+Companies with an active paid (or cancelled but still running) or admin-granted free subscription
+can use Bera through an API. The owner makes the keys in the company panel: Advanced > API keys.
+
+- **Keys.** Only the owner makes and revokes keys (`api_key.manage`; `/api/company/api-keys/`). A key
+  starts with `bera_live_` so secret scanners can find a leaked one, is shown once (the reply is
+  `no-store`) and only its SHA-256 hash is stored (keys are long and random, so a plain hash is
+  right). A key has a name, scopes chosen at creation (they cannot be changed: make a new key), an
+  optional expiry, its last four characters, last-used time and request count. At most
+  `api.max_active_keys_per_company` (10) active keys per company.
+- **Scopes.** `projects:read`, `cvs:upload`, `candidates:read`. There is no scope for deleting,
+  downloads or exports, billing, team, settings or admin, and none for contact details.
+- **Sending a key.** `Authorization: Bearer bera_live_...`. Never in the address or a cookie.
+  Every request looks the key up again, so a revoked or expired key, a suspended company, a company
+  waiting to be deleted, an ended subscription (past due counts as ended) or a blocked or removed
+  creator stops it at once. Wrong, unknown, revoked and expired keys all get the same 401
+  `not_signed_in`; a valid key of a company that no longer qualifies gets 403 `api_access_closed`.
+- **Routes (`/api/v1/`).**
+
+| Route | Scope | What |
+| --- | --- | --- |
+| `GET projects/` | `projects:read` | The company's projects (the panel's list, same query) |
+| `GET projects/<id>/` | `projects:read` | One project: id, title, status, updated |
+| `POST projects/<id>/cvs/` | `cvs:upload` | CVs as multipart `files` (and an optional `batch`) |
+| `GET projects/<id>/candidates/` | `candidates:read` | The ranked list (the panel's sorting and filters): rank, score, grade, label, ATS score, stage, status |
+| `GET projects/<id>/candidates/<id>/` | `candidates:read` | Score, grade, label, ATS score and each requirement's verdict and confidence |
+
+  No name, email, phone, address, file name, evidence quote, strengths, risks or notes is ever
+  returned: contact details and CV content stay in the panel. A missing scope is 403
+  `scope_missing`; another company's project or candidate is 404, like in the panel.
+- **Upload is the panel's own path** (`cvs.service.upload_cvs`): the same file checks, batch size,
+  in-progress limit (counted for the person who made the key), company upload rate limit, plan
+  limits, usage counting and fair processing, and it is refused when the subscription does not
+  allow uploading. **Idempotency:** send an `Idempotency-Key` header (1 to 64 letters, digits, `-`,
+  `_`). A repeat of the same request (same project, batch, file names and contents) gets the first
+  answer back with `Idempotent-Replay: true` and nothing is counted or processed twice; the same key
+  for a different request is 422 `idempotency_key_reused`; a first request still running is 409
+  `request_in_progress`; a request that was refused as a whole may be sent again. Answers are
+  forgotten after `api.idempotency_hours` (24).
+- **Limits.** Each key has its own allowance: `rate_limits.api_key_per_minute` (60). Wrong keys from
+  one address are limited by `rate_limits.api_key_failures_per_minute` (20). The usage limits are
+  the company's own, shared with the panel.
+- **Records.** Creating and revoking a key are audited (`api_key.created`, `api_key.revoked`: the
+  key's id and scopes, never the key). A refused key is a security event
+  (`security.api_key_refused`: only the reason; the super admins are emailed at most once an hour).
+  A key and a request body are never logged.
+
+Only simulated here: tested with the fake data of the test suite; no real client has used the API,
+and nothing about it is published yet (no documentation page for customers).
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

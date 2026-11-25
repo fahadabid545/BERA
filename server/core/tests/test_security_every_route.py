@@ -14,6 +14,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from adminusers.models import AdminUser
+from apikeys.authentication import ApiKeyAuthentication
 from companies.models import Company, CompanyUser
 from core.tests.factories import make_admin_user, make_company, make_company_user
 from core.tests.test_route_protection import PUBLIC_ROUTE_NAMES, all_routes, authenticators_of
@@ -32,8 +33,8 @@ def protected_routes():
     """(route, method, kind) for every private route and every method it answers."""
     found = []
     for route, view in all_routes():
-        if route in PUBLIC_ROUTE_NAMES:
-            continue
+        if route in PUBLIC_ROUTE_NAMES or ApiKeyAuthentication in authenticators_of(view):
+            continue  # the API's keys are attacked in apikeys/tests/test_api_security.py
         kinds = {
             "company" if issubclass(a, CompanyAuthentication) else "admin"
             for a in authenticators_of(view)

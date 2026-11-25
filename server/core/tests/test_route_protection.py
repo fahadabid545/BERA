@@ -4,6 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.test import APIClient
 
+from apikeys.authentication import ApiKeyAuthentication
 from core.permissions import IsSignedIn, PublicAccess
 from core.public_routes import PUBLIC_CATEGORIES, PUBLIC_ROUTES
 from signin.authentication import KindAuthentication
@@ -42,7 +43,10 @@ def unprotected(routes):
             ok = (
                 any(issubclass(p, IsSignedIn) for p in permissions)
                 and not any(issubclass(p, (PublicAccess, AllowAny)) for p in permissions)
-                and any(issubclass(a, KindAuthentication) for a in authenticators_of(view))
+                and any(
+                    issubclass(a, (KindAuthentication, ApiKeyAuthentication))
+                    for a in authenticators_of(view)
+                )
             )
         if not ok:
             found.append(route)

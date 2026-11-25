@@ -37,6 +37,7 @@ MEMBER_MAY_NOT = [
     "project.delete",
     "company.delete",
     "company.export",
+    "api_key.manage",
 ]
 
 

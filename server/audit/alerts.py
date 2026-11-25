@@ -33,6 +33,8 @@ DESCRIPTIONS = {
     "security.backup_failed": "The daily database backup failed.",
     "security.restore_test_failed": "The weekly test that restores the latest backup failed.",
     "security.backup_late": "No new database backup has been made in the expected time.",
+    "security.api_key_refused": "A request to the API used a key that was wrong, ended or no "
+    "longer allowed.",
     "monitor.disk_full": "The server's disk is nearly full.",
     "monitor.memory_low": "The server is running low on available memory.",
     "monitor.jobs_waiting": "Too many background jobs are waiting for their turn.",

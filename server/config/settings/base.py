@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "backups",
     "monitoring",
     "launch",
+    "apikeys",
 ]
 
 # Development only (see development.py): the country the sign-up form pretends the visitor is in.

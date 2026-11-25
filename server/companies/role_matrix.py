@@ -40,6 +40,7 @@ ROLES_ALLOWED = {
     "advanced.open": OWNER_ONLY,
     "company.delete": OWNER_ONLY,
     "company.export": OWNER_ONLY,
+    "api_key.manage": OWNER_ONLY,
 }
 
 

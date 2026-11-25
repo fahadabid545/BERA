@@ -130,6 +130,7 @@ describe("Advanced section", () => {
     Security: "/company/advanced/security",
     Notifications: "/company/advanced/notifications",
     "Data and export": "/company/advanced/data",
+    "API keys": "/company/advanced/api-keys",
   };
 
   it("sits below Settings, set apart by a divider", () => {

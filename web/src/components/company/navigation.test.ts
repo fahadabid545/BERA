@@ -34,6 +34,7 @@ describe("visibleNavigation", () => {
       { label: "Security", href: "/company/advanced/security" },
       { label: "Notifications", href: "/company/advanced/notifications" },
       { label: "Data and export", href: "/company/advanced/data" },
+      { label: "API keys", href: "/company/advanced/api-keys" },
     ]);
   });
 

@@ -25,7 +25,7 @@ def _contact(candidate):
     }
 
 
-def _score(candidate):
+def score_block(candidate):
     score = CandidateScore.objects.filter(candidate=candidate).first()
     if score is None:
         return None
@@ -45,7 +45,7 @@ def _score(candidate):
     }
 
 
-def _ats(candidate):
+def ats_block(candidate):
     ats = AtsScore.objects.filter(candidate=candidate).first()
     if ats is None:
         return None
@@ -57,7 +57,7 @@ def is_outdated(requirement, judged):
     return judged is None or judged.requirement_text != requirement.text
 
 
-def _results(candidate, results):
+def requirement_results(candidate, results):
     """One entry for each requirement of the project, in the project's order. A requirement not
     judged yet has no verdict; one judged against older wording is marked outdated."""
     by_requirement = {item.requirement_id: item for item in results}
@@ -114,9 +114,9 @@ def candidate_detail(candidate, user_id):
         "stage": candidate.stage,
         "added_at": candidate.created_at.isoformat(),
         "contact": _contact(candidate),
-        "score": _score(candidate),
-        "ats": _ats(candidate),
-        "requirements": _results(candidate, results),
+        "score": score_block(candidate),
+        "ats": ats_block(candidate),
+        "requirements": requirement_results(candidate, results),
         "factors": _factors(candidate),
         "history": history(candidate),
         "notes": notes_of(candidate, user_id),

@@ -49,6 +49,7 @@ const COMPANY_PAGES: Record<string, readonly CompanyRole[]> = {
   "/company/advanced/security": ["owner"],
   "/company/advanced/notifications": ["owner"],
   "/company/advanced/data": ["owner"],
+  "/company/advanced/api-keys": ["owner"],
 };
 
 const ADMIN_PAGES: Record<string, readonly AdminRole[]> = {

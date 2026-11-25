@@ -1,5 +1,3 @@
-import uuid
-
 from django.http import Http404, HttpResponse
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser
@@ -38,19 +36,10 @@ from .models import Candidate, CandidateScore, CvFile, DownloadPackage
 from .notes import add_note, change_note, remove_note
 from .processing import cancel_unstarted, project_processing, retry_failed
 from .ranking import ranked_list
-from .service import upload_cvs, upload_rules
+from .service import batch_id_from, upload_cvs, upload_rules
 from .shared_reports import create_report, describe, reports_of, revoke_report
 from .stages import change_stage
 from .text_reading import CvTextUnreadable, read_text
-
-
-def _batch_id(value):
-    """The id the upload area gives to everything dropped together; none, or anything that is
-    not an id, means this request is a batch of its own."""
-    try:
-        return uuid.UUID(str(value)) if value else None
-    except ValueError:
-        return None
 
 
 class ProjectCvUpload(CandidateDataView):
@@ -79,7 +68,7 @@ class ProjectCvUpload(CandidateDataView):
             raise form_error({"files": "Choose at least one file."})
         uploader = CompanyUser.objects.get(pk=request.user.user_id)
         files = [(file.name, file.size, file.read) for file in sent]
-        batch_id = _batch_id(request.data.get("batch"))
+        batch_id = batch_id_from(request.data.get("batch"))
         return Response({"results": upload_cvs(uploader, project, files, batch_id)})
 
 
@@ -145,10 +134,12 @@ class CostEstimate(CandidateDataView):
         return roles_allowed("cv.upload")
 
     def get(self, request, id):
-        return Response(estimate(self.get_object(), _batch_id(request.query_params.get("batch"))))
+        return Response(
+            estimate(self.get_object(), batch_id_from(request.query_params.get("batch")))
+        )
 
     def post(self, request, id):
-        released = confirm(self.get_object(), _batch_id(request.data.get("batch")))
+        released = confirm(self.get_object(), batch_id_from(request.data.get("batch")))
         return Response({"confirmed": released})
 
 
@@ -162,7 +153,7 @@ class CancelUnstarted(CandidateDataView):
 
     def post(self, request, id):
         project = self.get_object()
-        skipped = cancel_unstarted(project, _batch_id(request.data.get("batch")))
+        skipped = cancel_unstarted(project, batch_id_from(request.data.get("batch")))
         return Response({"skipped": skipped})
 
 

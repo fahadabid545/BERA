@@ -35,6 +35,7 @@ KINDS = _kinds(
     EventKind("security.backup_failed"),
     EventKind("security.restore_test_failed"),
     EventKind("security.backup_late"),
+    EventKind("security.api_key_refused"),
     # Monitoring (monitoring/): the super admins are emailed about these too.
     EventKind("monitor.disk_full"),
     EventKind("monitor.memory_low"),
@@ -53,6 +54,8 @@ KINDS = _kinds(
     EventKind("project.deleted"),  # not built yet
     EventKind("candidate.deleted"),
     EventKind("export.created"),  # not built yet
+    EventKind("api_key.created"),
+    EventKind("api_key.revoked"),
     EventKind("retention.changed"),
     EventKind("company.deletion_requested"),
     EventKind("company.deletion_undone"),
