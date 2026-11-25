@@ -18,10 +18,16 @@ from projects.models import Project
 
 from .models import PromptCounter, PromptVersion
 
-READING, SCORING = PromptVersion.READING, PromptVersion.SCORING
-KINDS = (READING, SCORING)
-CURRENT_SETTING = {READING: "ai.reading_prompt_version", SCORING: "ai.scoring_prompt_version"}
+READING, SCORING, ASK = PromptVersion.READING, PromptVersion.SCORING, PromptVersion.ASK
+KINDS = (READING, SCORING, ASK)
+CURRENT_SETTING = {
+    READING: "ai.reading_prompt_version",
+    SCORING: "ai.scoring_prompt_version",
+    ASK: "ai.ask_prompt_version",
+}
+# Ask Bera's prompt is not pinned by projects: every question uses the current version.
 PROJECT_FIELD = {READING: "reading_prompt_version", SCORING: "scoring_prompt_version"}
+PINNED_KINDS = tuple(PROJECT_FIELD)
 
 IN_USE_CODE = "prompt_in_use"
 IN_USE_MESSAGE = "This version is in use, so it cannot be deleted."
@@ -52,7 +58,11 @@ def current_number(kind):
 def usage_of(version):
     return {
         "current": current_number(version.kind) == version.number,
-        "projects": Project.objects.filter(**{PROJECT_FIELD[version.kind]: version.number}).count(),
+        "projects": (
+            Project.objects.filter(**{PROJECT_FIELD[version.kind]: version.number}).count()
+            if version.kind in PROJECT_FIELD
+            else 0
+        ),
     }
 
 
@@ -125,6 +135,8 @@ def delete_version(admin, *, kind, number, reason):
 
 def move_project(admin, *, project_id, kind, number, reason):
     """An admin action: the project uses another version from now on."""
+    if kind not in PROJECT_FIELD:  # Ask Bera's prompt is not pinned by projects
+        raise AppError("prompt_not_pinned", "Projects do not pin this kind.", status_code=400)
     with transaction.atomic():
         project = Project.objects.select_for_update().filter(pk=project_id).first()
         if project is None:

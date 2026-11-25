@@ -2881,6 +2881,36 @@ can use Bera through an API. The owner makes the keys in the company panel: Adva
 Only simulated here: tested with the fake data of the test suite; no real client has used the API,
 and nothing about it is published yet (no documentation page for customers).
 
+## Ask Bera (BERA-186)
+
+A prompt bar on a project's Candidates tab: a recruiter asks a question about that project's
+candidates in plain language (`POST /api/company/projects/<id>/ask/`).
+
+- **What the AI sees:** only structured results: a reference per candidate (C1, C2, by rank,
+  valid for one question), score, grade, label, stage, a verdict and confidence per requirement,
+  strengths and risks (they quote only the requirement wording), the requirements and counts. Never
+  a name, email, phone, address, file name, CV text or an evidence quote: CV text is written by
+  outsiders and could carry instructions aimed at the AI.
+- **Read only:** the AI gets no tools and its answer is plain text. The project and company come
+  from the signed-in session. A request such as "delete the weakest" does nothing and is refused.
+- **Fairness:** the prompt tells the AI to refuse ranking or filtering by age, gender, nationality,
+  religion, marital status and the like. It has no such data either.
+- **Answers:** candidates in an answer appear as initials linked to the candidate's page.
+- **Limits:** the same AI call function (pause switch, outage handling, token allowance, usage
+  counting) as scoring, with the project's scoring model and its own versioned prompt (kind
+  "Ask" on the admin Prompts page, current version in `ai.ask_prompt_version`). Calls have their
+  own purpose `ask`, so the admin cost views show them. Tokens count toward the company's tokens,
+  never toward the CV count. Per-person rate limit `rate_limits.ask_per_hour`; question and answer
+  lengths `ask.max_question_length` and `ask.max_answer_length`; `ask.max_candidates` best
+  candidates are sent.
+- **Privacy:** no question, answer or history is stored, and none is logged: only the tokens and
+  the purpose are recorded.
+- **Access:** anyone signed in to the company who can see the candidates, while the plan allows AI
+  work. Company-wide questions are not built.
+
+Only simulated: tests use a stand-in AI. The owner must try real questions with the real AI key
+before launch and read the answers for quality.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

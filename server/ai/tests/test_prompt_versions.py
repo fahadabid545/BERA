@@ -77,7 +77,7 @@ class TestOnlySuperAdminsMayUseIt:
         assert support.post(f"{URL}move-project/", {}, format="json").status_code == 403
         assert support.get(f"{URL}compare/?kind=reading&left=1&right=1").status_code == 403
         project.refresh_from_db()
-        assert PromptVersion.objects.count() == 2
+        assert PromptVersion.objects.count() == 3
         assert not [k for k in kinds_logged() if k.startswith("admin.prompt")]
 
     def test_nobody_signed_in_is_refused(self):
@@ -127,7 +127,7 @@ class TestCreatingVersions:
     )
     def test_bad_input_is_refused(self, boss, body):
         assert boss.post(URL, body, format="json").status_code == 400
-        assert PromptVersion.objects.count() == 2
+        assert PromptVersion.objects.count() == 3
 
     def test_a_text_over_the_platform_limit_is_refused(self, boss):
         from platform_settings.models import PlatformSetting

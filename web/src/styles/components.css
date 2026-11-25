@@ -1079,6 +1079,15 @@ a.ui-tab {
   padding: 0;
   margin: 0;
 }
+.ask-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.ask-bar > :first-child {
+  flex: 1 1 16rem;
+}
 .page-stack {
   display: flex;
   flex-direction: column;

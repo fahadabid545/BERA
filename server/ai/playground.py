@@ -125,6 +125,7 @@ def options():
         "prompts": {
             kind: [{"number": item["number"], "current": item["current"]} for item in items]
             for kind, items in versions.items()
+            if kind in prompt_versions.PINNED_KINDS
         },
         "budget": budget(),
     }
@@ -192,7 +193,7 @@ def _checked_choices(values):
     for field_name in ("reading_model", "scoring_model"):
         if not AiModel.objects.filter(name=values[field_name], enabled=True).exists():
             problems[field_name] = NOT_SWITCHED_ON
-    for kind in prompt_versions.KINDS:
+    for kind in prompt_versions.PINNED_KINDS:
         name = f"{kind}_prompt_version"
         if not prompt_versions.exists(kind, values[name]):
             problems[name] = NO_SUCH_VERSION

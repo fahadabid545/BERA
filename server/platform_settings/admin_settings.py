@@ -26,6 +26,7 @@ MANAGED_ELSEWHERE = frozenset(
         "ai.scoring_model",
         "ai.reading_prompt_version",
         "ai.scoring_prompt_version",
+        "ai.ask_prompt_version",
         "ai.daily_spend_alert_usd",
         "ai.monthly_spend_alert_usd",
         "ai.playground_monthly_budget_usd",

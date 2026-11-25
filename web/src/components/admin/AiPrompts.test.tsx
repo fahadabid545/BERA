@@ -21,6 +21,7 @@ const OVERVIEW = {
     version("reading", 3),
   ],
   scoring: [version("scoring", 1, { current: true })],
+  ask: [version("ask", 1, { current: true })],
 };
 
 function reply(status: number, body: unknown) {
@@ -61,6 +62,14 @@ describe("prompt versions list", () => {
     await userEvent.click(screen.getByRole("tab", { name: "Scoring" }));
     const table = await screen.findByRole("region", { name: "Scoring versions" });
     expect(within(table).getAllByRole("row")).toHaveLength(2);
+  });
+
+  it("shows Ask Bera's prompt on its own tab, without moving projects to it", async () => {
+    await shown();
+    expect(screen.getByRole("button", { name: "Move project" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("tab", { name: "Ask" }));
+    await screen.findByRole("region", { name: "Ask versions" });
+    expect(screen.queryByRole("button", { name: "Move project" })).toBeNull();
   });
 
   it("does not offer to delete a version that is current or used by a project", async () => {

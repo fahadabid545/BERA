@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, Dialog, Input, Select, Table, Tabs, Tag, Textarea } from "@/components/ui";
 import { deleteJson, getJson, postJson, putJson, type ApiError, type ApiResult } from "@/lib/api";
 
-type Kind = "reading" | "scoring";
+type Kind = "reading" | "scoring" | "ask";
 type Version = {
   kind: Kind;
   number: number;
@@ -25,6 +25,7 @@ type Open =
 const KINDS: { value: Kind; label: string }[] = [
   { value: "reading", label: "Reading" },
   { value: "scoring", label: "Scoring" },
+  { value: "ask", label: "Ask" },
 ];
 const BASE = "/api/admin/ai/prompts/";
 
@@ -138,16 +139,18 @@ export function AiPrompts() {
     <div className="page-stack">
       <div className="page-actions">
         <Button onClick={() => show({ kind: "create" })}>New version</Button>
-        <Button variant="secondary" onClick={() => show({ kind: "move" })}>
-          Move project
-        </Button>
+        {kind !== "ask" && (
+          <Button variant="secondary" onClick={() => show({ kind: "move" })}>
+            Move project
+          </Button>
+        )}
       </div>
       {error && !open && (
         <p className="ui-error" role="alert">
           {error.message}
         </p>
       )}
-      <Table label={`${kind === "reading" ? "Reading" : "Scoring"} versions`}>
+      <Table label={`${KINDS.find((item) => item.value === kind)?.label} versions`}>
         <thead>
           <tr>
             <th>Version</th>

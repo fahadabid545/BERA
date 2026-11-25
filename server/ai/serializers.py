@@ -49,7 +49,7 @@ class SelectModelsSerializer(StrictSerializer):
 
 class PromptKind(serializers.ChoiceField):
     def __init__(self, **kwargs):
-        super().__init__(choices=["reading", "scoring"], **kwargs)
+        super().__init__(choices=["reading", "scoring", "ask"], **kwargs)
 
 
 class CreatePromptSerializer(StrictSerializer):

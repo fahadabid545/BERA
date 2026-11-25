@@ -71,6 +71,13 @@ class FeedbackThrottle(RuleThrottle):
     subject = staticmethod(account_subject)
 
 
+class AskThrottle(RuleThrottle):
+    """Per signed-in person: each question is a paid AI call."""
+
+    rule = rate_limits.ASK
+    subject = staticmethod(account_subject)
+
+
 class PerEmailThrottle(RuleThrottle):
     """Per email, so one person's inbox cannot be flooded from many addresses."""
 

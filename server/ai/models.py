@@ -33,7 +33,8 @@ class PromptVersion(models.Model):
 
     READING = "reading"
     SCORING = "scoring"
-    KINDS = [(READING, "Reading"), (SCORING, "Scoring")]
+    ASK = "ask"
+    KINDS = [(READING, "Reading"), (SCORING, "Scoring"), (ASK, "Ask")]
 
     kind = models.CharField(max_length=20, choices=KINDS)
     number = models.PositiveIntegerField()
@@ -45,7 +46,7 @@ class PromptVersion(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["kind", "number"], name="one_prompt_per_number"),
             models.CheckConstraint(
-                condition=Q(kind__in=["reading", "scoring"]), name="prompt_kind_is_known"
+                condition=Q(kind__in=["reading", "scoring", "ask"]), name="prompt_kind_is_known"
             ),
         ]
 
@@ -72,6 +73,7 @@ class AiCall(CompanyOwnedModel):
         SCORING = "scoring"
         REQUIREMENT_EXTRACTION = "requirement_extraction"
         PLAYGROUND = "playground"
+        ASK = "ask"
 
     class Result(models.TextChoices):
         OK = "ok"
@@ -103,7 +105,13 @@ class AiCall(CompanyOwnedModel):
         constraints = [
             models.CheckConstraint(
                 condition=Q(
-                    purpose__in=["reading", "scoring", "requirement_extraction", "playground"]
+                    purpose__in=[
+                        "reading",
+                        "scoring",
+                        "requirement_extraction",
+                        "playground",
+                        "ask",
+                    ]
                 ),
                 name="aicall_purpose_is_known",
             ),

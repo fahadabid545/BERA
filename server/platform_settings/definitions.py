@@ -464,6 +464,13 @@ SETTINGS = [
     # The prompt version numbers new projects pin (see ai/prompt_versions.py).
     SettingDefinition("ai.reading_prompt_version", 1, whole_number(1, 1_000_000)),
     SettingDefinition("ai.scoring_prompt_version", 1, whole_number(1, 1_000_000)),
+    # Ask Bera (see askbera/): the prompt version every question uses, and its limits.
+    SettingDefinition("ai.ask_prompt_version", 1, whole_number(1, 1_000_000)),
+    SettingDefinition("ask.max_question_length", 500, whole_number(20, 5000)),
+    SettingDefinition("ask.max_answer_length", 2000, whole_number(100, 20000)),
+    SettingDefinition("ask.max_candidates", 100, whole_number(1, 1000)),
+    SettingDefinition("ask.max_output_tokens", 1500, whole_number(100, 32000)),
+    SettingDefinition("rate_limits.ask_per_hour", 30, whole_number(1, 10000)),
     SettingDefinition("prompts.max_length", 20000, whole_number(100, 200000)),
     # AI calls (see ai/client.py) and the requirements the AI proposes. The prompt is a
     # stand-in until Prompt versions exist.

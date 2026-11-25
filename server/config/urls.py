@@ -38,6 +38,7 @@ urlpatterns = [
     path("api/plans/", include("plans.public_urls")),
     path("api/contact/", include("contact.urls")),
     path("api/reports/", include("cvs.public_urls")),
+    path("api/company/projects/", include("askbera.urls")),
     path("api/company/projects/", include("cvs.urls")),
     path("api/company/projects/", include("projects.urls")),
     path("api/company/scoring-defaults/", include("projects.defaults_urls")),
