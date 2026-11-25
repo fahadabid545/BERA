@@ -16,6 +16,7 @@ from django.db import transaction
 
 import privatefiles as storage
 from companies.models import Company
+from core.errors import AppError
 from core.validation import safe_file_name
 from plans.limits import check_cvs_this_month, split_batch
 from platform_settings import maintenance
@@ -37,6 +38,7 @@ REJECTED = "rejected"
 FAILED = "failed"  # not the file's fault: sending it again may work
 STORAGE_FAILED = "storage_failed"
 STORAGE_FAILED_MESSAGE = "This file could not be saved. Please try again."
+TOO_MANY_IN_PROGRESS = "too_many_in_progress"
 
 
 @dataclass
@@ -72,14 +74,52 @@ def upload_block(company_id):
     return {"code": check.code, "message": check.message, "prompt": check.prompt}
 
 
-def upload_rules(company_id):
+def files_in_progress(user_id):
+    """How many of this person's files are waiting for a decision, waiting or being processed."""
+    return CvFile.objects.filter(uploaded_by_id=user_id, status__in=CvFile.ACTIVE_STATUSES).count()
+
+
+def upload_rules(company_id, user_id=None):
     """What the upload area checks before sending; the server checks again."""
     return {
         "blocked": upload_block(company_id),
         "allowed_types": get_setting("uploads.allowed_file_types"),
         "max_file_size_mb": get_setting("uploads.max_file_size_mb"),
         "max_files_per_batch": get_setting("uploads.max_files_per_batch"),
+        "max_files_in_progress": get_setting("uploads.max_files_in_progress_per_user"),
+        "files_in_progress": files_in_progress(user_id) if user_id else 0,
     }
+
+
+def _refuse_if_batch_too_big(project, batch_id, count):
+    """A batch is refused as a whole: nothing of it is accepted. The batch is the drop, so files
+    already accepted under the same batch id count too (the screen sends each file by itself)."""
+    room = get_setting("uploads.max_files_per_batch")
+    already = CvFile.objects.filter(company_id=project.company_id, batch_id=batch_id).count()
+    if count == 0:
+        raise AppError(
+            TOO_MANY_FILES,
+            "Choose at least one file.",
+            fields={"files": "Choose at least one file."},
+        )
+    if count + already > room:
+        raise AppError(
+            TOO_MANY_FILES,
+            f"Only {room} files can be uploaded at a time. Nothing was added: send fewer files.",
+        )
+
+
+def _refuse_if_too_many_in_progress(uploader, count):
+    """One person cannot queue hundreds of files by sending many batches. Refused as a whole."""
+    limit = get_setting("uploads.max_files_in_progress_per_user")
+    busy = files_in_progress(uploader.pk)
+    if busy + count > limit:
+        raise AppError(
+            TOO_MANY_IN_PROGRESS,
+            f"You already have {busy} files waiting or being processed, and at most {limit} are "
+            "allowed at a time. Nothing was added: wait for some to finish, then upload again.",
+            status_code=409,
+        )
 
 
 def upload_cvs(uploader, project, files, batch_id=None):
@@ -88,15 +128,12 @@ def upload_cvs(uploader, project, files, batch_id=None):
     maintenance.refuse_if_on()
     require_editable(project)
     batch_id = batch_id or uuid.uuid4()
+    _refuse_if_batch_too_big(project, batch_id, len(files))
+    _refuse_if_too_many_in_progress(uploader, len(files))  # again under the lock, in `_accept`
     results = [None] * len(files)
     candidates = []
-    room = get_setting("uploads.max_files_per_batch")
     for index, (name, size, read) in enumerate(files):
-        if index >= room:
-            results[index] = _result(
-                name, REJECTED, TOO_MANY_FILES, f"Only {room} files can be added at a time."
-            )
-        elif problem := check_name_and_size(name, size):
+        if problem := check_name_and_size(name, size):
             results[index] = _result(name, REJECTED, problem.code, problem.message)
         else:
             data = read()
@@ -155,6 +192,7 @@ def _accept(uploader, project, candidates, results, batch_id):
                 )
             in_project = CvFile.objects.filter(project=project).count()
             split = split_batch(project.company_id, fresh, in_project)
+            _refuse_if_too_many_in_progress(uploader, len(split.accepted))
             for skipped in split.skipped:
                 results[skipped.file.index] = _result(
                     skipped.file.name, REJECTED, skipped.code, skipped.message, skipped.prompt

@@ -279,7 +279,10 @@ SETTINGS = [
     # Uploads
     SettingDefinition("uploads.allowed_file_types", ["pdf", "docx"], list_of_file_types),
     SettingDefinition("uploads.max_file_size_mb", 10, whole_number(1, 100)),
-    SettingDefinition("uploads.max_files_per_batch", 50, whole_number(1, 500)),
+    # One drop of files is one batch; a bigger one is refused as a whole.
+    SettingDefinition("uploads.max_files_per_batch", 30, whole_number(1, 30)),
+    # What one person may have waiting or being processed at once, over all their batches.
+    SettingDefinition("uploads.max_files_in_progress_per_user", 60, whole_number(1, 1000)),
     SettingDefinition("uploads.cv_pages_read", 15, whole_number(1, 200)),
     # A file that would unpack to more than this (or hold more parts) is refused unopened.
     SettingDefinition("uploads.max_unpacked_mb", 100, whole_number(1, 2000)),
@@ -315,6 +318,8 @@ SETTINGS = [
     SettingDefinition("processing.max_attempts", 3, whole_number(1, 10)),
     SettingDefinition("processing.retry_waits_seconds", [30, 120], list_of_whole_numbers(1, 3600)),
     SettingDefinition("processing.stuck_minutes", 5, whole_number(1, 120)),
+    # When the AI provider says "too many requests", the file goes back in line for this long.
+    SettingDefinition("processing.rate_limit_wait_seconds", 30, whole_number(1, 3600)),
     SettingDefinition("processing.list_limit", 200, whole_number(10, 2000)),
     # The admin jobs monitor (see cvs/job_monitor.py): most jobs listed at once.
     SettingDefinition("admin_jobs.list_limit", 100, whole_number(10, 2000)),

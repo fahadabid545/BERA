@@ -16,6 +16,8 @@ const RULES = {
   allowed_types: ["pdf", "docx"],
   max_file_size_mb: 10,
   max_files_per_batch: 3,
+  max_files_in_progress: 5,
+  files_in_progress: 0,
   blocked: null,
 };
 const pdf = (name = "a.pdf", size = 5) => new File([new Uint8Array(size)], name);
@@ -147,12 +149,34 @@ describe("CV upload", () => {
     expect(uploadFiles).not.toHaveBeenCalled();
   });
 
-  it("files past the batch size are refused and the others go on", async () => {
+  it("a drop over the batch size is refused as a whole and nothing is sent", async () => {
+    await ready();
+    await choose(pdf("1.pdf"), pdf("2.pdf"), pdf("3.pdf"), pdf("4.pdf"));
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent",
+      "Only 3 files can be uploaded at a time. Nothing was added: choose fewer files.",
+    );
+    expect(uploadFiles).not.toHaveBeenCalled();
+    expect(screen.queryByText("1.pdf")).toBeNull();
+  });
+
+  it("a drop that would pass the in-progress limit is refused as a whole", async () => {
+    getJson.mockResolvedValue({ ok: true, data: { ...RULES, files_in_progress: 4 } });
+    await ready();
+    await choose(pdf("1.pdf"), pdf("2.pdf"));
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "You already have 4 files waiting or being processed, and at most 5 are allowed at a time.",
+    );
+    expect(uploadFiles).not.toHaveBeenCalled();
+  });
+
+  it("the in-progress limit also counts what was sent since the page loaded", async () => {
     uploadFiles.mockImplementation(async (_path, files: File[]) => accepted(files[0].name));
     await ready();
-    await choose(pdf("1.pdf"), pdf("2.pdf"), pdf("3.pdf"), pdf("4.pdf"), pdf("5.pdf"));
-    expect(await screen.findAllByText("Only 3 files can be added at a time.")).toHaveLength(2);
+    await choose(pdf("1.pdf"), pdf("2.pdf"), pdf("3.pdf"));
     await waitFor(() => expect(screen.getAllByText("Added")).toHaveLength(3));
+    await choose(pdf("4.pdf"), pdf("5.pdf"), pdf("6.pdf"));
+    expect((await screen.findByRole("alert")).textContent).toContain("You already have 3 files");
     expect(uploadFiles).toHaveBeenCalledTimes(3);
   });
 

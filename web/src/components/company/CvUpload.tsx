@@ -12,6 +12,8 @@ type Rules = {
   allowed_types: string[];
   max_file_size_mb: number;
   max_files_per_batch: number;
+  max_files_in_progress: number;
+  files_in_progress: number;
   blocked: Blocked | null;
 };
 type FileResult = {
@@ -60,6 +62,7 @@ export function CvUpload({ projectId }: { projectId: string }) {
   const [prompt, setPrompt] = useState<PromptKind | null>(null);
   const [blocked, setBlocked] = useState<Blocked | null>(null);
   const [loadError, setLoadError] = useState("");
+  const [refusal, setRefusal] = useState("");
   const chooser = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
   const waiting = useRef<Entry[]>([]);
@@ -119,15 +122,31 @@ export function CvUpload({ projectId }: { projectId: string }) {
     }
   }
 
+  /** Why the whole drop is refused (nothing is added), or null. The server checks again. */
+  function refusalFor(chosen: File[], current: Rules): string | null {
+    if (chosen.length === 0) return "Choose at least one file.";
+    if (chosen.length > current.max_files_per_batch) {
+      return `Only ${current.max_files_per_batch} files can be uploaded at a time. Nothing was added: choose fewer files.`;
+    }
+    const sentSinceLoading = entries.filter((entry) =>
+      ["queued", "uploading", "added"].includes(entry.state),
+    ).length;
+    const busy = current.files_in_progress + sentSinceLoading;
+    if (busy + chosen.length > current.max_files_in_progress) {
+      return `You already have ${busy} files waiting or being processed, and at most ${current.max_files_in_progress} are allowed at a time. Nothing was added: wait for some to finish, then upload again.`;
+    }
+    return null;
+  }
+
   function add(chosen: File[]) {
     if (!rules) return;
+    const reason = refusalFor(chosen, rules);
+    setRefusal(reason ?? "");
+    if (reason) return;
     const batch = crypto.randomUUID(); // everything dropped together is one batch to cancel
-    const fresh = chosen.map((file, position): Entry => {
+    const fresh = chosen.map((file): Entry => {
       const id = nextId++;
-      const tooMany = position >= rules.max_files_per_batch;
-      const problem = tooMany
-        ? `Only ${rules.max_files_per_batch} files can be added at a time.`
-        : problemWith(file, rules);
+      const problem = problemWith(file, rules);
       return {
         id,
         file,
@@ -189,6 +208,11 @@ export function CvUpload({ projectId }: { projectId: string }) {
           }}
         />
       </div>
+      {refusal && (
+        <p className="ui-error" role="alert">
+          {refusal}
+        </p>
+      )}
       {blocked && (
         <p role="status">
           {blocked.message}{" "}

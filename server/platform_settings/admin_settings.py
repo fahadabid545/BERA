@@ -43,6 +43,7 @@ PAGES = {
     "limits": [
         "uploads.max_file_size_mb",
         "uploads.max_files_per_batch",
+        "uploads.max_files_in_progress_per_user",
         "tokens.team_invite_days",
         "team.max_accounts_per_company",
     ],

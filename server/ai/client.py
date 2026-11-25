@@ -30,6 +30,11 @@ class AiUnavailable(Exception):
     """The AI could not give an answer (no key, provider down, timeout, refused)."""
 
 
+class AiBusy(AiUnavailable):
+    """The provider said "too many requests". Not a failure of the work: callers wait and try
+    again without using up a try, and it never counts toward pausing AI work."""
+
+
 class AiPaused(AiUnavailable):
     """AI work is paused (automatically or by a super admin). No call was made."""
 
@@ -46,7 +51,11 @@ def _send(*, model, instructions, text, max_output_tokens, timeout_seconds):
     """The only place that talks to the provider; tests replace it with a stub."""
     if not settings.OPENAI_API_KEY:
         raise AiUnavailable("No AI key is set.")
-    from openai import OpenAI, OpenAIError  # imported here so the app starts without a key
+    from openai import (
+        OpenAI,
+        OpenAIError,
+        RateLimitError,
+    )  # imported here so the app starts without a key
 
     client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=timeout_seconds, max_retries=0)
     try:
@@ -59,6 +68,8 @@ def _send(*, model, instructions, text, max_output_tokens, timeout_seconds):
             max_completion_tokens=max_output_tokens,
             response_format={"type": "json_object"},
         )
+    except RateLimitError as error:
+        raise AiBusy(type(error).__name__) from error
     except OpenAIError as error:
         raise AiUnavailable(type(error).__name__) from error
     usage_info = reply.usage
@@ -129,7 +140,8 @@ def call_ai(
     except AiUnavailable as error:
         logger.warning("The AI call failed.")
         _record(company_id, started, result=AiCall.Result.FAILED, failure=str(error), **ids)
-        control.note_failure()
+        if not isinstance(error, AiBusy):  # being asked to slow down is not an outage
+            control.note_failure()
         raise
     cost = price_call(model, answer.tokens_in, answer.tokens_out)
     with transaction.atomic():

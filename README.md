@@ -1345,7 +1345,18 @@ files go through while bad ones get their own message. The upload area on the pr
 tab sends each file in its own request, so it shows per-file progress and, after a dropped
 connection, "Try again" re-sends only the failed file.
 
-- **Order of checks per file:** too many files in the request (`too_many_files`), type
+- **Batch rules (whole batch or nothing).** A batch (one drop of files, sharing a `batch` id) has
+  1 to `uploads.max_files_per_batch` files (at most 30, default 30). A bigger one is refused as a
+  whole (400 `too_many_files`, "Only 30 files can be uploaded at a time. Nothing was added: ...");
+  files already accepted under the same batch id count, because the screen sends each file by
+  itself, and the screen itself refuses the whole drop before sending anything. One person may
+  have at most `uploads.max_files_in_progress_per_user` (60) files awaiting confirmation, waiting
+  or being processed, over all their batches; a batch that would pass it is refused as a whole
+  (409 `too_many_in_progress`, saying how many are in progress and to wait for some to finish).
+  The check is made again under the company lock, so uploads at the same moment cannot pass it
+  together. The company upload rate limit (100 files per 10 minutes) is unchanged; a company has
+  at most 3 accounts, so 3 people with 30 files each (90) still fit.
+- **Order of checks per file:** type
   (`wrong_type`), empty, size (`too_large`), then the content (`damaged`, `password_protected`).
   Then, with the company row locked, `plans.limits.split_batch` applies the monthly and
   per-project CV limits (`monthly_cv_limit_reached`, `project_cv_limit_reached`, or
@@ -1489,8 +1500,14 @@ can leave the page. Statuses: `waiting`, `reading`, `scoring`, `done`, `failed` 
 - **Nothing runs twice.** A worker claims a CV atomically with a fresh `claim_token` (rows another
   worker holds are skipped); only the token's holder can change the CV, so a worker replaced after a
   timeout or restart can neither run its steps nor overwrite the new worker.
-- **Fair.** Each claim goes to the company that waited longest for a turn (`ProcessingTurn`), then
-  to its oldest CV, one CV per task, so a large batch cannot hold up other companies.
+- **Fair between batches.** Each claim goes to the batch that waited longest for a turn
+  (`ProcessingTurn`, one row per batch), then to its oldest CV, one CV per task. Batches of different
+  companies, or of different people of one company, take turns round-robin, a new batch starts at
+  once, and none waits for another to finish. The number of workers (`Q_CLUSTER_WORKERS`) stays the
+  limit on simultaneous work.
+- **A busy AI provider.** "Too many requests" (`AiBusy`) is not a failure: the CV goes back in line
+  for `processing.rate_limit_wait_seconds` (30), the try is not used up, so it can never fail the
+  file, and it does not count toward pausing AI work.
 - **Retries.** A step that fails with an unexpected error is tried again after
   `processing.retry_waits_seconds` (30 s, then 120 s) up to `processing.max_attempts` (3) tries,
   then the CV is `failed` with a plain reason ("We could not process this file after several tries.

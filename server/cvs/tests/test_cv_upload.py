@@ -1,4 +1,5 @@
 import io
+import uuid
 import zipfile
 from pathlib import Path
 
@@ -93,9 +94,10 @@ def url(project):
     return f"/api/company/projects/{project.pk}/cvs/"
 
 
-def upload(client, project, *files):
+def upload(client, project, *files, batch=None):
     sent = [SimpleUploadedFile(name, data) for name, data in files]
-    return client.post(url(project), {"files": sent}, format="multipart")
+    body = {"files": sent, **({"batch": batch} if batch else {})}
+    return client.post(url(project), body, format="multipart")
 
 
 def results(response):
@@ -111,7 +113,9 @@ class TestRules:
         assert client.get(url(project)).json() == {
             "allowed_types": ["pdf", "docx"],
             "max_file_size_mb": 10,
-            "max_files_per_batch": 50,
+            "max_files_per_batch": 30,
+            "max_files_in_progress": 60,
+            "files_in_progress": 0,
             "blocked": None,
         }
 
@@ -297,15 +301,94 @@ class TestPageNotice:
 
 
 class TestTooManyFiles:
-    def test_files_past_the_batch_size_are_refused_and_the_rest_continue(self, client, project):
+    def test_a_batch_over_the_limit_is_refused_as_a_whole(self, client, project):
         set_setting("uploads.max_files_per_batch", 3)
-        response = upload(client, project, *[(f"{n}.pdf", different(f"{n}.pdf")) for n in range(5)])
-        assert [r["status"] for r in response.json()["results"]] == ["accepted"] * 3 + [
-            "rejected"
-        ] * 2
-        assert response.json()["results"][3]["code"] == "too_many_files"
-        assert response.json()["results"][3]["message"] == "Only 3 files can be added at a time."
-        assert CvFile.objects.count() == 3
+        response = upload(client, project, *[(f"{n}.pdf", different(f"{n}.pdf")) for n in range(4)])
+        assert response.status_code == 400
+        error = response.json()["error"]
+        assert error["code"] == "too_many_files"
+        assert "Only 3 files" in error["message"]
+        assert CvFile.objects.count() == 0  # nothing accepted partly
+
+    def test_a_batch_at_the_limit_is_accepted(self, client, project):
+        set_setting("uploads.max_files_per_batch", 3)
+        response = upload(client, project, *[(f"{n}.pdf", different(f"{n}.pdf")) for n in range(3)])
+        assert [r["status"] for r in response.json()["results"]] == ["accepted"] * 3
+
+    def test_files_sent_one_by_one_under_one_batch_id_stop_at_the_limit(self, client, project):
+        set_setting("uploads.max_files_per_batch", 2)
+        batch = str(uuid.uuid4())
+        for n in range(2):
+            sent = upload(client, project, (f"{n}.pdf", different(f"{n}.pdf")), batch=batch)
+            assert sent.status_code == 200
+        refused = upload(client, project, ("x.pdf", different("x.pdf")), batch=batch)
+        assert refused.status_code == 400
+        assert refused.json()["error"]["code"] == "too_many_files"
+        assert CvFile.objects.count() == 2
+
+    def test_a_batch_of_31_is_refused_whole_with_the_default_limit(self, client, project):
+        files = [(f"{n}.pdf", b"x") for n in range(31)]
+        response = upload(client, project, *files)
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "too_many_files"
+        assert "Only 30 files" in response.json()["error"]["message"]
+        assert CvFile.objects.count() == 0
+
+    def test_a_batch_of_nothing_is_refused(self, client, project):
+        assert upload(client, project).status_code == 400
+        assert CvFile.objects.count() == 0
+
+
+class TestFilesInProgress:
+    def make(self, client, project, count, start=0):
+        files = [(f"{n}.pdf", different(f"{n}.pdf")) for n in range(start, start + count)]
+        return upload(client, project, *files)
+
+    def test_an_extra_batch_over_the_limit_is_refused_whole_and_says_what_to_wait_for(
+        self, client, project
+    ):
+        set_setting("uploads.max_files_in_progress_per_user", 5)
+        assert self.make(client, project, 3).status_code == 200
+        refused = self.make(client, project, 3, start=10)
+        assert refused.status_code == 409
+        error = refused.json()["error"]
+        assert error["code"] == "too_many_in_progress"
+        assert "already have 3 files waiting or being processed" in error["message"]
+        assert "at most 5" in error["message"]
+        assert "wait for some to finish" in error["message"]
+        assert CvFile.objects.count() == 3  # nothing of the refused batch was kept
+
+    def test_what_is_refused_leaves_no_file_in_storage(self, client, project, settings):
+        set_setting("uploads.max_files_in_progress_per_user", 2)
+        self.make(client, project, 2)
+        self.make(client, project, 1, start=10)
+        assert len(stored_files(settings.PRIVATE_FILES_ROOT)) == 2
+
+    def test_a_batch_that_just_fits_is_accepted(self, client, project):
+        set_setting("uploads.max_files_in_progress_per_user", 5)
+        assert self.make(client, project, 3).status_code == 200
+        assert self.make(client, project, 2, start=10).status_code == 200
+
+    def test_finished_files_no_longer_count(self, client, project):
+        set_setting("uploads.max_files_in_progress_per_user", 3)
+        self.make(client, project, 3)
+        CvFile.objects.update(status="done")
+        assert self.make(client, project, 3, start=10).status_code == 200
+
+    def test_each_person_has_their_own_allowance(self, company, client, project):
+        set_setting("uploads.max_files_in_progress_per_user", 3)
+        self.make(client, project, 3)
+        colleague = make_company_user(company, role="member")
+        issued = start_session_for(
+            user_id=colleague.pk, role="member", company_id=company.pk, kind="company"
+        )
+        other = APIClient(HTTP_AUTHORIZATION=f"Bearer {issued.access_token}")
+        assert self.make(other, project, 3, start=10).status_code == 200
+
+    def test_the_screen_is_told_the_limit_and_what_is_used(self, client, project):
+        self.make(client, project, 2)
+        rules = client.get(url(project)).json()
+        assert (rules["max_files_in_progress"], rules["files_in_progress"]) == (60, 2)
 
 
 class TestPlanLimits:
@@ -579,7 +662,7 @@ class TestRequestSize:
     def test_the_upload_route_allows_big_requests_other_routes_do_not(self):
         form = middleware.largest_allowed_request_bytes("/api/company/projects/")
         upload_size = middleware.largest_allowed_request_bytes("/api/company/projects/abc/cvs/")
-        assert upload_size == 10 * 50 * 1024 * 1024
+        assert upload_size == 10 * 30 * 1024 * 1024
         assert upload_size > form
         assert middleware.largest_allowed_request_bytes("/api/company/projects/abc/") == form
         assert middleware.largest_allowed_request_bytes("/api/company/projects/abc/cvs/x/") == form

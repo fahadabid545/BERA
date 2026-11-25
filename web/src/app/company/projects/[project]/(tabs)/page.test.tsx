@@ -19,7 +19,13 @@ describe("project overview page", () => {
         json: async () =>
           path.includes("/charts/")
             ? { error: { code: "not_found", message: "Not found." } }
-            : { allowed_types: ["pdf"], max_file_size_mb: 10, max_files_per_batch: 50 },
+            : {
+                allowed_types: ["pdf"],
+                max_file_size_mb: 10,
+                max_files_per_batch: 30,
+                max_files_in_progress: 60,
+                files_in_progress: 0,
+              },
       })),
     );
     render(await ProjectOverviewPage({ params: Promise.resolve({ project: "p1" }) }));

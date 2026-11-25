@@ -9,9 +9,10 @@ than `processing.stuck_minutes` (5) is tried again.
 step (rows already claimed by another worker are skipped). Only the holder of the token can change
 the CV afterwards, so a worker that was replaced after a timeout can never overwrite the new one.
 
-**Fair between companies.** Each claim goes to the company that has waited longest for a turn
-(`ProcessingTurn`), then to its oldest waiting CV, so a company with a thousand CVs and a company
-with two take turns. Each task does one CV and then asks for the next.
+**Fair between batches.** Each claim goes to the upload (batch) that has waited longest for a turn
+(`ProcessingTurn`), then to its oldest waiting CV, so batches of any company, or of different
+people of one company, move along together and none waits for another to finish. A new batch has
+had no turn yet, so it starts at once. Each task does one CV and then asks for the next.
 
 **Steps plug into named slots** (`SLOTS`, in order). A slot with no step is skipped. Each ticket
 that builds a step registers it with `register_step(slot, function)` and adds its own test; the
@@ -31,12 +32,12 @@ from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Count, F, OuterRef, Subquery
-from django.db.models.functions import Greatest
+from django.db.models.functions import Coalesce, Greatest
 from django.utils import timezone
 from django_q.tasks import async_task
 
 from ai import control, spend_alerts
-from ai.client import AiPaused, AiUnavailable
+from ai.client import AiBusy, AiPaused, AiUnavailable
 from companies.models import Company
 from core.errors import AppError
 from core.jobs import logged_job
@@ -115,18 +116,19 @@ def _now():
 
 
 def claim_next(now=None):
-    """The next CV to work on, fairly: the company that waited longest for a turn, then its
+    """The next CV to work on, fairly: the batch that waited longest for a turn, then its
     oldest CV. Returns the claimed CV (now reading, with a new `claim_token`) or None."""
     now = now or _now()
     if control.is_paused(now):
         return None  # AI work is paused: CVs wait in order and no try is used up
-    turn = ProcessingTurn.objects.filter(company_id=OuterRef("company_id")).values(
-        "last_served_at"
-    )[:1]
+    turn = ProcessingTurn.objects.filter(batch_key=OuterRef("batch_key")).values("last_served_at")[
+        :1
+    ]
     with transaction.atomic():
         item = (
             CvFile.objects.select_for_update(skip_locked=True, of=("self",))
             .filter(status=CvFile.Status.WAITING, next_attempt_at__lte=now)
+            .annotate(batch_key=Coalesce("batch_id", "id"))
             .annotate(last_served=Subquery(turn))
             .order_by(F("last_served").asc(nulls_first=True), "next_attempt_at", "created_at")
             .first()
@@ -139,7 +141,8 @@ def claim_next(now=None):
         item.claim_token = uuid.uuid4()
         item.save(update_fields=["status", "attempts", "started_at", "claim_token"])
         ProcessingTurn.objects.update_or_create(
-            company_id=item.company_id, defaults={"last_served_at": now}
+            batch_key=item.batch_id or item.pk,
+            defaults={"company_id": item.company_id, "last_served_at": now},
         )
     return item
 
@@ -193,6 +196,19 @@ def _hand_back(item, now):
     )
 
 
+def _back_off(item, now):
+    """The AI provider asked us to slow down: the CV goes back in line after a wait and the try
+    does not count, so being busy can never fail a file."""
+    wait = timedelta(seconds=get_setting("processing.rate_limit_wait_seconds"))
+    return _holds(item).update(
+        status=CvFile.Status.WAITING,
+        attempts=Greatest(F("attempts") - 1, 0),
+        next_attempt_at=now + wait,
+        started_at=None,
+        claim_token=None,
+    )
+
+
 def run_item(item):
     """Runs the steps for a claimed CV, in slot order. A slot with no step is skipped."""
     context = StepContext(item, item.company_id, item.project_id)
@@ -209,6 +225,9 @@ def run_item(item):
             return
         except AiPaused:
             _hand_back(item, _now())
+            return
+        except AiBusy:
+            _back_off(item, _now())
             return
         except Exception as error:
             # The kind of error is logged (never its message or the CV): it can hold CV text.
@@ -246,6 +265,7 @@ def sweep():
     now = _now()
     control.end_expired_pause(now)  # an automatic pause that is over: resume by itself
     spend_alerts.check(now)  # email the super admins once when spending passes a limit
+    ProcessingTurn.objects.filter(last_served_at__lt=now - timedelta(days=1)).delete()
     cutoff = stuck_cutoff(now)
     with transaction.atomic():
         stuck = CvFile.objects.select_for_update(skip_locked=True, of=("self",)).filter(

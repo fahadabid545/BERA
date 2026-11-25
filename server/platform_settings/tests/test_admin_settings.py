@@ -57,6 +57,7 @@ class TestReading:
         assert {
             "uploads.max_file_size_mb",
             "uploads.max_files_per_batch",
+            "uploads.max_files_in_progress_per_user",
             "tokens.team_invite_days",
             "team.max_accounts_per_company",
         } == set(pages["limits"])
@@ -95,7 +96,7 @@ class TestSaving:
         assert event.created_at is not None
 
     def test_it_applies_without_a_restart(self, boss):
-        assert get_setting("uploads.max_files_per_batch") == 50
+        assert get_setting("uploads.max_files_per_batch") == 30
         save(boss[0], {"uploads.max_files_per_batch": 7})
         assert get_setting("uploads.max_files_per_batch") == 7
 

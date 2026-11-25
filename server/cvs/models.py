@@ -75,14 +75,16 @@ class CvFile(CompanyOwnedModel):
 
 
 class ProcessingTurn(CompanyOwnedModel):
-    """When a company's CV last got a turn. The next turn goes to the company that waited the
-    longest, so one large batch cannot hold up everyone else."""
+    """When a batch last got a turn (`batch_key` is the upload's batch id, or the CV's own id for
+    a CV that has none). The next turn goes to the batch that waited the longest, whoever sent
+    it, so every batch moves along together and none waits for another to finish."""
 
+    batch_key = models.UUIDField()
     last_served_at = models.DateTimeField()
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["company"], name="one_processing_turn_per_company")
+            models.UniqueConstraint(fields=["batch_key"], name="one_processing_turn_per_batch")
         ]
 
 

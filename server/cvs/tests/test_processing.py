@@ -1,4 +1,5 @@
 import threading
+import uuid
 from datetime import timedelta
 
 import pytest
@@ -340,11 +341,12 @@ class TestRetriesAndFailure:
 class TestFairness:
     def test_companies_take_turns_so_a_large_batch_cannot_hold_others_up(self, plan):
         big, small, tiny = Tenant(plan), Tenant(plan), Tenant(plan)
+        batches = {tenant: uuid.uuid4() for tenant in (big, small, tiny)}
         for _ in range(8):
-            big.cv()
+            big.cv(batch=batches[big])
         for _ in range(2):
-            small.cv()
-        tiny.cv()
+            small.cv(batch=batches[small])
+        tiny.cv(batch=batches[tiny])
         order = []
         while (item := processing.claim_next()) is not None:
             order.append(item.company_id)
@@ -363,15 +365,16 @@ class TestFairness:
 
     def test_a_company_that_waited_longer_goes_before_one_served_just_now(self, plan):
         a, b = Tenant(plan), Tenant(plan)
-        a.cv(), a.cv(), b.cv(), b.cv()
+        batch_a, batch_b = uuid.uuid4(), uuid.uuid4()
+        a.cv(batch=batch_a), a.cv(batch=batch_a), b.cv(batch=batch_b), b.cv(batch=batch_b)
         first = processing.claim_next()
         second = processing.claim_next()
         assert {first.company_id, second.company_id} == {a.company.pk, b.company.pk}
 
     def test_each_claim_records_the_companys_turn(self, tenant):
-        tenant.cv()
+        row = tenant.cv(batch=uuid.uuid4())
         processing.claim_next()
-        assert ProcessingTurn.objects.get(company=tenant.company).last_served_at
+        assert ProcessingTurn.objects.get(batch_key=row.batch_id).company == tenant.company
 
     def test_cvs_still_waiting_for_their_retry_are_not_claimed(self, tenant, clock):
         tenant.cv(next_attempt_at=clock["now"] + timedelta(minutes=5))
