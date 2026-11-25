@@ -930,6 +930,80 @@ each of these first on the real server, starting with `--dry-run`, in the order 
 second session or Hetzner's console; nginx is checked with `nginx -t` before a reload; each step has its own undo
 above. Do not do steps 7 to 9 in the wrong order.
 
+### Monitoring and alerts (BERA-180)
+
+Two separate things watch the system, because each catches what the other cannot:
+
+| | What it proves | Where it runs | Built in code? |
+| --- | --- | --- | --- |
+| **Heartbeat** (dead-man check) | The server, the timer and the app's own checks are alive and healthy. | Our server pings an outside service every 5 minutes. When the pings **stop**, the service alerts. | Yes |
+| **Public uptime check** | A visitor can really reach the site: Cloudflare, nginx, the certificate, the app and the database together. | An outside service requests the public health address like a visitor. | No: set up by the owner (below) |
+
+**The health check** (`python manage.py check_system_health`, run every 5 minutes by `bera-<env>-health.timer`,
+made by `deploy/bera_deploy.py units`) measures the following. Limits are platform settings (`monitor.*`), so
+they can change without a release:
+
+| Measurement | Alert when | Setting |
+| --- | --- | --- |
+| Disk (the fullest of `/` and the app folder, as `df` shows it) | more than 85% used | `monitor.disk_used_percent_limit` |
+| Memory, from the kernel's **available** figure (not "free", which looks alarming on a healthy server because the cache uses the rest) | more than 90% in use | `monitor.memory_used_percent_limit` |
+| Background jobs waiting (due now; work held while AI is paused on purpose is ignored) | more than 200 | `monitor.waiting_jobs_limit` |
+| The longest wait of a job that is due | more than 30 minutes | `monitor.job_waiting_minutes_limit` |
+| Stuck jobs | more than 3 | `monitor.stuck_jobs_limit` |
+| Emails queued for longer than 15 minutes (`monitor.email_queue_minutes`) | more than 10 | `monitor.email_backlog_limit` |
+| Server errors (a count per minute, numbers only) | 10 or more within 5 minutes | `monitor.error_limit`, `monitor.error_window_minutes` |
+
+**Noise control.** Every limit above except the error rate must be exceeded for **3 checks in a row**
+(`monitor.checks_in_a_row`) before anything is sent; one busy moment is not an alert. The error rate is already
+counted over a time window, so it does not wait. An alert goes out as the same email the security alerts use
+(every active super admin, at most once per kind per cooldown, `security.alert_cooldown_minutes`) and one
+audit entry (`monitor.disk_full`, `monitor.memory_low`, `monitor.jobs_waiting`, `monitor.job_waiting_too_long`,
+`monitor.jobs_stuck`, `monitor.emails_backed_up`, `monitor.error_rate`) is written when the limit has been
+exceeded long enough. The email and the audit entry hold only the kind and **one number** (for example "Now: 91%
+used."): nothing about a company, a file or a person. The error counter keeps a count per minute and nothing
+else; the failure itself is in the log under its reference.
+
+**Heartbeat.** The check pings `HEARTBEAT_URL` after it runs **only if every measurement is within its limit**, so a
+failing check stops the ping. The backup pings `BACKUP_HEARTBEAT_URL` after each **successful** backup, which closes
+the gap noted in the backup section (a server that is down cannot email anyone). The ping is a plain `GET` of the
+address: no body, no query, no data about us. Both addresses are secrets (they name our checks); production does
+not start without them (`config/secrets.py`). Staging may set its own `HEARTBEAT_URL` (never production's; the
+environment check compares them), or none.
+Set up at Healthchecks.io (free plan is enough):
+1. Create a check **Bera production health**: period 5 minutes, grace 10 minutes. Copy its ping address into
+   `HEARTBEAT_URL`.
+2. Create **Bera production backup**: period 1 day, grace 3 hours (the backup runs at 02:30 UTC). Its address goes into
+   `BACKUP_HEARTBEAT_URL`.
+3. Add the owner's own email (and, if wanted, SMS or Telegram) as the notification channel. Optionally add a second
+   check for staging.
+
+**Public uptime check (no code; the owner sets it up).** At an outside service (UptimeRobot or Better Stack, the owner's
+choice) add an HTTPS monitor for `https://www.example.com/api/health/`, every 1 to 5 minutes, expecting status 200 and
+the text `ok`, with the owner's email (and phone, if wanted) as the contact. It must use the **public address**, so the
+request goes through Cloudflare like a real visitor and breaks when Cloudflare, nginx or the certificate breaks. Turn
+on the certificate-expiry alert too. The health address reveals nothing: it answers `{"status": "ok"}` or, if the
+database cannot be reached, a plain "Not available." with status 503, and sends no software version
+(a test guards this).
+
+**Alerts still reach the owner when our own email is broken.** Our alert emails go through our server and our email
+provider. If either is the problem, nothing would arrive. That is exactly why the heartbeat service and the uptime
+service are **outside** services that send their **own** email: they alert on silence or on a failed visit and need
+nothing from us. The alerts in our email are for the problems that leave the server working.
+
+**Testing every alert.** In the code, one test per alert (`monitoring/tests/`, `core/tests/test_health_reveals_nothing.py`,
+`backups/tests/`) makes the reading cross its limit and checks the audit entry, the email and the ping. On the real server:
+- `python manage.py send_test_monitoring_alert` sends all seven monitoring emails to every active super admin once,
+  ignoring the cooldown, so you see how each looks and that they arrive. `python manage.py send_test_security_alert`
+  does the same for the security alert.
+- Heartbeat: `sudo systemctl stop bera-production-health.timer`, wait for the grace period, and Healthchecks emails
+  the owner; start the timer again. (`python manage.py check_system_health` on its own prints each reading.)
+- Uptime check: use the "send test notification" button of the outside service, or point a temporary monitor at the
+  staging address and stop `bera-staging-web` for a few minutes.
+
+**Only simulated here.** The readings, the limits and the pings were exercised in tests with fake values and a fake
+request; no Healthchecks, UptimeRobot or Better Stack account was used, so the first real ping and the first real
+outside alert are the owner's to check.
+
 ### Taxes (BERA-170): postponed
 
 Tax handling is postponed in writing. It depends on the business registration and on the payment

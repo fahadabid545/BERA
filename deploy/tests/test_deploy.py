@@ -356,11 +356,24 @@ class TestTheServiceFiles:
         )
         assert not [name for name in staging if "backup" in name or "restore" in name]
         timers = {name for name in production if name.endswith(".timer")}
+        assert {name for name in staging if name.endswith(".timer")} == {
+            "bera-staging-health.timer"
+        }
         assert timers == {
+            "bera-production-health.timer",
             "bera-production-backup.timer",
             "bera-production-restore-test.timer",
             "bera-production-backup-check.timer",
         }
+
+    @pytest.mark.parametrize("env", ["staging", "production"])
+    def test_both_environments_run_the_health_check_every_five_minutes(self, env):
+        units = deploy.render_units(env, Layout(Path("/srv/bera"), env, Path("/etc/bera")))
+        service = units[f"bera-{env}-health.service"]
+        assert "manage.py check_system_health" in service and "Type=oneshot" in service
+        assert f"MemoryMax={deploy.RESOURCES[env]['job_memory']}" in service
+        assert "OnCalendar=*:0/5" in units[f"bera-{env}-health.timer"]
+        assert f"Bera {env} health" in units[f"bera-{env}-health.timer"]
 
     def test_each_backup_job_runs_once_as_the_service_user_with_a_limit(self):
         units = deploy.render_units(

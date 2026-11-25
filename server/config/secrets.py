@@ -64,6 +64,9 @@ REQUIRED_SETTINGS = [
     RequiredSetting("BACKUP_R2_ACCESS_KEY_ID", roles=("app",), environments=("production",)),
     RequiredSetting("BACKUP_R2_SECRET_ACCESS_KEY", roles=("app",), environments=("production",)),
     RequiredSetting("BACKUP_R2_BUCKET", secret=False, roles=("app",), environments=("production",)),
+    # Outside dead-man service: it alerts when these pings stop (BERA-180).
+    RequiredSetting("HEARTBEAT_URL", roles=("app",), environments=("production",)),
+    RequiredSetting("BACKUP_HEARTBEAT_URL", roles=("app",), environments=("production",)),
     RequiredSetting("WEB_BASE_URL", secret=False),
     RequiredSetting("JWT_COMPANY_SECRET"),
     RequiredSetting("JWT_ADMIN_SECRET"),

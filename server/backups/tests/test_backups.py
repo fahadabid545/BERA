@@ -423,3 +423,30 @@ class TestDecryptingForARestore:
     def test_with_no_backup_it_says_so(self, tmp_path):
         with pytest.raises(CommandError, match="no backup"):
             call_command("decrypt_backup", str(tmp_path / "plain.dump"))
+
+
+class TestTheBackupHeartbeat:
+    """The outside service alarms when these pings stop (BERA-180)."""
+
+    @pytest.fixture
+    def pings(self, monkeypatch, settings):
+        settings.BACKUP_HEARTBEAT_URL = "https://hc-ping.example.test/fake-backup-0001"
+        sent = []
+        monkeypatch.setattr(service, "ping", lambda address: sent.append(address) or True)
+        return sent
+
+    def test_a_good_backup_sends_one_ping(self, real_database, pings, settings):
+        service.run_backup()
+        assert pings == [settings.BACKUP_HEARTBEAT_URL]
+
+    def test_a_failed_backup_sends_none(self, real_database, pings, settings):
+        settings.BACKUP_DATABASE_URL = settings.BACKUP_DATABASE_URL.replace("@", "x@", 1)
+        with pytest.raises(BackupFailure):
+            service.run_backup()
+        assert pings == []
+
+    def test_a_missing_key_sends_none(self, pings, settings):
+        settings.BACKUP_ENCRYPTION_KEY = ""
+        with pytest.raises(BackupFailure):
+            service.run_backup()
+        assert pings == []

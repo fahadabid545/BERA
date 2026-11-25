@@ -531,6 +531,17 @@ SETTINGS = [
     # spam checks (a form sent faster than a person can type, or held longer than the maximum age,
     # is treated as spam) and the notice shown beside the form. "{days}" in the notice is replaced
     # by the retention period, so the notice always says what the code does.
+    # Monitoring (monitoring/): limits for the alerts sent by the health check.
+    SettingDefinition("monitor.disk_used_percent_limit", 85, whole_number(50, 99)),
+    SettingDefinition("monitor.memory_used_percent_limit", 90, whole_number(50, 99)),
+    SettingDefinition("monitor.checks_in_a_row", 3, whole_number(1, 10)),
+    SettingDefinition("monitor.waiting_jobs_limit", 200, whole_number(1, 100000)),
+    SettingDefinition("monitor.job_waiting_minutes_limit", 30, whole_number(1, 1440)),
+    SettingDefinition("monitor.stuck_jobs_limit", 3, whole_number(1, 100000)),
+    SettingDefinition("monitor.email_queue_minutes", 15, whole_number(1, 1440)),
+    SettingDefinition("monitor.email_backlog_limit", 10, whole_number(1, 100000)),
+    SettingDefinition("monitor.error_limit", 10, whole_number(1, 100000)),
+    SettingDefinition("monitor.error_window_minutes", 5, whole_number(1, 60)),
     SettingDefinition("backup.retention_days", 30, whole_number(1, 365)),
     # Backups that are never removed, newest first, even when older than the retention.
     SettingDefinition("backup.minimum_kept", 7, whole_number(1, 365)),

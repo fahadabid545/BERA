@@ -33,7 +33,15 @@ DESCRIPTIONS = {
     "security.backup_failed": "The daily database backup failed.",
     "security.restore_test_failed": "The weekly test that restores the latest backup failed.",
     "security.backup_late": "No new database backup has been made in the expected time.",
+    "monitor.disk_full": "The server's disk is nearly full.",
+    "monitor.memory_low": "The server is running low on available memory.",
+    "monitor.jobs_waiting": "Too many background jobs are waiting for their turn.",
+    "monitor.job_waiting_too_long": "A background job has been waiting for too long.",
+    "monitor.jobs_stuck": "Background jobs are stuck.",
+    "monitor.emails_backed_up": "Emails are not leaving the queue.",
+    "monitor.error_rate": "The app is answering with server errors at a high rate.",
 }
+MONITORING_KINDS = [kind for kind in DESCRIPTIONS if kind.startswith("monitor.")]
 
 
 def _recipients():
@@ -77,6 +85,14 @@ def alert_admins(kind, note=None):
         _send(admins, f"{DESCRIPTIONS[kind]} {note}" if note else DESCRIPTIONS[kind])
         return True
     return False
+
+
+def send_test_alert_for(kind):
+    """A test copy of one alert's email, to every active super admin, whatever the cooldown.
+    Returns how many people it went to."""
+    admins = _recipients()
+    _send(admins, f"This is a test. {DESCRIPTIONS[kind]}")
+    return len(admins)
 
 
 def send_test_alert():

@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "ai",
     "cvs",
     "backups",
+    "monitoring",
 ]
 
 # Development only (see development.py): the country the sign-up form pretends the visitor is in.
@@ -160,3 +161,8 @@ BACKUP_R2_ACCESS_KEY_ID = os.environ.get("BACKUP_R2_ACCESS_KEY_ID", "").strip()
 BACKUP_R2_SECRET_ACCESS_KEY = os.environ.get("BACKUP_R2_SECRET_ACCESS_KEY", "").strip()
 BACKUP_R2_BUCKET = os.environ.get("BACKUP_R2_BUCKET", "").strip()
 BACKUP_LOCAL_FOLDER = os.environ.get("BACKUP_LOCAL_FOLDER") or BASE_DIR.parent / ".dev-backups"
+
+# Heartbeat pings (see monitoring/heartbeat.py): addresses of an outside dead-man service. Each is a
+# secret, because it names our check. Required in production; optional (and separate) in staging.
+HEARTBEAT_URL = os.environ.get("HEARTBEAT_URL", "").strip()
+BACKUP_HEARTBEAT_URL = os.environ.get("BACKUP_HEARTBEAT_URL", "").strip()

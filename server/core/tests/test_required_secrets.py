@@ -33,6 +33,8 @@ REAL = {
     "BACKUP_R2_ACCESS_KEY_ID": "test-only-backup-r2-key-id-2f6b9d41",
     "BACKUP_R2_SECRET_ACCESS_KEY": "test-only-backup-r2-secret-8c3a5e70d2",
     "BACKUP_R2_BUCKET": "bera-test-backups",
+    "HEARTBEAT_URL": "https://hc-ping.invalid/test-only-health-check-7d2f",
+    "BACKUP_HEARTBEAT_URL": "https://hc-ping.invalid/test-only-backup-check-91ac",
 }
 ENVIRONMENTS = ["staging", "production"]
 # The migrator's address is held only by the process that changes the structure.
@@ -93,10 +95,14 @@ def test_staging_needs_its_email_folder_and_no_email_account():
 
 
 def test_staging_holds_fake_data_and_needs_no_backup_settings():
-    environ = {k: v for k, v in REAL.items() if not k.startswith(("BACKUP_", "RESTORE_TEST"))}
+    environ = {
+        k: v for k, v in REAL.items() if not k.startswith(("BACKUP_", "RESTORE_TEST", "HEARTBEAT"))
+    }
     check_required_settings(environ, "staging")
     assert refusal(environ, "production").details["missing"] == [
-        name for name in APP_SETTINGS_IN_ORDER if name.startswith(("BACKUP_", "RESTORE_TEST"))
+        name
+        for name in APP_SETTINGS_IN_ORDER
+        if name.startswith(("BACKUP_", "RESTORE_TEST", "HEARTBEAT"))
     ]
 
 

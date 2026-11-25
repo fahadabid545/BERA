@@ -63,7 +63,9 @@ class TestEachKindIsRecorded:
             "admin.status_changed",
         ):
             assert kind in KINDS
-        assert set(DESCRIPTIONS) == {name for name in KINDS if name.startswith("security.")}
+        # Alerts are sent for the security events and for the monitoring ones (BERA-180).
+        alerting = {name for name in KINDS if name.startswith(("security.", "monitor."))}
+        assert set(DESCRIPTIONS) == alerting
 
     def test_token_reuse_is_recorded_with_who_but_never_the_token(self):
         owner, issued = reuse_a_refresh_token()

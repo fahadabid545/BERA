@@ -81,11 +81,18 @@ def _record_refusal(context):
         record_security_event("security.permission_refused", actor=user)
 
 
+def _count_server_error():
+    from monitoring.errors import count_server_error  # late: it needs the models
+
+    count_server_error()
+
+
 def api_exception_handler(exc, context):
     """Turn every failure into the shared `{"error": {...}}` response shape."""
     if isinstance(exc, AppError):
         if exc.status_code >= 500:
             logger.error("%s: %s", exc.code, exc.message)
+            _count_server_error()
         return error_response(exc)
     if isinstance(exc, ValidationError):
         return error_response(validation_error(exc))
@@ -107,4 +114,5 @@ def api_exception_handler(exc, context):
             AppError(exc.default_code, str(exc.detail), status_code=exc.status_code)
         )
     logger.exception("Unexpected error")
+    _count_server_error()
     return error_response(unexpected_error())

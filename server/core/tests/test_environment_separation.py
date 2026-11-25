@@ -24,6 +24,7 @@ STAGING = {
     "BACKUP_R2_BUCKET": "bera-test-staging-backups",
     "BACKUP_R2_SECRET_ACCESS_KEY": "test-only-staging-backup-r2-secret-01",
     "BACKUP_ENCRYPTION_KEY": "test-only-staging-backup-key-000001",
+    "HEARTBEAT_URL": "https://hc-ping.example.test/test-only-staging-health-0001",
     "BACKUP_DATABASE_URL": "postgres://staging_bak:test-only-staging-bak-pw-1@127.0.0.1:5432/bera_staging",  # nosecret: fake
     "DATABASE_URL": "postgres://staging_app:test-only-staging-db-pw-1@127.0.0.1:5432/bera_staging",
     "MIGRATION_DATABASE_URL": "postgres://staging_mig:test-only-staging-mig-pw-1@127.0.0.1:5432/bera_staging",  # nosecret: fake
@@ -49,6 +50,7 @@ PRODUCTION = {
     "BACKUP_R2_BUCKET": "bera-test-production-backups",
     "BACKUP_R2_SECRET_ACCESS_KEY": "test-only-production-backup-r2-secret-1",
     "BACKUP_ENCRYPTION_KEY": "test-only-production-backup-key-0001",
+    "HEARTBEAT_URL": "https://hc-ping.example.test/test-only-production-health-0001",
     "BACKUP_DATABASE_URL": "postgres://production_bak:test-only-production-bak-pw-1@127.0.0.1:5432/bera_production",  # nosecret: fake
     "DATABASE_URL": "postgres://production_app:test-only-production-db-pw-1@127.0.0.1:5432/bera_production",  # nosecret: fake
     "MIGRATION_DATABASE_URL": "postgres://production_mig:test-only-production-mig-pw-1@127.0.0.1:5432/bera_production",  # nosecret: fake
@@ -76,6 +78,7 @@ def test_two_separate_environments_pass():
         "R2_SECRET_ACCESS_KEY",
         "BACKUP_R2_SECRET_ACCESS_KEY",
         "BACKUP_ENCRYPTION_KEY",
+        "HEARTBEAT_URL",
     ],
 )
 def test_a_shared_secret_fails_and_is_named(name):

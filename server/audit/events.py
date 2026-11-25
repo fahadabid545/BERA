@@ -35,6 +35,14 @@ KINDS = _kinds(
     EventKind("security.backup_failed"),
     EventKind("security.restore_test_failed"),
     EventKind("security.backup_late"),
+    # Monitoring (monitoring/): the super admins are emailed about these too.
+    EventKind("monitor.disk_full"),
+    EventKind("monitor.memory_low"),
+    EventKind("monitor.jobs_waiting"),
+    EventKind("monitor.job_waiting_too_long"),
+    EventKind("monitor.jobs_stuck"),
+    EventKind("monitor.emails_backed_up"),
+    EventKind("monitor.error_rate"),
     # Key company actions.
     EventKind("invite.sent"),
     EventKind("invite.resent"),

@@ -20,9 +20,8 @@ def health(request):
     try:
         connection.ensure_connection()
     except OperationalError as error:
-        raise AppError(
-            "database_unavailable", "The database is not reachable.", status_code=503
-        ) from error
+        # Nothing about why: this address is public, so it says only whether we are fine.
+        raise AppError("unavailable", "Not available.", status_code=503) from error
     return Response({"status": "ok"})
 
 
@@ -33,5 +32,8 @@ def not_found(request, exception=None):
 
 def server_error(request):
     """For failures outside the API framework. The traceback is logged by Django."""
+    from monitoring.errors import count_server_error  # late: it needs the models
+
+    count_server_error()
     error = unexpected_error()
     return JsonResponse({"error": error.to_dict()}, status=500)

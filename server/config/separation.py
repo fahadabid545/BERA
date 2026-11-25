@@ -11,7 +11,7 @@ import re
 from urllib.parse import urlsplit
 
 # Anything named like a secret is compared, so a new secret is covered without editing this file.
-SECRET_NAME = re.compile(r"SECRET|KEY|PASSWORD|TOKEN")
+SECRET_NAME = re.compile(r"SECRET|KEY|PASSWORD|TOKEN|HEARTBEAT")
 PORTS = ("API_PORT", "WEB_PORT")
 LIST_SETTINGS = ("ALLOWED_HOSTS", "ALLOWED_ORIGINS")  # comma separated
 SINGLE_ADDRESSES = ("WEB_BASE_URL", "NEXT_PUBLIC_SITE_URL")

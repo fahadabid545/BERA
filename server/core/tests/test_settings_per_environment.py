@@ -35,6 +35,8 @@ FAKE_VALUES = {
     "BACKUP_R2_ACCESS_KEY_ID": "test-only-backup-r2-key-id-2f6b9d41",
     "BACKUP_R2_SECRET_ACCESS_KEY": "test-only-backup-r2-secret-8c3a5e70d2",
     "BACKUP_R2_BUCKET": "bera-test-backups",
+    "HEARTBEAT_URL": "https://hc-ping.invalid/test-only-health-check-7d2f",
+    "BACKUP_HEARTBEAT_URL": "https://hc-ping.invalid/test-only-backup-check-91ac",
     "WEB_BASE_URL": "https://app.example.com",
     "ALLOWED_HOSTS": "staging.example.com, www.example.com",
     "TRUSTED_PROXY_COUNT": "1",

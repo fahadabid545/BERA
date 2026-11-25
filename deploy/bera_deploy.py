@@ -67,6 +67,7 @@ RESOURCES = {
         "queue_memory": "350M",
         "web_memory": "250M",
         "web_heap_mb": 160,
+        "job_memory": "200M",
     },
 }
 # Production only (staging holds fake data): backup jobs run by timers, each a short-lived process
@@ -76,6 +77,8 @@ BACKUP_JOBS = (
     ("restore-test", "verify_backup_restore", "Sun *-*-* 04:30:00 UTC", "2h"),
     ("backup-check", "check_backup_fresh", "*-*-* *:15:00 UTC", "10min"),
 )
+# Both environments: the health check (disk, memory, queues, errors) and its heartbeat ping.
+HEALTH_JOBS = (("health", "check_system_health", "*:0/5", "2min"),)
 HEALTH_ATTEMPTS = 20
 HEALTH_DELAY_SECONDS = 3
 
@@ -225,24 +228,24 @@ WantedBy=multi-user.target
 """,
     }
     files = {f"bera-{env}-{name}.service": text for name, text in units.items()}
-    if env == "production":
-        files.update(render_backup_units(layout, numbers["job_memory"]))
+    jobs = HEALTH_JOBS + (BACKUP_JOBS if env == "production" else ())
+    files.update(render_job_units(env, layout, jobs, numbers["job_memory"]))
     return files
 
 
-def render_backup_units(layout, memory):
-    """A service and a timer for each backup job. `Persistent` runs a job missed while the
-    server was off as soon as it is back."""
+def render_job_units(env, layout, jobs, memory):
+    """A service and a timer for each job. `Persistent` runs a job missed while the server was
+    off as soon as it is back."""
     files = {}
-    for name, command, schedule, longest in BACKUP_JOBS:
+    for name, command, schedule, longest in jobs:
         header = unit_header(layout, "Type=oneshot\n")
-        files[f"bera-production-{name}.service"] = (
+        files[f"bera-{env}-{name}.service"] = (
             f"{header}WorkingDirectory={layout.current}/server\n"
             f"ExecStart={layout.current}/.venv/bin/python manage.py {command}\n"
             f"MemoryMax={memory}\nTimeoutStartSec={longest}\n"
         )
-        files[f"bera-production-{name}.timer"] = (
-            f"[Unit]\nDescription=Bera production {name}\n\n"
+        files[f"bera-{env}-{name}.timer"] = (
+            f"[Unit]\nDescription=Bera {env} {name}\n\n"
             f"[Timer]\nOnCalendar={schedule}\nPersistent=true\n\n"
             "[Install]\nWantedBy=timers.target\n"
         )

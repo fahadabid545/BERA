@@ -11,6 +11,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
+from monitoring.heartbeat import ping
 from platform_settings.service import get_setting
 
 from .database import DumpStream
@@ -69,6 +70,9 @@ def run_backup():
         size_bytes=size,
         encryption_key_id=key_id,
     )
+    # The outside service raises the alarm when these pings stop (BERA-180): a backup that did not
+    # run, or did not succeed, sends none.
+    ping(settings.BACKUP_HEARTBEAT_URL)
     try:
         remove_expired(store, started)
     except Exception as error:
