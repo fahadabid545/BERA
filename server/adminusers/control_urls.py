@@ -12,6 +12,7 @@ urlpatterns = [
     path("companies/<str:id>/unsuspend/", views.UnsuspendCompany.as_view()),
     path("companies/<str:id>/limits/<str:name>/", views.CompanyLimit.as_view()),
     path("companies/<str:id>/subscription/grant-free/", views.GrantFreeSubscription.as_view()),
+    path("companies/<str:id>/subscription/trial/", views.StartTrial.as_view()),
     path("companies/<str:id>/subscription/end-free/", views.EndFreeSubscription.as_view()),
     path("companies/<str:id>/subscription/terminate/", views.TerminateSubscription.as_view()),
     path("company-users/<str:id>/block/", views.BlockMember.as_view()),

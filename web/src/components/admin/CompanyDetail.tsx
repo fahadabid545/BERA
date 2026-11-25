@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button, Card, Table, Tag } from "@/components/ui";
 import { getJson, type ApiError } from "@/lib/api";
 
 import { STATE_NAMES, STATUS_NAMES, formatDate } from "./companyText";
+import { StartTrial } from "./StartTrial";
 
 type Measure = { used: number; limit: number };
 type Detail = {
@@ -57,12 +58,14 @@ export function CompanyDetail({ companyId }: { companyId: string }) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
 
-  useEffect(() => {
-    void getJson<Detail>(`/api/admin/companies/${companyId}/`).then((result) => {
-      if (result.ok) setDetail(result.data);
-      else setError(result.error);
-    });
+  const load = useCallback(async () => {
+    const result = await getJson<Detail>(`/api/admin/companies/${companyId}/`);
+    if (result.ok) setDetail(result.data);
+    else setError(result.error);
   }, [companyId]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   if (error) {
     return (
@@ -100,6 +103,11 @@ export function CompanyDetail({ companyId }: { companyId: string }) {
           <Button variant="danger">Suspend</Button>
           <Button variant="danger">Terminate subscription</Button>
           <Button variant="secondary">Grant free subscription</Button>
+          <StartTrial
+            companyId={companyId}
+            state={subscription.state}
+            onStarted={() => void load()}
+          />
           <Button variant="secondary">Change limits</Button>
           <Button variant="danger">Block member</Button>
         </div>

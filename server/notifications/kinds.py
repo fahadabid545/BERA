@@ -19,6 +19,7 @@ USAGE_WARNING = "usage_warning"
 USAGE_LIMIT_REACHED = "usage_limit_reached"
 SUBSCRIPTION_ENDING = "subscription_ending"
 SUBSCRIPTION_RENEWING = "subscription_renewing"
+TRIAL_ENDING = "trial_ending"
 PAYMENT_FAILED = "payment_failed"
 
 KINDS = (
@@ -27,6 +28,7 @@ KINDS = (
     Kind(USAGE_LIMIT_REACHED, "Usage limit reached", required=False),
     Kind(SUBSCRIPTION_ENDING, "Subscription ending", required=True),
     Kind(SUBSCRIPTION_RENEWING, "Subscription renewing", required=True),
+    Kind(TRIAL_ENDING, "Free trial ending", required=True),
     Kind(PAYMENT_FAILED, "Payment failed", required=True),
 )
 BY_NAME = {kind.name: kind for kind in KINDS}

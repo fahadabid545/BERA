@@ -15,7 +15,7 @@ from plans.pricing import charge_price
 from plans.subscriptions import owner_of
 from platform_settings.service import get_setting
 
-from .kinds import SUBSCRIPTION_ENDING, SUBSCRIPTION_RENEWING
+from .kinds import SUBSCRIPTION_ENDING, SUBSCRIPTION_RENEWING, TRIAL_ENDING
 from .service import notify
 
 State = Subscription.State
@@ -30,6 +30,7 @@ def _ending_soon(now, days):
     )
     return Subscription.objects.filter(
         ends_without_renewal,
+        on_trial=False,  # a free trial has its own, earlier notice
         company__status=Company.Status.ACTIVE,
         period_end__gt=now,
         period_end__lte=now + timedelta(days=days),
@@ -52,6 +53,35 @@ def send_ending_notices():
             subscription.period_end.isoformat(),
             [owner],
             "subscription_ending",
+            when=format_moment(subscription.period_end),
+            link=build_link(BILLING_PATH),
+        )
+    return sent
+
+
+@logged_job
+def send_trial_ending_notices():
+    """Daily job: emails the owner once, `trials.ending_notice_days` before a free trial ends.
+    (The email at the end comes with the change of state; see `plans.subscriptions`.)"""
+    now = timezone.now()
+    sent = 0
+    ending = Subscription.objects.filter(
+        on_trial=True,
+        state=State.GRANTED_FREE,
+        company__status=Company.Status.ACTIVE,
+        period_end__gt=now,
+        period_end__lte=now + timedelta(days=get_setting("trials.ending_notice_days")),
+    )
+    for subscription in ending:
+        owner = owner_of(subscription.company_id)
+        if owner is None:
+            continue
+        sent += notify(
+            subscription.company_id,
+            TRIAL_ENDING,
+            subscription.period_end.isoformat(),
+            [owner],
+            "trial_ending",
             when=format_moment(subscription.period_end),
             link=build_link(BILLING_PATH),
         )

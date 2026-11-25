@@ -300,7 +300,12 @@ class TestChoices:
         body = client.get(URL).json()["choices"]
         assert [row["kind"] for row in body] == [kind.name for kind in KINDS]
         required = {row["kind"] for row in body if row["required"]}
-        assert required == {"subscription_ending", "subscription_renewing", "payment_failed"}
+        assert required == {
+            "subscription_ending",
+            "subscription_renewing",
+            "payment_failed",
+            "trial_ending",
+        }
         assert all(row["enabled"] for row in body)
 
     def test_an_optional_email_can_be_switched_off_and_on(self):

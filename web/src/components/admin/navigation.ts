@@ -43,6 +43,8 @@ export const ADMIN_NAVIGATION: readonly NavigationItem<AdminRole>[] = [
         href: "/admin/operations/cost-versus-revenue",
         roles: SUPER_ONLY,
       },
+      { label: "Discount codes", href: "/admin/operations/discount-codes", roles: SUPER_ONLY },
+      { label: "Trial codes", href: "/admin/operations/trial-codes", roles: SUPER_ONLY },
       { label: "Announcements", href: "/admin/operations/announcements" },
       { label: "Data requests", href: "/admin/operations/data-requests" },
       { label: "Feedback", href: "/admin/operations/feedback" },

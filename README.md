@@ -2939,6 +2939,50 @@ answers visitors yet**.
 Only simulated: tests use generated PDF and Word files. The owner must upload the real product
 documents, check the extracted text reads well, choose a model, and review the prompt text.
 
+## Coupons and trials (BERA-188)
+
+**Discount codes** are Stripe's own coupons and promotion codes, made from the admin page
+(Operations > Discount codes, super admin only) through the Stripe API. Nothing about the discount
+is worked out on our side for the charge: checkout is a recurring subscription, so Stripe applies
+the discount and keeps it right at every renewal ("first N months" included), and the discount
+shows on the Stripe invoice. A code has a percentage or a fixed US-dollar amount, a duration (first
+payment, a number of months, every payment), an optional expiry and use limit, "first-time
+customers only", and an optional plan. Our record holds only Stripe's ids and the plan a code is
+limited to (our server enforces that, because checkout uses inline prices). The list shows Stripe's
+use counts. Create and every change are audited.
+
+- **Company side:** the owner's billing page has "Have a code?". The server checks the code with
+  Stripe and with our own rules and passes that one promotion code to the checkout session; Stripe's
+  own code field is never switched on. The price, the discount and the new price are shown before
+  paying (display only). A paid page is trusted only if it paid exactly what Stripe said the page
+  charges after the discount.
+- **Guessing:** every try counts toward a per-company limit (`rate_limits.code_attempts_per_hour`).
+  An unknown, switched-off, expired, used-up, wrong-plan or first-time-refused code all give the same
+  message.
+- **Revenue:** Cost versus revenue already counts money actually received (payment records), so
+  discounted payments show at what was paid; there is no list-price estimate to correct.
+- Test mode only, like checkout. Free grants by a super admin are separate and never use codes.
+
+**Free trials** are free grants (state "granted free") on a chosen plan with two limits: days and
+a number of CVs for the whole trial. There is no default for either: whoever starts a trial chooses
+them (bounds: `trials.max_days`, `trials.max_cv_limit`). No card and no Stripe trial; a new sign-up
+gets nothing by itself.
+
+- **Starting:** a super admin starts one for a company (company page, written reason, audited) or
+  makes a trial code (Operations > Trial codes: plan, days, CVs, expiry, on or off). The code is
+  shown once, only its hash is kept, and one company can use it once. The owner enters it in the
+  same "Have a code?" field and confirms. One trial per company, ever (kept on the subscription).
+- **Limits:** the CV limit counts CVs scored or waiting since the trial started; the plan's own
+  monthly limit still applies. Reaching either stops uploads and processing with the Upgrade prompt.
+- **End:** when the days run out the company can only view and download; nothing is deleted. The
+  owner gets an email `trials.ending_notice_days` (3) before the end and one at the end. Buying a
+  plan during the trial starts the paid month at once and drops the rest of the trial.
+- **Cost versus revenue:** a trial company with nothing paid is a normal "free" row, not a loss warning.
+
+Only simulated: tests use a stand-in for Stripe. The owner must, in Stripe test mode, create a code
+and pay with it, check the discount on the Stripe invoice and at the first renewal, and set the
+trial bounds and codes before using them. Live mode stays off until BERA-170 is decided.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

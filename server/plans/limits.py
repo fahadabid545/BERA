@@ -13,6 +13,7 @@ from core.errors import AppError
 from platform_settings.service import get_setting
 from usage import service as usage
 
+from . import trials
 from .models import LimitOverride, Plan
 from .subscriptions import State, effective_state, get_subscription
 
@@ -106,8 +107,15 @@ def is_on_highest_plan(company_id):
 def prompt_kind(company_id):
     """Renewal for an expired subscription; for the highest plan (nothing bigger to upgrade to)
     the highest-plan prompt, which offers contact instead; Upgrade otherwise."""
-    if effective_state(get_subscription(company_id)) == State.EXPIRED:
-        return RENEWAL
+    subscription = get_subscription(company_id)
+    if effective_state(subscription) == State.EXPIRED:
+        # A company whose only subscription was a free trial has nothing to renew: it chooses.
+        never_paid = (
+            subscription.trial_started_at is not None and not subscription.stripe_subscription_id
+        )
+        return UPGRADE if never_paid else RENEWAL
+    if trials.on_trial(subscription):
+        return UPGRADE  # a trial is not a plan to upgrade from, even on the highest plan
     return HIGHEST_PLAN if is_on_highest_plan(company_id) else UPGRADE
 
 
@@ -119,7 +127,7 @@ def _expired(company_id, name):
         name,
         code=EXPIRED_CODE,
         message=EXPIRED_MESSAGE,
-        prompt=RENEWAL,
+        prompt=prompt_kind(company_id),
         limit=limit_for(company_id, name),
     )
 
@@ -144,11 +152,35 @@ def _count_check(company_id, name, used, requested):
     return LimitCheck(True, name, limit=limit, used=used, room=room)
 
 
+def _trial_check(subscription, requested):
+    """The CV limit of a running free trial, counted over the whole trial."""
+    limit, used = subscription.trial_cv_limit, trials.cvs_used(subscription)
+    room = max(limit - used, 0)
+    if requested > room:
+        return LimitCheck(
+            False,
+            CVS_PER_MONTH,
+            code=trials.TRIAL_CV_LIMIT_CODE,
+            message=trials.TRIAL_CV_LIMIT_MESSAGE.format(limit=limit),
+            prompt=prompt_kind(subscription.company_id),
+            limit=limit,
+            used=used,
+            room=room,
+        )
+    return LimitCheck(True, CVS_PER_MONTH, limit=limit, used=used, room=room)
+
+
 def check_cvs_this_month(company_id, requested=1):
     """CVs scored this period plus those accepted and still waiting. A CV that failed has given
-    its allowance back, because only scored and waiting ones are counted."""
+    its allowance back, because only scored and waiting ones are counted. A running free trial
+    also has its own limit over the whole trial; the stricter of the two answers."""
     used = usage.current_usage(company_id)["cvs_scored"] + usage.waiting_cvs(company_id)
-    return _count_check(company_id, CVS_PER_MONTH, used, requested)
+    monthly = _count_check(company_id, CVS_PER_MONTH, used, requested)
+    subscription = get_subscription(company_id)
+    if not trials.on_trial(subscription):
+        return monthly
+    trial = _trial_check(subscription, requested)
+    return min((monthly, trial), key=lambda check: check.room)
 
 
 def check_cvs_per_project(company_id, cvs_in_project, requested=1):

@@ -263,6 +263,8 @@ describe("Advanced section", () => {
         "/admin/advanced",
         "/admin/operations/payments",
         "/admin/operations/cost-versus-revenue",
+        "/admin/operations/discount-codes",
+        "/admin/operations/trial-codes",
       ].sort(),
     );
     expect(blockedAdminHrefs("super")).toEqual([]);

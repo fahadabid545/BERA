@@ -213,6 +213,18 @@ CATALOG = {
         button_label="Open billing",
         variables=("name", "when", "link"),
     ),
+    "trial_ending": EmailTemplate(
+        subject="Your {app_name} free trial ends soon",
+        heading="Your free trial is ending",
+        paragraphs=(
+            GREETING,
+            "Your free trial ends on {when}, or sooner if you use all of its CVs. After that "
+            "you can still view and download your data, but you cannot upload, start projects "
+            "or score until you choose a plan. Nothing is deleted.",
+        ),
+        button_label="Choose a plan",
+        variables=("name", "when", "link"),
+    ),
     "subscription_renewing": EmailTemplate(
         subject="Your {app_name} subscription renews soon",
         heading="Your subscription renews on {when}",

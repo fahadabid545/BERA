@@ -71,6 +71,15 @@ class FeedbackThrottle(RuleThrottle):
     subject = staticmethod(account_subject)
 
 
+class CodeAttemptThrottle(RuleThrottle):
+    """Per company, so a code cannot be guessed by trying many: every try counts, right or wrong."""
+
+    rule = rate_limits.CODE_ATTEMPTS
+
+    def subject(self, request):
+        return f"company:{request.user.company_id}"
+
+
 class AskThrottle(RuleThrottle):
     """Per signed-in person: each question is a paid AI call."""
 

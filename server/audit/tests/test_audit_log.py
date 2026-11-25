@@ -82,6 +82,7 @@ class TestTheWrittenReason:
             "admin.plan_deleted",
             "admin.free_subscription_ended",
             "admin.free_subscription_granted",
+            "admin.trial_started",
             "admin.invited",
             "admin.maintenance_changed",
             "admin.limit_changed",

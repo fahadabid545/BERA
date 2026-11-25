@@ -11,7 +11,7 @@ from adminusers.models import AdminUser
 from adminusers.role_matrix import require_action
 from companies import admin_controls, member_blocking
 from companies.models import Company, CompanyUser
-from plans import limit_overrides, subscriptions
+from plans import limit_overrides, subscriptions, trials
 from plans.models import Plan
 from signin.authentication import AdminAuthentication
 from twostep import admin_resets
@@ -21,6 +21,7 @@ from .control_serializers import (
     GrantFreeSerializer,
     ReasonSerializer,
     SetLimitSerializer,
+    StartTrialSerializer,
 )
 
 
@@ -103,6 +104,23 @@ class GrantFreeSubscription(ControlView):
             company.pk,
             plan,
             period_end=values["period_end"],
+            by=self.admin(),
+            reason=values["reason"],
+        )
+        return Response(describe_subscription(company.pk))
+
+
+class StartTrial(ControlView):
+    action = "subscription.grant_free"
+
+    def post(self, request, id):
+        values = self.checked(StartTrialSerializer)
+        company = _found(Company, id)
+        trials.start_for_company(
+            company.pk,
+            _found(Plan, values["plan_id"]),
+            days=values["days"],
+            cv_limit=values["cv_limit"],
             by=self.admin(),
             reason=values["reason"],
         )

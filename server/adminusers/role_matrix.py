@@ -29,6 +29,8 @@ ROLES_ALLOWED = {
     "plan.view": SUPER_ONLY,
     "ai.view": SUPER_ONLY,
     "chatbot.view": SUPER_ONLY,
+    "trial_code.view": SUPER_ONLY,
+    "discount.view": SUPER_ONLY,
     "payment.view": SUPER_ONLY,
     "settings.view": SUPER_ONLY,
     "audit_log.view": SUPER_ONLY,
@@ -44,6 +46,8 @@ ROLES_ALLOWED = {
     "ai.control": SUPER_ONLY,  # pause or resume all AI work
     "ai.playground": SUPER_ONLY,  # run test scoring and set its monthly budget
     "prompt.change": SUPER_ONLY,
+    "discount.manage": SUPER_ONLY,  # make a discount code, switch it, limit it to a plan
+    "trial_code.manage": SUPER_ONLY,  # make a trial code, switch it on or off
     "chatbot.change": SUPER_ONLY,  # its settings and its knowledge documents
     "settings.change": SUPER_ONLY,
     "legal.review": SUPER_ONLY,  # say that the Terms and Privacy text was reviewed, or take it back

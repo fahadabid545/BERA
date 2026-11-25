@@ -101,6 +101,12 @@ class Subscription(CompanyOwnedModel):
     card_update_started_with = models.CharField(max_length=255, blank=True)
     card_update_outcome = models.CharField(max_length=20, blank=True)
     card_changed_at = models.DateTimeField(null=True)
+    # A free trial is a free grant that also stops after `trial_cv_limit` CVs (see `trials.py`).
+    # `on_trial` is true only while one runs; `trial_started_at` is kept for good, because a
+    # company has one trial, ever.
+    on_trial = models.BooleanField(default=False)
+    trial_started_at = models.DateTimeField(null=True)
+    trial_cv_limit = models.PositiveIntegerField(null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -188,6 +194,11 @@ class CheckoutAttempt(CompanyOwnedModel):
     # What the page asked for, kept so a paid session is only trusted if it matches.
     amount_minor = models.PositiveBigIntegerField()
     currency = models.CharField(max_length=3)
+    # A discount code used for this page: the provider's promotion code id, and what the provider
+    # says the page charges after it (the price above is the list price). A paid page is trusted
+    # only if it paid exactly that.
+    promotion_code_id = models.CharField(max_length=255, blank=True)
+    discounted_minor = models.PositiveBigIntegerField(null=True)
     stripe_session_id = models.CharField(max_length=255, blank=True)
     payment_page_url = models.URLField(max_length=2000, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -253,3 +264,47 @@ class Invoice(CompanyOwnedModel):
 
     class Meta:
         indexes = [models.Index(fields=["company", "-issued_at"], name="invoice_company_time")]
+
+
+class TrialCode(models.Model):
+    """A code that gives one company one free trial (see `trials.py`). The code itself is shown
+    once, when it is made, and only its hash is kept. Not company data: it is made by a super
+    admin, and `redeemed_company_id` is a plain id so that history survives a company's deletion."""
+
+    name = models.CharField(max_length=100)  # the admin's own label, never the code
+    code_hash = models.CharField(max_length=64, unique=True)
+    plan = models.ForeignKey(Plan, on_delete=models.PROTECT, related_name="+")
+    days = models.PositiveIntegerField()
+    cv_limit = models.PositiveIntegerField()
+    expires_at = models.DateTimeField()
+    enabled = models.BooleanField(default=True)
+    redeemed_company_id = models.PositiveBigIntegerField(null=True)
+    redeemed_at = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(redeemed_company_id__isnull=True, redeemed_at__isnull=True)
+                | Q(redeemed_company_id__isnull=False, redeemed_at__isnull=False),
+                name="trialcode_redeemed_together",
+            ),
+        ]
+
+
+class DiscountCode(models.Model):
+    """A discount code a super admin made. The discount itself (percent or amount, duration, expiry,
+    use limit, use count) lives at the payment provider as a coupon and a promotion code and is
+    never worked out here; this record only mirrors their ids and holds the one rule the provider
+    cannot enforce for inline prices: the plan the code is limited to."""
+
+    code = models.CharField(max_length=40, unique=True)  # upper case, as the company types it
+    stripe_coupon_id = models.CharField(max_length=255)
+    stripe_promotion_code_id = models.CharField(max_length=255, unique=True)
+    plan = models.ForeignKey(Plan, null=True, on_delete=models.PROTECT, related_name="+")
+    enabled = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]

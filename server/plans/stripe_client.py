@@ -50,11 +50,15 @@ def create_checkout_session(
     expires_at,
     success_url,
     cancel_url,
+    promotion_code_id=None,
 ):
     """A subscription checkout (monthly, card saved) on the provider's page. The same
-    idempotency key always returns the same session, so a repeat never makes a second one."""
+    idempotency key always returns the same session, so a repeat never makes a second one.
+    One promotion code may be passed; the provider's own code field is never switched on."""
+    discounts = {"discounts": [{"promotion_code": promotion_code_id}]} if promotion_code_id else {}
     try:
         return stripe.checkout.Session.create(
+            **discounts,
             api_key=_key(),
             idempotency_key=idempotency_key,
             max_network_retries=NETWORK_RETRIES,
@@ -80,6 +84,12 @@ def create_checkout_session(
             success_url=success_url,
             cancel_url=cancel_url,
         )
+    except stripe.InvalidRequestError as error:
+        if promotion_code_id:  # the provider refused the code (used up, wrong customer, ...)
+            raise AppError(
+                "code_not_usable", "This code cannot be used.", status_code=400
+            ) from error
+        raise _provider_error() from error
     except stripe.StripeError as error:
         raise _provider_error() from error
 
@@ -327,5 +337,95 @@ def update_customer(customer_id, *, company_id, name, address, tax_number):
                 company_id=company_id, name=name, address=address, tax_number=tax_number
             ),
         )
+    except stripe.StripeError as error:
+        raise _provider_error() from error
+
+
+# --- discount codes: Stripe's own coupons and promotion codes ---------------------------------
+# The discount, its duration and its renewals are all Stripe's; this server only creates the
+# coupon and the promotion code, switches the code on or off, and reads them back.
+
+
+def create_coupon(
+    *, idempotency_key, percent_off=None, amount_off_minor=None, duration, months=None
+):
+    """A coupon: a percentage or a fixed US-dollar amount, once, for some months, or forever."""
+    values = {"duration": duration}
+    if percent_off is not None:
+        values["percent_off"] = percent_off
+    else:
+        values.update(amount_off=amount_off_minor, currency="usd")
+    if duration == "repeating":
+        values["duration_in_months"] = months
+    try:
+        return stripe.Coupon.create(
+            api_key=_key(),
+            idempotency_key=idempotency_key,
+            max_network_retries=NETWORK_RETRIES,
+            **values,
+        )
+    except stripe.StripeError as error:
+        raise _provider_error() from error
+
+
+def create_promotion_code(
+    *,
+    idempotency_key,
+    coupon_id,
+    code,
+    expires_at=None,
+    max_redemptions=None,
+    first_time_only=False,
+):
+    """The code a company types, tied to a coupon, with its own expiry and use limit."""
+    values = {"promotion": {"type": "coupon", "coupon": coupon_id}, "code": code}
+    if expires_at is not None:
+        values["expires_at"] = int(expires_at.timestamp())
+    if max_redemptions is not None:
+        values["max_redemptions"] = max_redemptions
+    if first_time_only:
+        values["restrictions"] = {"first_time_transaction": True}
+    try:
+        return stripe.PromotionCode.create(
+            api_key=_key(),
+            idempotency_key=idempotency_key,
+            max_network_retries=NETWORK_RETRIES,
+            **values,
+        )
+    except stripe.StripeError as error:
+        raise _provider_error() from error
+
+
+def set_promotion_code_active(promotion_code_id, active):
+    try:
+        return stripe.PromotionCode.modify(
+            promotion_code_id, api_key=_key(), max_network_retries=NETWORK_RETRIES, active=active
+        )
+    except stripe.StripeError as error:
+        raise _provider_error() from error
+
+
+def retrieve_promotion_code(promotion_code_id):
+    try:
+        return stripe.PromotionCode.retrieve(
+            promotion_code_id,
+            api_key=_key(),
+            max_network_retries=NETWORK_RETRIES,
+            expand=["promotion.coupon"],
+        )
+    except stripe.StripeError as error:
+        raise _provider_error() from error
+
+
+def list_promotion_codes():
+    """{promotion code id: its Stripe object}, with the coupon, for the admin list."""
+    try:
+        found = stripe.PromotionCode.list(
+            api_key=_key(),
+            max_network_retries=NETWORK_RETRIES,
+            limit=100,
+            expand=["data.promotion.coupon"],
+        )
+        return {item.id: item for item in found.auto_paging_iter()}
     except stripe.StripeError as error:
         raise _provider_error() from error

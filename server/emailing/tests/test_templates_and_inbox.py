@@ -55,6 +55,7 @@ def test_the_catalog_holds_exactly_the_agreed_emails():
         "batch_finished",
         "subscription_ending",
         "subscription_renewing",
+        "trial_ending",
         "security_alert",
         "account_notice",
         "download_ready",

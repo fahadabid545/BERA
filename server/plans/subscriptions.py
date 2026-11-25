@@ -30,6 +30,12 @@ FULL_ACCESS_STATES = frozenset({State.ACTIVE, State.PAST_DUE, State.CANCELLED, S
 CAN_BE_EXPIRED = frozenset({State.ACTIVE, State.PAST_DUE, State.CANCELLED, State.GRANTED_FREE})
 CAN_BE_GRANTED_FREE = frozenset({State.NO_PLAN, State.EXPIRED})
 
+TRIAL_NOT_AVAILABLE = "A free trial is not available for your company."
+TRIAL_ENDED_TEXT = (
+    "Your free trial has ended. You can still view and download your data, but you cannot "
+    "upload, start projects or score until you choose a plan. Nothing was deleted."
+)
+
 # What a plan change in flight leaves behind once it is over (applied, or the subscription ended).
 NO_PENDING_CHANGE = {"pending_plan": None, "pending_change": "", "pending_since": None}
 # A change waiting for the next renewal survives a late payment, but not the end of access.
@@ -106,7 +112,15 @@ def _refuse(message):
     return AppError("subscription_change_refused", message, status_code=409)
 
 
-def _notice_text(subscription):
+def _notice_title(subscription, was_trial):
+    if subscription.state == State.GRANTED_FREE and subscription.on_trial:
+        return "Your free trial has started"
+    if subscription.state == State.EXPIRED and was_trial:
+        return "Your free trial has ended"
+    return NOTICE_TITLES[subscription.state]
+
+
+def _notice_text(subscription, was_trial=False):
     plan = subscription.plan.name if subscription.plan else ""
     end = subscription.period_end.strftime("%d %B %Y") if subscription.period_end else ""
     return {
@@ -115,9 +129,16 @@ def _notice_text(subscription):
         f"{grace_ends_at(subscription).strftime('%d %B %Y') if subscription.past_due_since else ''}"
         ". Please update your payment method.",
         State.CANCELLED: f"Your subscription is cancelled. You keep full access until {end}.",
-        State.EXPIRED: "Your subscription has ended. You can still view and download your "
+        State.EXPIRED: TRIAL_ENDED_TEXT
+        if was_trial
+        else "Your subscription has ended. You can still view and download your "
         "data, but you cannot upload, start projects or score until you renew.",
-        State.GRANTED_FREE: f"A free {plan} plan was granted to your company until {end}.",
+        State.GRANTED_FREE: (
+            f"Your free trial of the {plan} plan started. It runs until {end}, or until you "
+            f"have used its limit of {subscription.trial_cv_limit} CVs."
+            if subscription.on_trial
+            else f"A free {plan} plan was granted to your company until {end}."
+        ),
     }[subscription.state]
 
 
@@ -127,7 +148,7 @@ def owner_of(company_id):
     ).first()
 
 
-def _email_the_owner(subscription):
+def _email_the_owner(subscription, was_trial=False):
     owner = owner_of(subscription.company_id)
     if owner is None:
         return
@@ -138,8 +159,8 @@ def _email_the_owner(subscription):
         "usage_notice",
         owner.email,
         name=owner.name,
-        title=NOTICE_TITLES[subscription.state],
-        message=_notice_text(subscription),
+        title=_notice_title(subscription, was_trial),
+        message=_notice_text(subscription, was_trial),
         link=build_link("/company/billing"),
     )
 
@@ -169,7 +190,9 @@ def _change(
 
 def _apply(subscription, new_state, *, source, by=None, reason="", kind=None, **fields):
     before = {"state": subscription.state, "plan": subscription.plan_id}
+    was_trial = subscription.on_trial
     subscription.state = new_state
+    fields = {"on_trial": False, **fields}  # a trial ends with any change, unless one starts
     if new_state not in KEEPS_PENDING_CHANGE:
         fields = {**NO_PENDING_CHANGE, **fields}
     for name, value in fields.items():
@@ -186,7 +209,7 @@ def _apply(subscription, new_state, *, source, by=None, reason="", kind=None, **
             "plan": {"old": before["plan"], "new": subscription.plan_id},
         },
     )
-    _email_the_owner(subscription)
+    _email_the_owner(subscription, was_trial=was_trial)
     return subscription
 
 
@@ -234,6 +257,8 @@ def resume(company_id, *, by=None):
 def expire(company_id, *, source=SYSTEM, by=None, reason="", kind=None):
     """Access ends. A subscription still running at the payment provider is ended there too, so
     nothing more is charged for access the company no longer has."""
+    if kind is None and get_subscription(company_id).on_trial:
+        kind = "trial.ended"
     subscription = _change(
         company_id,
         State.EXPIRED,
@@ -269,6 +294,34 @@ def grant_free(company_id, plan, *, period_end, by, reason):
         renewal=False,
         past_due_since=None,
     )
+
+
+def start_trial(
+    company_id, plan, *, period_end, cv_limit, source, by=None, reason="", kind="trial.started"
+):
+    """Starts the company's one free trial: a free grant that also stops after `cv_limit` CVs
+    (see `trials.py`). Refused when the company has had a trial before or still has access."""
+    now = timezone.now()
+    with transaction.atomic():
+        if _lock(company_id).trial_started_at is not None:
+            raise AppError("trial_used", TRIAL_NOT_AVAILABLE, status_code=409)
+        return _change(
+            company_id,
+            State.GRANTED_FREE,
+            CAN_BE_GRANTED_FREE,
+            source=source,
+            by=by,
+            reason=reason,
+            kind=kind,
+            plan=plan,
+            period_start=now,
+            period_end=period_end,
+            renewal=False,
+            past_due_since=None,
+            on_trial=True,
+            trial_started_at=now,
+            trial_cv_limit=cv_limit,
+        )
 
 
 def end_free(company_id, *, by, reason):

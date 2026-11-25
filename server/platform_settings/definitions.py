@@ -472,6 +472,14 @@ SETTINGS = [
     SettingDefinition("ai.scoring_prompt_version", 1, whole_number(1, 1_000_000)),
     # Ask Bera (see askbera/): the prompt version every question uses, and its limits.
     SettingDefinition("ai.ask_prompt_version", 1, whole_number(1, 1_000_000)),
+    # Free trials (see plans/trials.py). The days and the CV limit of a trial have no default:
+    # whoever starts one chooses them, within these bounds.
+    SettingDefinition("discounts.max_months", 36, whole_number(1, 120)),
+    SettingDefinition("discounts.max_amount_off_usd", 1000, whole_number(1, 100000)),
+    SettingDefinition("trials.max_days", 90, whole_number(1, 365)),
+    SettingDefinition("trials.max_cv_limit", 10000, whole_number(1, 1_000_000)),
+    SettingDefinition("trials.ending_notice_days", 3, whole_number(1, 30)),
+    SettingDefinition("rate_limits.code_attempts_per_hour", 10, whole_number(1, 1000)),
     # The website chatbot (see chatbot/): off until a super admin turns it on. The model is empty
     # until one is chosen. Its knowledge documents are public product information only.
     SettingDefinition("chatbot.enabled", False, yes_or_no),

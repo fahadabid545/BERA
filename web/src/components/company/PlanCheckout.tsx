@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { CardManagement, type CardResult } from "@/components/company/CardManagement";
+import { CodeEntry, DiscountPreview } from "@/components/company/CodeEntry";
 import { useCompanyRole } from "@/components/company/role";
 import { Button, Card, Dialog, Tag } from "@/components/ui";
 import { getJson, postJson } from "@/lib/api";
@@ -42,6 +43,7 @@ type Billing = {
   period_end: string | null;
   grace_ends_at: string | null;
   pending_change: PendingChange | null;
+  trial: { ends_at: string; cv_limit: number; cvs_used: number } | null;
   refresh_seconds: number;
 };
 type ChangeReply = { result: string; url: string | null };
@@ -66,6 +68,7 @@ export function PlanCheckout() {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [cardResult, setCardResult] = useState<CardResult | null>(null);
+  const [code, setCode] = useState<string | null>(null);
 
   const loadBilling = useCallback(async () => {
     const result = await getJson<Billing>(USAGE_URL);
@@ -112,7 +115,9 @@ export function PlanCheckout() {
   }
 
   async function pay(plan: SalePlan) {
-    const reply = await send(() => postJson<{ url: string }>(CHECKOUT_URL, { plan_id: plan.id }));
+    const reply = await send(() =>
+      postJson<{ url: string }>(CHECKOUT_URL, { plan_id: plan.id, ...(code ? { code } : {}) }),
+    );
     if (reply) navigateTo(reply.url);
   }
 
@@ -145,7 +150,10 @@ export function PlanCheckout() {
   }
 
   const state = billing?.state;
-  const canPick = billing === null || ["no_plan", "expired", "active"].includes(billing.state);
+  const onTrial = billing?.trial != null;
+  const canPick =
+    billing === null || onTrial || ["no_plan", "expired", "active"].includes(billing.state);
+  const mayEnterCode = isOwner && billing !== null && !subscribed && canPick;
   const waiting = billing?.pending_change ?? null;
   const chooseLabel = (plan: SalePlan) =>
     !subscribed ? "Choose" : dearer(plan) ? "Upgrade to" : "Downgrade to";
@@ -159,6 +167,12 @@ export function PlanCheckout() {
         <p role="status">
           Payment failed
           {billing?.grace_ends_at ? `. Full access until ${day(billing.grace_ends_at)}` : ""}
+        </p>
+      )}
+      {billing?.trial && (
+        <p role="status">
+          Free trial until {day(billing.trial.ends_at)}. {billing.trial.cvs_used} of{" "}
+          {billing.trial.cv_limit} CVs used
         </p>
       )}
       {state === "cancelled" && (
@@ -210,6 +224,16 @@ export function PlanCheckout() {
           )}
         </div>
       )}
+      {mayEnterCode && (
+        <CodeEntry
+          appliedCode={code}
+          onApplied={setCode}
+          onTrialStarted={() => {
+            setCode(null);
+            void loadBilling();
+          }}
+        />
+      )}
       <div className="page-stack">
         {plans.map((plan) => (
           <Card key={plan.id} aria-label={plan.name}>
@@ -250,6 +274,7 @@ export function PlanCheckout() {
         onConfirm={() => chosen && (subscribed ? change(chosen) : pay(chosen))}
       >
         {chosen && <p>{money(chosen.charged)} per month</p>}
+        {chosen && code && !subscribed && <DiscountPreview code={code} planId={chosen.id} />}
       </Dialog>
       <Dialog
         open={stopping}

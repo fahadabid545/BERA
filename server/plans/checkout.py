@@ -17,11 +17,12 @@ from platform_settings.branding import contact_support
 from platform_settings.service import get_setting
 from usage.service import add_months
 
-from . import stripe_client
+from . import discounts, stripe_client
 from .billing_details import ensure_customer, require_details
 from .models import CheckoutAttempt, Plan
 from .pricing import charge_price
 from .subscriptions import State, activate, effective_state, get_subscription
+from .trials import on_trial
 
 Status = CheckoutAttempt.Status
 CAN_BUY = frozenset({State.NO_PLAN, State.EXPIRED})
@@ -66,20 +67,33 @@ def _close_other_pages(attempts):
         attempt.save(update_fields=["status"])
 
 
-def start_checkout(company_id, plan_id):
+def start_checkout(company_id, plan_id, code=None):
     """The address of the provider's payment page for this plan. A second call for the same
     plan while a page is open (a double click) returns the same page and creates nothing."""
     plan = _buyable_plan(plan_id)
     now = timezone.now()
     with transaction.atomic():
         _lock(company_id)
-        if effective_state(get_subscription(company_id), now) not in CAN_BUY:
+        subscription = get_subscription(company_id)
+        # A running free trial may be bought out at once: the paid month starts now.
+        if effective_state(subscription, now) not in CAN_BUY and not on_trial(subscription):
             raise _refuse(
                 "already_subscribed", "Your company already has a plan. It cannot be bought again."
             )
         details = require_details(company_id)
+        promotion = discounts.resolve(company_id, code, plan) if code else None
+        promotion_id = promotion.promotion_code_id if promotion else ""
         live = list(_live_attempts(company_id, now))
-        same = next((a for a in live if a.plan_id == plan.pk and a.payment_page_url), None)
+        same = next(
+            (
+                a
+                for a in live
+                if a.plan_id == plan.pk
+                and a.promotion_code_id == promotion_id
+                and a.payment_page_url
+            ),
+            None,
+        )
         if same is not None:
             return same.payment_page_url
         _close_other_pages(live)
@@ -89,6 +103,7 @@ def start_checkout(company_id, plan_id):
             plan=plan,
             amount_minor=int(price.amount * MINOR_UNITS),
             currency=price.currency,
+            promotion_code_id=promotion_id,
         )
         session = stripe_client.create_checkout_session(
             idempotency_key=str(
@@ -102,10 +117,13 @@ def start_checkout(company_id, plan_id):
             expires_at=now + timedelta(minutes=get_setting("billing.checkout_minutes")),
             success_url=f"{settings.WEB_BASE_URL}/company/billing/return?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{settings.WEB_BASE_URL}/company/billing?checkout=cancelled",
+            promotion_code_id=promotion_id or None,
         )
         attempt.stripe_session_id = session.id
         attempt.payment_page_url = session.url
-        attempt.save(update_fields=["stripe_session_id", "payment_page_url"])
+        if promotion_id:  # what the provider says this page charges after the discount
+            attempt.discounted_minor = session.amount_total
+        attempt.save(update_fields=["stripe_session_id", "payment_page_url", "discounted_minor"])
         return attempt.payment_page_url
 
 
@@ -165,7 +183,8 @@ def _check_matches_what_was_asked(attempt, session, company_id):
     trusted."""
     same = (
         session.client_reference_id == str(company_id)
-        and session.amount_total == attempt.amount_minor
+        and session.amount_total
+        == (attempt.amount_minor if attempt.discounted_minor is None else attempt.discounted_minor)
         and str(session.currency).upper() == attempt.currency
     )
     if not same:

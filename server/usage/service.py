@@ -170,6 +170,14 @@ def waiting_cvs(company_id):
     return CvUsage.objects.filter(company_id=company_id, status=Status.PENDING).count()
 
 
+def cvs_since(company_id, since):
+    """CVs accepted since `since` that were scored or are still waiting (a failed CV has given its
+    place back). A free trial's CV limit counts these."""
+    return CvUsage.objects.filter(
+        company_id=company_id, accepted_at__gte=since, status__in=[Status.PENDING, Status.SCORED]
+    ).count()
+
+
 def _totals(counters):
     totals = {"cvs_scored": 0, "tokens_in": 0, "tokens_out": 0, "estimated_cost": Decimal(0)}
     for counter in counters:

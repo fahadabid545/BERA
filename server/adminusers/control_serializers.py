@@ -26,6 +26,13 @@ class GrantFreeSerializer(ReasonSerializer):
         return value
 
 
+class StartTrialSerializer(ReasonSerializer):
+    # No defaults: whoever starts a trial chooses its days and its CV limit.
+    plan_id = serializers.IntegerField(min_value=1)
+    days = serializers.IntegerField(min_value=1, max_value=2_000_000_000)
+    cv_limit = serializers.IntegerField(min_value=1, max_value=2_000_000_000)
+
+
 class StrictBoolean(serializers.BooleanField):
     """Only true or false as typed: "yes" and 1 are not an answer to a security question."""
 

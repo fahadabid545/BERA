@@ -5,7 +5,7 @@ from platform_settings.service import get_setting
 from projects.service import active_project_count
 from usage import service as usage
 
-from . import limits
+from . import limits, trials
 from .plan_change import pending_of
 from .subscriptions import State, effective_state, get_subscription, grace_ends_at
 
@@ -38,6 +38,11 @@ def plan_and_usage(company_id):
     state = effective_state(subscription)
     current = usage.current_usage(company_id)
     cv_limit = limits.limit_for(company_id, limits.CVS_PER_MONTH)
+    cvs_used = current["cvs_scored"] + usage.waiting_cvs(company_id)
+    if trials.on_trial(subscription):  # the stricter of the monthly and the whole-trial limit
+        trial_used = trials.cvs_used(subscription)
+        if subscription.trial_cv_limit - trial_used < cv_limit - cvs_used:
+            cv_limit, cvs_used = subscription.trial_cv_limit, trial_used
     token_limit = limits.limit_for(company_id, limits.MONTHLY_AI_TOKEN_CAP)
     project_limit = limits.limit_for(company_id, limits.MAX_PROJECTS)
     return {
@@ -46,12 +51,13 @@ def plan_and_usage(company_id):
         "can_manage_billing": bool(subscription.stripe_customer_id),
         "pending_change": pending_of(subscription),
         "state": state,
+        "trial": trials.describe_trial(subscription),
         "renewal": subscription.renewal,
         "grace_ends_at": grace_ends_at(subscription) if state == State.PAST_DUE else None,
         "period_start": current["period_start"],
         "period_end": current["period_end"],
         # Scored plus waiting, exactly what the monthly limit check counts.
-        "cvs": _measure(current["cvs_scored"] + usage.waiting_cvs(company_id), cv_limit),
+        "cvs": _measure(cvs_used, cv_limit),
         "tokens": _measure(current["tokens_in"] + current["tokens_out"], token_limit),
         "estimated_cost": f"{current['estimated_cost']:.6f}",
         "projects": {"used": projects_in_use(company_id), "limit": project_limit},
