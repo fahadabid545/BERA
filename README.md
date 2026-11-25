@@ -839,6 +839,97 @@ watching it from outside is BERA-180.
 The restore test and every command above use only the throwaway database for restores; nothing ever
 overwrites the live one.
 
+### Server security (BERA-179)
+
+The server answers web traffic only for Cloudflare, accepts logins only with an SSH key, installs security
+updates by itself, and has a scan that checks the public address. Everything below is in `deploy/harden/`,
+`deploy/nginx/` and `scripts/scan_public_address.py`.
+
+| Layer | What it does | Where |
+| --- | --- | --- |
+| Firewall | Ports **80 and 443 only** accept Cloudflare's address ranges, fetched from Cloudflare and refreshed every 6 hours. If the fetch fails, the last good list is kept; with no good list nothing is changed, so the ports are never opened to everyone. **SSH is never touched by this rule.** | `deploy/harden/cloudflare_firewall.py`, `systemd/` |
+| Authenticated Origin Pulls | nginx accepts a request only if it carries **our own** client certificate (one for staging, a different one for production), uploaded to Cloudflare. Without it, or with the other environment's, the connection is closed with no answer. This is what stops another Cloudflare customer from reaching us, which the shared Cloudflare certificate would allow. | `origin_pull_certificate.py`, `nginx/bera.example.conf` |
+| Unknown names and the server's IP | No certificate is shown (`ssl_reject_handshake`) and plain web requests are closed (`return 444`). | `nginx/bera.example.conf` |
+| HTTPS and headers | TLS 1.2 and 1.3 only, no version in headers, HSTS (one year), and the app's own headers (CSP with a one-time script code, no framing, no sniffing, no referrer for token links). | `nginx/00-bera-global.conf`, the app |
+| SSH | Key only: no passwords, no root login, 3 tries. Who may reach the port is **not** set here; see "Hetzner firewall". | `ssh_hardening.py` |
+| Updates | Operating system security updates install daily by themselves; a restart happens at 05:30 UTC only when needed (a kernel), after the backup and the restore test. | `automatic_updates.py` |
+| Scan | Checks the public address from outside (certificate, old TLS, http to https, headers, versions, search-engine rules, the payment notification path) and, with `--origin-ip`, that the server ignores anyone who is not Cloudflare. | `scripts/scan_public_address.py` |
+
+Every script that changes the firewall, SSH or updates has `--dry-run`, **prints the change before it applies
+it**, never restarts SSH (only reloads it, so open sessions stay open) and has an undo command.
+
+**What was only simulated here, and what the owner runs first on the real server.**
+Tested here with real tools: the nginx example (nginx 1.24) ran on other ports with fake certificates. A request
+with our client certificate reached the right app; none, the other environment's certificate, a request by IP
+address, an unknown name, plain http by IP and TLS 1.1 were all refused, and `Server` showed no version. The
+firewall rules were checked for correct syntax with `nft --check`, and the choice of list (fresh, last good,
+none) was tested with fakes. Not done here: loading the firewall rules (this container does not allow it),
+fetching Cloudflare's real list (no access from here), changing a real SSH server, installing the update
+package, uploading a certificate to Cloudflare, and the scan against the real public address. **The owner runs
+each of these first on the real server, starting with `--dry-run`, in the order below.**
+
+**Order of work on the real server** (the order matters: the firewall comes last, so the site is never cut off):
+1. Copy the scripts: `sudo install -d /usr/local/lib/bera-harden && sudo cp deploy/harden/*.py /usr/local/lib/bera-harden/`.
+2. **Updates.** `sudo apt install unattended-upgrades`, then `sudo python3 /usr/local/lib/bera-harden/automatic_updates.py apply --dry-run`,
+   then without `--dry-run`. Use `--no-auto-reboot` to restart by hand; `automatic_updates.py check` says if a
+   restart is waiting. Weekly: run `check`. Undo: `automatic_updates.py undo`.
+3. **SSH** (keep a second SSH session open the whole time).
+   Make sure you can sign in with your key as a normal user (not root) with sudo. Then
+   `sudo python3 /usr/local/lib/bera-harden/ssh_hardening.py apply --user YOURNAME --dry-run`, read the output, and repeat
+   with `--i-have-a-second-session` instead of `--dry-run`. It refuses to run if the user has no working key
+   or the key files have rights the SSH server would ignore. Open a **new** terminal and sign in to prove it
+   works before closing the old one. Check what the server really uses: `ssh_hardening.py check`.
+   **Undo:** in the second session, `sudo python3 /usr/local/lib/bera-harden/ssh_hardening.py undo` (removes
+   `/etc/ssh/sshd_config.d/10-bera-hardening.conf` and reloads). If every session is lost, use Hetzner's
+   console from the cloud dashboard and run the same command.
+4. **Hetzner firewall (suggested).** In Hetzner's own cloud firewall allow SSH (port 22) only from the owner's
+   address (and keep Hetzner's console as the way back in if the address changes); allow 80 and 443 from anywhere
+   there, the server's own rule narrows them to Cloudflare. This is a second layer outside the server.
+5. **Certificates** (use the app's Python, which has the `cryptography` library, on a computer you trust):
+   `python deploy/harden/origin_pull_certificate.py create --env staging --out ./aop` and again with
+   `--env production`. Put `staging-origin-pull-ca.pem` and `production-origin-pull-ca.pem` in `/etc/bera/tls/`
+   on the server. The `*-client.pem` and `*-client.key` files are for Cloudflare: upload them, then **delete the
+   `.key` files**. The authority's private key is never saved, so nobody can make more client certificates; to
+   renew, create again (about every two years; `origin_pull_certificate.py check --folder /etc/bera/tls` warns
+   60 days before). While renewing, nginx can trust both: put the old and the new authority file into one file.
+6. **Site certificates.** The firewall keeps Let's Encrypt's web check out, and only Cloudflare ever connects,
+   so use a **Cloudflare Origin CA certificate** per site (made in Cloudflare's dashboard, 15 years), saved as
+   `/etc/bera/tls/<env>-origin.pem` and `.key` (mode 600, owned by root). In Cloudflare set SSL mode to
+   **Full (strict)**, "Always use HTTPS" on and the minimum TLS version to 1.2.
+7. **Cloudflare first, nginx second.** Upload each client certificate and turn Authenticated Origin Pulls on in
+   Cloudflare **before** nginx starts to demand it (otherwise the site stops). Per zone: upload with
+   `POST /zones/<zone>/origin_tls_client_auth` and enable with `PUT /zones/<zone>/origin_tls_client_auth/settings`
+   (`{"enabled": true}`). If staging and production are in the **same Cloudflare zone**, a per-zone certificate
+   is shared by both names; then use Cloudflare's per-hostname option so each name gets its own certificate.
+   The exact calls and screens change; follow Cloudflare's current "Authenticated Origin Pulls, custom certificate"
+   documentation. I could not check them from here.
+8. **nginx.** Copy `deploy/nginx/00-bera-global.conf` to `/etc/nginx/conf.d/` and the sites from
+   `bera.example.conf` (with the real names) to `/etc/nginx/sites-enabled/`; `sudo nginx -t`, then
+   `sudo systemctl reload nginx`. Behind Cloudflare `TRUSTED_PROXY_COUNT` is **2** (Cloudflare and nginx).
+9. **Firewall, last.** Copy `deploy/harden/systemd/*` to `/etc/systemd/system/`, then
+   `sudo python3 /usr/local/lib/bera-harden/cloudflare_firewall.py apply --dry-run` (it prints the ranges and the table),
+   then `sudo systemctl enable --now bera-cloudflare-firewall.service bera-cloudflare-firewall.timer`.
+   The rules only concern ports 80 and 443 and live in their own table (`bera_web`); SSH and other rules are
+   untouched, and the rules are loaded again at every restart before nginx starts.
+   If the list cannot be fetched, the last good one is kept and the service shows as **failed** (exit status 3)
+   so someone looks; look with `systemctl status bera-cloudflare-firewall` and `cloudflare_firewall.py status`.
+   **Undo:** `sudo python3 /usr/local/lib/bera-harden/cloudflare_firewall.py remove` (or `sudo nft delete table inet bera_web`),
+   and `sudo systemctl disable --now bera-cloudflare-firewall.timer` so it is not loaded again.
+10. **After switching it on, check the site and the Stripe webhook through Cloudflare.** Open the website and sign
+    in on both names. For the payment notification send a test event from Stripe's dashboard (test mode) to
+    `/api/payments/stripe/webhook/` and see it succeed. **Cloudflare's own bot or firewall rules must not
+    block that path**: add a rule that skips bot protection and managed challenges for the path
+    `/api/payments/stripe/webhook/`. The scan below also sends an unsigned request there and expects the app's
+    own refusal (`400`, `invalid_signature`); anything else means something is in the way.
+11. **Scan.** `python scripts/scan_public_address.py https://www.example.com --origin-ip <server address>` for
+    production and the same for staging. It must end with `PASSED`. Also run the outside scanners once (SSL
+    Labs for the TLS grade, securityheaders.com for headers) against the public address. SSH port 22 is
+    reported as information only (it is open on purpose, key-only).
+
+**Keep working order if something goes wrong.** The firewall never touches SSH; SSH changes are undone from a
+second session or Hetzner's console; nginx is checked with `nginx -t` before a reload; each step has its own undo
+above. Do not do steps 7 to 9 in the wrong order.
+
 ### Taxes (BERA-170): postponed
 
 Tax handling is postponed in writing. It depends on the business registration and on the payment

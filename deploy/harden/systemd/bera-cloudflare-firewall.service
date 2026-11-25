@@ -1,0 +1,17 @@
+[Unit]
+Description=Bera: allow only Cloudflare to reach the web ports
+After=network-online.target
+Wants=network-online.target
+Before=nginx.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Exit status 3 means "used the last good list because Cloudflare's could not be fetched": the
+# unit shows as failed on purpose so that someone looks, but the rules ARE loaded.
+ExecStart=/usr/bin/python3 /usr/local/lib/bera-harden/cloudflare_firewall.py apply
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
