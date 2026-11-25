@@ -54,6 +54,7 @@ def test_the_catalog_holds_exactly_the_agreed_emails():
         "ai_spend_alert",
         "batch_finished",
         "subscription_ending",
+        "subscription_renewing",
         "security_alert",
         "account_notice",
         "download_ready",

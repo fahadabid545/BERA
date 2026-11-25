@@ -15,6 +15,7 @@ from emailing.service import send_email
 from notifications.payment_notice import payment_failed
 from platform_settings.service import get_setting
 
+from . import stripe_client
 from .models import Subscription
 from .service import apply_pending_change
 
@@ -220,13 +221,20 @@ def mark_past_due(company_id):
     )
 
 
-def cancel(company_id):
+def cancel(company_id, *, source=PAYMENT, by=None):
     """Renewal is switched off; access continues until the paid period ends."""
-    return _change(company_id, State.CANCELLED, {State.ACTIVE}, source=PAYMENT, renewal=False)
+    return _change(company_id, State.CANCELLED, {State.ACTIVE}, source=source, by=by, renewal=False)
+
+
+def resume(company_id, *, by=None):
+    """A cancelled subscription whose period has not ended renews again; nothing is charged now."""
+    return _change(company_id, State.ACTIVE, {State.CANCELLED}, source=PAYMENT, by=by, renewal=True)
 
 
 def expire(company_id, *, source=SYSTEM, by=None, reason="", kind=None):
-    return _change(
+    """Access ends. A subscription still running at the payment provider is ended there too, so
+    nothing more is charged for access the company no longer has."""
+    subscription = _change(
         company_id,
         State.EXPIRED,
         CAN_BE_EXPIRED,
@@ -236,6 +244,9 @@ def expire(company_id, *, source=SYSTEM, by=None, reason="", kind=None):
         kind=kind,
         renewal=False,
     )
+    if subscription.stripe_subscription_id:
+        stripe_client.end_subscription(subscription.stripe_subscription_id)
+    return subscription
 
 
 def grant_free(company_id, plan, *, period_end, by, reason):

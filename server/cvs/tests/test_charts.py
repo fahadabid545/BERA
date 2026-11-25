@@ -178,10 +178,9 @@ class TestTrend:
         CandidateScore.objects.filter(candidate__cv_file=row).update(created_at=when)
 
     def test_this_period_against_the_one_before_with_the_change(self, tenant):
-        for days_ago in (0, 0, 1, 6):
-            self.stamp(
-                add(tenant, f"now{days_ago}-{id(object())}.pdf", 50, minutes=days_ago), days_ago
-            )
+        for number, days_ago in enumerate((0, 0, 1, 6)):
+            # A running number keeps same-day files apart (a memory address can repeat).
+            self.stamp(add(tenant, f"now{days_ago}-{number}.pdf", 50, minutes=days_ago), days_ago)
         for days_ago in (7, 9):
             self.stamp(add(tenant, f"old{days_ago}.pdf", 50, minutes=30 + days_ago), days_ago)
         self.stamp(add(tenant, "ancient.pdf", 50, minutes=99), 20)

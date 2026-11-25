@@ -202,6 +202,17 @@ CATALOG = {
         button_label="Open billing",
         variables=("name", "when", "link"),
     ),
+    "subscription_renewing": EmailTemplate(
+        subject="Your {app_name} subscription renews soon",
+        heading="Your subscription renews on {when}",
+        paragraphs=(
+            GREETING,
+            "Your {plan} plan renews on {when} and {amount} will be charged to your card. "
+            "You can cancel before then and keep full access until {when}.",
+        ),
+        button_label="Open billing",
+        variables=("name", "plan", "when", "amount", "link"),
+    ),
     "payment_problem": EmailTemplate(
         subject="There is a problem with your {app_name} payment",
         heading="Payment problem",

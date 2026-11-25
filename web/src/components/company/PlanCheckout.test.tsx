@@ -34,9 +34,24 @@ const BIG: SalePlan = {
   price: { currency: "USD", amount: "30.00", note: null, approximate: false },
   charged: { currency: "USD", amount: "30.00" },
 };
-const NO_PLAN = { state: "no_plan", plan_id: null, pending_change: null, refresh_seconds: 10 };
-const ON_STARTER = { ...NO_PLAN, state: "active", plan_id: 7 };
-const ON_BIG = { ...NO_PLAN, state: "active", plan_id: 8 };
+const NO_PLAN = {
+  state: "no_plan",
+  plan_id: null,
+  renewal: false,
+  can_manage_billing: false,
+  period_end: null,
+  grace_ends_at: null,
+  pending_change: null,
+  refresh_seconds: 10,
+};
+const ON_STARTER = {
+  ...NO_PLAN,
+  state: "active",
+  plan_id: 7,
+  renewal: true,
+  can_manage_billing: true,
+};
+const ON_BIG = { ...ON_STARTER, plan_id: 8 };
 
 let posts: number;
 let sent: { path: string; body: unknown }[];
@@ -264,5 +279,111 @@ describe("changing plan", () => {
     show("member", [PLAN, BIG]);
     await screen.findByText("USD 10.00 per month");
     expect(screen.queryByRole("button")).toBeNull();
+  });
+});
+
+describe("renewal and cancellation", () => {
+  it("cancels the subscription only after the owner confirms", async () => {
+    billing = ON_STARTER;
+    show("owner", [PLAN, BIG]);
+    await userEvent.click(await screen.findByRole("button", { name: "Cancel subscription" }));
+    expect(posts).toBe(0);
+    billing = {
+      ...ON_STARTER,
+      state: "cancelled",
+      renewal: false,
+      period_end: "2030-02-15T12:00:00Z",
+    };
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel subscription" }),
+    );
+    await waitFor(() => expect(posts).toBe(1));
+    expect(sent[0].path).toBe("/api/company/billing/cancel/");
+    expect((await screen.findByRole("status")).textContent).toBe(
+      "Cancelled. Access until Feb 15, 2030",
+    );
+  });
+
+  it("offers to resume a cancelled subscription and no plan changes meanwhile", async () => {
+    billing = {
+      ...ON_STARTER,
+      state: "cancelled",
+      renewal: false,
+      period_end: "2030-02-15T12:00:00Z",
+    };
+    show("owner", [PLAN, BIG]);
+    await userEvent.click(await screen.findByRole("button", { name: "Resume subscription" }));
+    expect(sent[0].path).toBe("/api/company/billing/resume/");
+    expect(screen.queryByRole("button", { name: /Upgrade to|Downgrade to|Choose/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Cancel subscription" })).toBeNull();
+  });
+
+  it("says in plain words why a resume was refused", async () => {
+    billing = { ...ON_STARTER, state: "cancelled", renewal: false };
+    checkoutReply = () =>
+      reply({ error: { code: "resume_unavailable", message: "Already ended." } }, 409);
+    show("owner");
+    await userEvent.click(await screen.findByRole("button", { name: "Resume subscription" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("Already ended.");
+  });
+
+  it("shows a failed payment with the date full access ends", async () => {
+    billing = { ...ON_STARTER, state: "past_due", grace_ends_at: "2030-02-22T12:00:00Z" };
+    show("owner", [PLAN, BIG]);
+    expect((await screen.findByRole("status")).textContent).toBe(
+      "Payment failed. Full access until Feb 22, 2030",
+    );
+    expect(screen.queryByRole("button", { name: "Cancel subscription" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Upgrade to|Downgrade to/ })).toBeNull();
+  });
+
+  it("lets a Past due company open the billing page", async () => {
+    billing = { ...ON_STARTER, state: "past_due", grace_ends_at: "2030-02-22T12:00:00Z" };
+    show("owner");
+    await userEvent.click(await screen.findByRole("button", { name: "Manage billing" }));
+    await waitFor(() => expect(navigateTo).toHaveBeenCalledWith("https://pay.example.test/1"));
+    expect(sent[0]).toEqual({ path: "/api/company/billing/portal/", body: {} });
+  });
+
+  it("shows Manage billing for an active company, and not for one without card billing", async () => {
+    billing = ON_STARTER;
+    show("owner");
+    expect(await screen.findByRole("button", { name: "Manage billing" })).toBeTruthy();
+    cleanup();
+    billing = NO_PLAN;
+    show("owner");
+    await screen.findByText("USD 10.00 per month");
+    expect(screen.queryByRole("button", { name: "Manage billing" })).toBeNull();
+  });
+
+  it("shows payment processing after the return trip until the notice restores the plan", async () => {
+    query = "portal=returned";
+    billing = { ...ON_STARTER, state: "past_due", refresh_seconds: 0 };
+    show("owner");
+    expect((await screen.findByRole("status")).textContent).toBe("Payment processing");
+    billing = { ...ON_STARTER, refresh_seconds: 0 };
+    await waitFor(() => expect(screen.queryByText("Payment processing")).toBeNull());
+    expect(await screen.findByRole("button", { name: "Cancel subscription" })).toBeTruthy();
+  });
+
+  it("does not claim processing for a company that is not Past due", async () => {
+    query = "portal=returned";
+    billing = ON_STARTER;
+    show("owner");
+    await screen.findByRole("button", { name: "Manage billing" });
+    expect(screen.queryByText("Payment processing")).toBeNull();
+  });
+
+  it("offers nothing to a member", async () => {
+    billing = ON_STARTER;
+    show("member", [PLAN, BIG]);
+    await screen.findByText("USD 10.00 per month");
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("lets an expired company buy a plan again", async () => {
+    billing = { ...NO_PLAN, state: "expired", can_manage_billing: true };
+    show("owner");
+    expect(await screen.findByRole("button", { name: "Choose Fake Starter" })).toBeTruthy();
   });
 });

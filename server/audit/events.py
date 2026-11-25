@@ -28,6 +28,7 @@ KINDS = _kinds(
     EventKind("security.permission_refused"),
     EventKind("security.abuse_blocked"),
     EventKind("security.download_volume"),
+    EventKind("security.billing_portal_opened"),
     # Key company actions.
     EventKind("invite.sent"),
     EventKind("invite.resent"),

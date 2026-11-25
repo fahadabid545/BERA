@@ -585,6 +585,42 @@ shown to the company comes from `GET /api/company/usage/` (`plan_id`, `pending_c
 - Not in this ticket: the email before renewal, the Cancel button, grace period behaviour and
   reactivation (BERA-167); refund notices.
 
+### Renewal and cancellation (BERA-167)
+
+Routes (all owner only, `billing.pay`; no company or customer id is ever read from the request):
+`POST /api/company/billing/cancel/`, `.../resume/` and `.../portal/`.
+
+- **Renewal** is Stripe's: the monthly subscription charges the card and the paid-invoice notice
+  (BERA-165) moves the period. An email goes to the owner `notifications.subscription_ending_days`
+  (7) days before, once per period, with the plan, the date and the USD amount (a waiting downgrade
+  shows the lower plan). It is required, so it cannot be switched off. Daily job
+  `notifications.billing_notices.send_renewal_notices`.
+- **Cancel** (Active and renewing only) sets Stripe's `cancel_at_period_end`, then the subscription
+  becomes Cancelled: full access until the period ends, nothing refunded or deleted, a waiting
+  downgrade is dropped. If Stripe fails, nothing changes. **Resume** (Cancelled, period not ended)
+  takes it back with no charge; if Stripe already ended the subscription it is refused in plain
+  words and the company buys again after its access ends. Cancelling a Past due subscription is
+  not offered: its grace period simply runs out.
+- **Failed renewal**: Past due for `billing.past_due_grace_days` (7) with full access and one
+  email (BERA-165). A paid notice during that time makes it Active again.
+- **After expiry** (period over, or grace over) the account is view and download only. Daily job
+  `plans.subscriptions.expire_lapsed_subscriptions` (scheduled by migration) saves it, audits it
+  and emails the owner, and ends any still-running Stripe subscription so nothing is charged for
+  access that ended (a failure is logged, never blocks the expiry). An expired company buys a plan
+  again through checkout.
+- **Billing portal** (Stripe's hosted page): the server creates a short-lived session for the
+  company's own `stripe_customer_id`, with a fixed return address `/company/billing?portal=returned`.
+  It opens in every state that has a customer, Past due and view-only included. Each opening is the
+  security event `security.billing_portal_opened` in the audit log. Coming back never restores
+  access: the screen shows "Payment processing" until Stripe's paid notice arrives.
+
+**Stripe portal configuration (repeat in production).** In the Stripe Dashboard, Settings, Billing,
+Customer portal (this is configured separately in test mode and in live mode, so do it in both):
+allow only **Update payment method** and **View invoice history**. Turn **off** subscription
+cancellation, subscription update (plan switching), quantity changes and pause. Plan changes and
+cancellation go through the app's own flows (BERA-166 and BERA-167). Save the configuration (the
+default configuration is the one used).
+
 ### Plans management
 
 Super admins manage the subscription plans under `/api/admin/plans/` (list and create; read,

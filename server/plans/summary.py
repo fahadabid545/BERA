@@ -43,6 +43,7 @@ def plan_and_usage(company_id):
     return {
         "plan_name": subscription.plan.name if subscription.plan else None,
         "plan_id": subscription.plan_id,
+        "can_manage_billing": bool(subscription.stripe_customer_id),
         "pending_change": pending_of(subscription),
         "state": state,
         "renewal": subscription.renewal,

@@ -50,6 +50,7 @@ def sample_values(template_name):
             "summary": "12 CVs were scored",
         },
         "subscription_ending": shared,
+        "subscription_renewing": {**shared, "plan": "Fake Plan", "amount": "USD 10.00"},
         "payment_problem": {
             **shared,
             "message": "We could not take your last payment. Please update your payment method.",

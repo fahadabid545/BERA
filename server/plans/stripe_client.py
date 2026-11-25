@@ -7,6 +7,7 @@ before the business is registered."""
 
 import logging
 from dataclasses import dataclass
+from uuid import uuid4
 
 import stripe
 from django.conf import settings
@@ -175,3 +176,53 @@ def change_subscription_price(
     if outcome.status == DECLINED:
         _void_open_invoice(subscription_id)
     return outcome
+
+
+def set_renewal_stops_at_period_end(subscription_id, stops):
+    """Cancels (or takes back the cancellation of) the renewal: the provider keeps charging
+    nothing more but the paid period runs on. Returns False when the subscription already ended
+    at the provider, which cannot be taken back."""
+    try:
+        current = stripe.Subscription.retrieve(
+            subscription_id, api_key=_key(), max_network_retries=NETWORK_RETRIES
+        )
+        if current["status"] == "canceled":
+            return False
+        stripe.Subscription.modify(
+            subscription_id,
+            api_key=_key(),
+            idempotency_key=f"renewal-{subscription_id}-{'stop' if stops else 'resume'}-{uuid4()}",
+            max_network_retries=NETWORK_RETRIES,
+            cancel_at_period_end=stops,
+        )
+    except stripe.StripeError as error:
+        raise _provider_error() from error
+    return True
+
+
+def end_subscription(subscription_id):
+    """Ends the subscription at the provider now, so a company whose access ended is never
+    charged again. Never blocks the caller: a refusal or an outage is logged and reported."""
+    try:
+        current = stripe.Subscription.retrieve(subscription_id, api_key=_key())
+        if current["status"] != "canceled":
+            stripe.Subscription.cancel(subscription_id, api_key=_key())
+    except (stripe.StripeError, AppError):
+        logger.warning("A provider subscription could not be ended.", exc_info=True)
+        return False
+    return True
+
+
+def create_portal_session(*, customer_id, return_url):
+    """The address of the provider's own billing page (card update and invoices). What it
+    allows is set in the provider's portal settings, never here."""
+    try:
+        session = stripe.billing_portal.Session.create(
+            api_key=_key(),
+            max_network_retries=NETWORK_RETRIES,
+            customer=customer_id,
+            return_url=return_url,
+        )
+    except stripe.StripeError as error:
+        raise _provider_error() from error
+    return session["url"]

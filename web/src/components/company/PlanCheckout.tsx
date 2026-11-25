@@ -13,6 +13,9 @@ const CHECKOUT_URL = "/api/company/billing/checkout/";
 const USAGE_URL = "/api/company/usage/";
 const CHANGE_URL = "/api/company/billing/change-plan/";
 const CANCEL_DOWNGRADE_URL = "/api/company/billing/change-plan/cancel/";
+const CANCEL_SUBSCRIPTION_URL = "/api/company/billing/cancel/";
+const RESUME_SUBSCRIPTION_URL = "/api/company/billing/resume/";
+const PORTAL_URL = "/api/company/billing/portal/";
 
 type Money = { currency: string; amount: string };
 export type SalePlan = {
@@ -33,6 +36,10 @@ type PendingChange = {
 type Billing = {
   state: string;
   plan_id: number | null;
+  renewal: boolean;
+  can_manage_billing: boolean;
+  period_end: string | null;
+  grace_ends_at: string | null;
   pending_change: PendingChange | null;
   refresh_seconds: number;
 };
@@ -49,11 +56,14 @@ const money = ({ currency, amount }: Money) =>
  * waits for the next renewal. Card details are only ever typed on the provider's own page. */
 export function PlanCheckout() {
   const isOwner = useCompanyRole() === "owner";
-  const cancelled = useSearchParams().get("checkout") === "cancelled";
+  const query = useSearchParams();
+  const cancelled = query.get("checkout") === "cancelled";
+  const cameBackFromPortal = query.get("portal") === "returned";
   const [plans, setPlans] = useState<SalePlan[]>([]);
   const [billing, setBilling] = useState<Billing | null>(null);
   const [chosen, setChosen] = useState<SalePlan | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -71,11 +81,14 @@ export function PlanCheckout() {
   }, [isOwner, loadBilling]);
 
   const processing = billing?.pending_change?.processing ?? false;
+  // Access returns only when the provider's paid notice arrives, never because of the return trip.
+  const paymentProcessing = cameBackFromPortal && billing?.state === "past_due";
+  const waitingForNotice = processing || paymentProcessing;
   useEffect(() => {
-    if (!processing || !billing) return;
+    if (!waitingForNotice || !billing) return;
     const timer = setTimeout(() => void loadBilling(), billing.refresh_seconds * 1000);
     return () => clearTimeout(timer);
-  }, [processing, billing, loadBilling]);
+  }, [waitingForNotice, billing, loadBilling]);
 
   const subscribed = billing?.state === "active" && billing.plan_id !== null;
   const currentPlan = plans.find((plan) => plan.id === billing?.plan_id);
@@ -115,6 +128,23 @@ export function PlanCheckout() {
     if (reply) await loadBilling();
   }
 
+  async function stopRenewal() {
+    const reply = await send(() => postJson<{ result: string }>(CANCEL_SUBSCRIPTION_URL, {}));
+    if (reply) await loadBilling();
+  }
+
+  async function resumeRenewal() {
+    const reply = await send(() => postJson<{ result: string }>(RESUME_SUBSCRIPTION_URL, {}));
+    if (reply) await loadBilling();
+  }
+
+  async function openPortal() {
+    const reply = await send(() => postJson<{ url: string }>(PORTAL_URL, {}));
+    if (reply) navigateTo(reply.url);
+  }
+
+  const state = billing?.state;
+  const canPick = billing === null || ["no_plan", "expired", "active"].includes(billing.state);
   const waiting = billing?.pending_change ?? null;
   const chooseLabel = (plan: SalePlan) =>
     !subscribed ? "Choose" : dearer(plan) ? "Upgrade to" : "Downgrade to";
@@ -123,6 +153,37 @@ export function PlanCheckout() {
     <div className="page-stack">
       {cancelled && <p role="status">Payment cancelled. Nothing was charged.</p>}
       {problem && <p role="alert">{problem}</p>}
+      {paymentProcessing && <p role="status">Payment processing</p>}
+      {state === "past_due" && !paymentProcessing && (
+        <p role="status">
+          Payment failed
+          {billing?.grace_ends_at ? `. Full access until ${day(billing.grace_ends_at)}` : ""}
+        </p>
+      )}
+      {state === "cancelled" && (
+        <p role="status">
+          Cancelled{billing?.period_end ? `. Access until ${day(billing.period_end)}` : ""}
+        </p>
+      )}
+      {isOwner && billing && (
+        <div className="page-actions">
+          {state === "active" && billing.renewal && (
+            <Button variant="secondary" disabled={busy} onClick={() => setStopping(true)}>
+              Cancel subscription
+            </Button>
+          )}
+          {state === "cancelled" && (
+            <Button disabled={busy} onClick={() => void resumeRenewal()}>
+              Resume subscription
+            </Button>
+          )}
+          {billing.can_manage_billing && (
+            <Button variant="secondary" disabled={busy} onClick={() => void openPortal()}>
+              Manage billing
+            </Button>
+          )}
+        </div>
+      )}
       {waiting?.kind === "upgrade" && (
         <p role="status">
           Upgrade to {waiting.plan_name}: {waiting.processing ? "processing" : "not confirmed yet"}
@@ -160,7 +221,7 @@ export function PlanCheckout() {
                 {plan.price.note} Charged: {money(plan.charged)} per month
               </p>
             )}
-            {isOwner && !(subscribed && plan.id === billing?.plan_id) && (
+            {isOwner && canPick && !(subscribed && plan.id === billing?.plan_id) && (
               <Button
                 disabled={busy || processing || (subscribed && waiting?.plan_id === plan.id)}
                 onClick={() => setChosen(plan)}
@@ -182,6 +243,13 @@ export function PlanCheckout() {
       >
         {chosen && <p>{money(chosen.charged)} per month</p>}
       </Dialog>
+      <Dialog
+        open={stopping}
+        onOpenChange={setStopping}
+        title="Cancel subscription"
+        confirmLabel="Cancel subscription"
+        onConfirm={() => void stopRenewal()}
+      />
       <Dialog
         open={cancelling}
         onOpenChange={setCancelling}
