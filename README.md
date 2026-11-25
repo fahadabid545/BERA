@@ -714,6 +714,24 @@ The approved wording of Home, Features and How it works is kept word for word in
 `web/src/components/website/content.ts`; the pages only lay it out with the shared `Card` and
 design tokens (so both themes follow). Change the text there only when the owner approves new text.
 
+### FAQ and legal pages (BERA-174)
+
+`/faq` shows the approved FAQ (`web/src/components/website/content.ts`; the two answers about cost and
+availability are left out on purpose, pricing is on the Pricing page). `/terms` and `/privacy` hold
+**no legal wording yet**: they show "This page is being prepared". The text is supplied by the owner in
+`server/platform_settings/legal_documents.py` (`TERMS` and `PRIVACY`: a title and sections of
+paragraphs) and served to the pages by `GET /api/legal/`.
+
+**Legal review (launch blocker).** `GET/PUT /api/admin/settings/legal-review/` (super admin only,
+action `legal.review`) says whether a lawyer reviewed the text. Turning it on needs the reviewer's
+name; the date defaults to today and cannot be in the future; the version marker of the reviewed text
+is stored with it; and it cannot be turned on while either text is empty. Turning it on or off is in
+the audit log (`admin.legal_review_marked` / `_cleared`, with the version only, never the reviewer's
+name). If either text changes after a review, the status goes back to "not reviewed" by itself
+(`admin.legal_review_reset`). The public pages never show a "draft" or "reviewed" label. The Launch
+checklist (BERA-184) must call `platform_settings.legal_review.is_reviewed()` and refuse to pass while
+it is False. There is no admin screen for it yet, only the API.
+
 ### Contact form (BERA-172)
 
 `/contact` sends a message to the support address (`general.support_email`) and stores it.

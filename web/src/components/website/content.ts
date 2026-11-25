@@ -102,3 +102,46 @@ export const FEATURES = {
     },
   ],
 } as const;
+
+export const FAQ = {
+  heading: "FAQ",
+  subheading: "Short answers to common questions.",
+  questions: [
+    {
+      question: "What is Bera?",
+      answer:
+        "Bera is a tool that scores and ranks CVs against the requirements of a job opening, so hiring teams can shortlist faster.",
+    },
+    {
+      question: "Which file types can I upload?",
+      answer: "PDF and Word (DOCX) files. You can upload many at once.",
+    },
+    {
+      question: "Can I add more CVs later?",
+      answer: "Yes. New CVs join the comparison for that job automatically.",
+    },
+    {
+      question: "How does the scoring work?",
+      answer:
+        "You decide what is a must have and what is nice to have. Bera checks each CV against those points and explains the result.",
+    },
+    {
+      question: "Who makes the final decision?",
+      answer: "You do. Bera gives a guide, and the recruiter always has the last word.",
+    },
+    {
+      question: "Can my team use it?",
+      answer:
+        "Yes. You can invite a few colleagues to your account, and each person gets their own login.",
+    },
+    {
+      question: "What happens to candidate data?",
+      answer: "You choose how long it is kept. After that, it is deleted automatically.",
+    },
+  ],
+  closing: "Have another question?",
+  closingLink: "Our team will be happy to help.",
+} as const;
+
+/** Shown while a legal page has no text: the wording comes from the owner after legal review. */
+export const LEGAL_PREPARING = "This page is being prepared";

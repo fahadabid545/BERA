@@ -51,6 +51,13 @@ PUBLIC_ROUTES = [
         "never listed, and it returns no subscriber counts or internal fields.",
     ),
     PublicRoute(
+        route="api/legal/",
+        category="website",
+        reason="The public Terms and Privacy pages show the platform's legal text to visitors "
+        "before an account exists. It is the same text for everyone, holds no personal or "
+        "account data, and says nothing about whether it was reviewed.",
+    ),
+    PublicRoute(
         route="api/contact/",
         category="website",
         reason="Anyone may write to the platform from the public contact page before an account "

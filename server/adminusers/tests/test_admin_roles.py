@@ -34,6 +34,7 @@ SUPPORT_MAY_NOT = [
     "ai.playground",
     "prompt.change",
     "settings.change",
+    "legal.review",
     "limit.change",
     "subscription.grant_free",
     "subscription.terminate",

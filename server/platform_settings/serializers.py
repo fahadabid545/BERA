@@ -24,3 +24,16 @@ class SaveSettings(StrictSerializer):
 class MaintenanceInput(ReasonSerializer):
     enabled = StrictBoolean()
     message = SafeTextField(max_length=MAX_MESSAGE_LENGTH, required=False)
+
+
+class LegalReviewInput(StrictSerializer):
+    reviewed = StrictBoolean()
+    reviewer_name = SafeTextField(max_length=100, required=False)
+    reviewed_on = serializers.DateField(required=False)
+
+    def validate(self, attrs):
+        if attrs["reviewed"] and not attrs.get("reviewer_name"):
+            raise serializers.ValidationError(
+                {"reviewer_name": "Enter the name of the person who reviewed the text."}
+            )
+        return attrs

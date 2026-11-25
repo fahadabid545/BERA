@@ -7,8 +7,8 @@ from adminusers.role_matrix import require_action
 from core.permissions import PublicAccess
 from signin.authentication import AdminAuthentication
 
-from . import admin_settings, branding, maintenance
-from .serializers import MaintenanceInput, SaveSettings, SettingsQuery
+from . import admin_settings, branding, legal_documents, legal_review, maintenance
+from .serializers import LegalReviewInput, MaintenanceInput, SaveSettings, SettingsQuery
 
 
 class SettingsView(APIView):
@@ -61,6 +61,36 @@ class Maintenance(SettingsView):
             reason=values["reason"],
         )
         return Response(state)
+
+
+class LegalReview(SettingsView):
+    """Super admins only: say that the Terms and Privacy text was reviewed (with who and when),
+    or take it back. The status is read here and by the launch checklist, never on public pages."""
+
+    def get(self, request):
+        require_action(request.user, "legal.review")
+        return Response(legal_review.status())
+
+    def put(self, request):
+        require_action(request.user, "legal.review")
+        values = self.values(LegalReviewInput, request.data)
+        if not values["reviewed"]:
+            return Response(legal_review.clear_review(self.admin()))
+        return Response(
+            legal_review.mark_reviewed(
+                self.admin(),
+                reviewer_name=values["reviewer_name"],
+                reviewed_on=values.get("reviewed_on"),
+            )
+        )
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([PublicAccess])
+def legal_text(request):
+    """The Terms and Privacy text, for the public pages. Nothing about whether it was reviewed."""
+    return Response(legal_documents.documents())
 
 
 @api_view(["GET"])

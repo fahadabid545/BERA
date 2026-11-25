@@ -43,6 +43,7 @@ ROLES_ALLOWED = {
     "ai.playground": SUPER_ONLY,  # run test scoring and set its monthly budget
     "prompt.change": SUPER_ONLY,
     "settings.change": SUPER_ONLY,
+    "legal.review": SUPER_ONLY,  # say that the Terms and Privacy text was reviewed, or take it back
     "limit.change": SUPER_ONLY,
     "subscription.grant_free": SUPER_ONLY,
     "subscription.terminate": SUPER_ONLY,

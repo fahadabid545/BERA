@@ -1,6 +1,6 @@
 from django.urls import include, path
 
-from platform_settings.views import platform_info
+from platform_settings.views import legal_text, platform_info
 
 urlpatterns = [
     path("api/", include("core.urls")),
@@ -16,6 +16,7 @@ urlpatterns = [
     path("api/admin/audit-log/", include("audit.viewer_urls")),
     path("api/admin/settings/", include("platform_settings.admin_urls")),
     path("api/platform/", platform_info),
+    path("api/legal/", legal_text),
     path("api/admin/announcements/", include("announcements.admin_urls")),
     path("api/company/activity/", include("activity.urls")),
     path("api/company/charts/", include("cvs.company_urls")),
