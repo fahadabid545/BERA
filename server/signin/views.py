@@ -24,6 +24,7 @@ from .login_session import finish_company_login
 from .password_change import change_password
 from .serializers import ChangePasswordSerializer, LoginSerializer, PasswordCheckSerializer
 from .service import RevokeReason
+from .status import visitor_status
 
 
 def make_refresh_view(kind):
@@ -150,3 +151,17 @@ def company_me(request):
     return Response(
         {"name": person.name, "company_name": person.company.name, "role": request.user.role}
     )
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([PublicAccess])  # a public page asks it before it knows who the visitor is
+@throttle_classes(limited())
+def company_status(request):
+    """Always 200 and always the same two answers, with no redirect and nothing about the person."""
+    answer, renewed = visitor_status(request.COOKIES)
+    response = Response(answer)
+    response["Cache-Control"] = "no-store"
+    if renewed:
+        set_session_cookies(response, COMPANY, renewed)
+    return response

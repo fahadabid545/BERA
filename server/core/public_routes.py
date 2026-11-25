@@ -51,6 +51,15 @@ PUBLIC_ROUTES = [
         "never listed, and it returns no subscriber counts or internal fields.",
     ),
     PublicRoute(
+        route="api/auth/company/status/",
+        category="website",
+        reason="The public pricing page must know whether the visitor is a signed-in owner to "
+        "send the Choose plan button to billing or to sign up, and a signed-out visitor must "
+        "get an answer, not a redirect. It always answers 200 with only signed_in and can_pay, "
+        "uses the normal session rules (one silent renewal), and never says whether an "
+        "account exists.",
+    ),
+    PublicRoute(
         route="api/auth/password-check/",
         category="sign_up",
         reason="Sign up, reset and invite pages show the password rules live while typing, "

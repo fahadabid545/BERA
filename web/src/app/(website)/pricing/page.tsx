@@ -1,9 +1,5 @@
-import { Button } from "@/components/ui";
+import { PricingPlans } from "@/components/website/PricingPlans";
 
 export default function PricingPage() {
-  return (
-    <div className="page-actions">
-      <Button>Choose plan</Button>
-    </div>
-  );
+  return <PricingPlans />;
 }

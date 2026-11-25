@@ -7,6 +7,7 @@ import { CardManagement, type CardResult } from "@/components/company/CardManage
 import { useCompanyRole } from "@/components/company/role";
 import { Button, Card, Dialog, Tag } from "@/components/ui";
 import { getJson, postJson } from "@/lib/api";
+import { money, type Money } from "@/lib/money";
 import { navigateTo } from "@/lib/navigation";
 
 const PLANS_URL = "/api/plans/";
@@ -18,7 +19,6 @@ const CANCEL_SUBSCRIPTION_URL = "/api/company/billing/cancel/";
 const RESUME_SUBSCRIPTION_URL = "/api/company/billing/resume/";
 const PORTAL_URL = "/api/company/billing/portal/";
 
-type Money = { currency: string; amount: string };
 export type SalePlan = {
   id: number;
   name: string;
@@ -48,9 +48,6 @@ type ChangeReply = { result: string; url: string | null };
 
 const day = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { dateStyle: "medium", timeZone: "UTC" });
-
-const money = ({ currency, amount }: Money) =>
-  `${currency} ${Number(amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 
 /** The plans a company can buy, and, for a company that already has one, the way to change it:
  * an upgrade is charged now and shows as processing until the payment is confirmed; a downgrade

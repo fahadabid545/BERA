@@ -695,6 +695,19 @@ provider setup, and neither is decided yet. No tax field, rate or calculation ex
 **The platform runs in Stripe test mode only until this is decided.** Live charging must not be
 switched on before it (the code already refuses any key that is not a test key).
 
+### Pricing page (BERA-171)
+
+`/pricing` lists the active plans from `GET /api/plans/` (hidden and archived never appear, the order
+and prices are the admin panel's, the price is for the visitor's detected country), with the key
+limits. With no plans it shows a friendly message. "Choose plan" goes to `/company/billing` for
+anyone signed in (a member sees that page's normal no-access message) and to `/signup` for everyone
+else; the links carry no plan or price, and the plan is chosen on the billing page after sign-up.
+
+`GET /api/auth/company/status/` tells the page whether the visitor is signed in. It always answers
+200 with only `{"signed_in", "can_pay"}` (`can_pay` is true for the owner), never redirects, follows
+the normal session rules (one silent renewal when only the refresh token is still valid, false for a
+blocked user, a suspended company or an ended session) and uses the general rate limit.
+
 ### Plans management
 
 Super admins manage the subscription plans under `/api/admin/plans/` (list and create; read,
