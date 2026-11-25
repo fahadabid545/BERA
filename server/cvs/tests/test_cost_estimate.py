@@ -161,6 +161,19 @@ class TestAgainstThePlan:
         assert "more AI than your plan has left" in body["message"]
         assert body["prompt"] == "upgrade"
 
+    def test_cvs_already_released_count_toward_the_cap(self, tenant):
+        """Two batches must not both fit under the cap when together they would not."""
+        from plans.models import LimitOverride
+
+        tenant.cv(status="waiting")  # released earlier, nothing used yet: 2350 tokens to come
+        hold(tenant)  # 2350 more
+        LimitOverride.objects.create(
+            company_id=tenant.company.pk, name="monthly_ai_token_cap", value=4000
+        )
+        body = shown(tenant)
+        assert body["limits"]["tokens"]["after_estimate"] == 2350 * 2
+        assert body["blocked"] is True
+
     def test_exactly_the_cap_is_allowed_and_one_token_more_is_not(self, tenant):
         from plans.models import LimitOverride
 
@@ -254,6 +267,17 @@ class TestCancelling:
         assert response.json() == {"skipped": 2}
         assert {row.status for row in CvFile.objects.all()} == {"cancelled"}
         assert usage.waiting_cvs(tenant.company.pk) == 0
+
+    def test_cancelling_leaves_no_file_behind_and_frees_the_file_s_fingerprint(self, tenant, kicks):
+        import privatefiles
+
+        row = hold(tenant)[0]
+        privatefiles.save_file(row.storage_key, b"x")
+        processing.cancel_unstarted(tenant.project)
+        row.refresh_from_db()
+        assert row.content_hash is None
+        with pytest.raises(privatefiles.StoredFileMissing):
+            privatefiles.read_file(row.storage_key)
 
     def test_a_cancelled_cv_cannot_be_confirmed(self, tenant, kicks):
         hold(tenant)

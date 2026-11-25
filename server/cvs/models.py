@@ -71,7 +71,12 @@ class CvFile(CompanyOwnedModel):
                 name="one_copy_of_a_file_per_project",
             ),
         ]
-        indexes = [models.Index(fields=["status", "next_attempt_at"], name="cv_queue_lookup")]
+        indexes = [
+            models.Index(fields=["status", "next_attempt_at"], name="cv_queue_lookup"),
+            # The counts per status on the project page, and one upload's files (cancel, confirm).
+            models.Index(fields=["project", "status"], name="cv_project_status"),
+            models.Index(fields=["company", "batch_id"], name="cv_company_batch"),
+        ]
 
 
 class ProcessingTurn(CompanyOwnedModel):

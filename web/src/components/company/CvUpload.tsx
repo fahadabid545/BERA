@@ -14,6 +14,7 @@ type Rules = {
   max_files_per_batch: number;
   max_files_in_progress: number;
   files_in_progress: number;
+  parallel_uploads: number;
   blocked: Blocked | null;
 };
 type FileResult = {
@@ -64,7 +65,7 @@ export function CvUpload({ projectId }: { projectId: string }) {
   const [loadError, setLoadError] = useState("");
   const [refusal, setRefusal] = useState("");
   const chooser = useRef<HTMLInputElement>(null);
-  const busy = useRef(false);
+  const sending = useRef(0);
   const waiting = useRef<Entry[]>([]);
   const addedAny = useRef(false);
 
@@ -111,14 +112,19 @@ export function CvUpload({ projectId }: { projectId: string }) {
     update(entry.id, { state: "refused", message: outcome.message });
   }
 
-  async function drain() {
-    if (busy.current) return;
-    busy.current = true;
-    while (waiting.current.length > 0) await sendOne(waiting.current.shift()!);
-    busy.current = false;
-    if (addedAny.current) {
-      addedAny.current = false;
-      window.dispatchEvent(new Event(CVS_HELD_EVENT)); // the held CVs wait for their estimate
+  /** Sends the waiting files, at most `parallel_uploads` at the same time. */
+  function drain() {
+    const most = rules?.parallel_uploads ?? 1;
+    while (sending.current < most && waiting.current.length > 0) {
+      sending.current += 1;
+      void sendOne(waiting.current.shift()!).finally(() => {
+        sending.current -= 1;
+        if (waiting.current.length > 0) return drain();
+        if (sending.current === 0 && addedAny.current) {
+          addedAny.current = false;
+          window.dispatchEvent(new Event(CVS_HELD_EVENT)); // the held CVs wait for their estimate
+        }
+      });
     }
   }
 
@@ -158,13 +164,13 @@ export function CvUpload({ projectId }: { projectId: string }) {
     });
     setEntries((current) => [...current, ...fresh]);
     waiting.current.push(...fresh.filter((entry) => entry.state === "queued"));
-    void drain();
+    drain();
   }
 
   function retry(entry: Entry) {
     update(entry.id, { state: "queued", message: "" });
     waiting.current.push({ ...entry, state: "queued" });
-    void drain();
+    drain();
   }
 
   function drop(event: DragEvent<HTMLDivElement>) {

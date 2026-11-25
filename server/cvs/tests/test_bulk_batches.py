@@ -2,6 +2,7 @@
 sent it, nothing leaks between companies while they run, and a busy AI provider never fails a
 file. The AI is faked: the steps only count, so these run in a moment."""
 
+import threading
 import uuid
 from collections import Counter
 from datetime import timedelta
@@ -15,6 +16,7 @@ from cvs import processing
 from cvs.models import CvFile
 from cvs.processing import register_step
 from cvs.tests.test_processing import Tenant, make_plan
+from usage import service as usage
 
 pytestmark = pytest.mark.django_db
 
@@ -187,3 +189,72 @@ class TestABusyProviderNeverFailsAFile:
         run_all()
         slow.refresh_from_db(), quick.refresh_from_db()
         assert (slow.status, quick.status) == ("waiting", "done")
+
+
+class TestParallelUploadsNeverPassALimit:
+    """Real threads and real transactions: the company lock is what keeps the counts right."""
+
+    def upload_at_the_same_time(self, tenant, people, files_each):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.db import connection
+        from rest_framework.test import APIClient
+
+        from core.tests.factories import start_session_for
+        from cvs.tests.files import make_pdf
+
+        barrier = threading.Barrier(len(people))
+        answers = []
+
+        def send(person, number):
+            issued = start_session_for(
+                user_id=person.pk, role="member", company_id=tenant.company.pk, kind="company"
+            )
+            client = APIClient(HTTP_AUTHORIZATION=f"Bearer {issued.access_token}")
+            files = [
+                SimpleUploadedFile(f"{number}-{n}.pdf", make_pdf(text=f"person {number} file {n}"))
+                for n in range(files_each)
+            ]
+            try:
+                barrier.wait()
+                answers.append(
+                    client.post(
+                        f"/api/company/projects/{tenant.project.pk}/cvs/",
+                        {"files": files},
+                        format="multipart",
+                    )
+                )
+            finally:
+                connection.close()
+
+        threads = [
+            threading.Thread(target=send, args=(person, number))
+            for number, person in enumerate(people)
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        return answers
+
+    @pytest.mark.django_db(transaction=True)
+    def test_the_monthly_limit_is_not_passed_by_uploads_at_the_same_moment(self):
+        plan = make_plan(cvs_per_month=4, cvs_per_project=50)
+        tenant = Tenant(plan)
+        people = [tenant.owner] + [
+            make_company_user(tenant.company, role="member") for _ in range(2)
+        ]
+        self.upload_at_the_same_time(tenant, people, files_each=3)  # nine files asked for four
+        assert CvFile.objects.filter(company=tenant.company).count() == 4
+        assert usage.waiting_cvs(tenant.company.pk) == 4  # each counted once
+
+    @pytest.mark.django_db(transaction=True)
+    def test_a_persons_in_progress_limit_is_not_passed_by_two_uploads_at_the_same_moment(self):
+        from cvs.tests.test_cv_upload import set_setting
+
+        plan = make_plan(cvs_per_month=100, cvs_per_project=100)
+        tenant = Tenant(plan)
+        set_setting("uploads.max_files_in_progress_per_user", 4)
+        # the same person on two devices: the limit counts them together
+        answers = self.upload_at_the_same_time(tenant, [tenant.owner, tenant.owner], files_each=3)
+        assert sorted(answer.status_code for answer in answers) == [200, 409]
+        assert CvFile.objects.filter(company=tenant.company).count() == 3

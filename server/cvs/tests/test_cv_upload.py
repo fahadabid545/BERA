@@ -116,6 +116,7 @@ class TestRules:
             "max_files_per_batch": 30,
             "max_files_in_progress": 60,
             "files_in_progress": 0,
+            "parallel_uploads": 3,
             "blocked": None,
         }
 

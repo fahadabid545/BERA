@@ -2603,6 +2603,115 @@ admins only) and the page `/admin/operations/cost-versus-revenue`.
 - The PKR rate a super admin sets (`PUT .../rate/`, platform value `billing.pkr_per_usd`, a reason
   is required and audited) is kept for when charging in rupees exists; no figure uses it now.
 
+## Bulk CV path review (BERA-182)
+
+A code review of everything a large number of CVs goes through, with local checks on small runs
+and the fake AI only. No real server, no real AI key and no volume number was used.
+
+Fixed:
+
+- **Memory on upload.** A request of many files no longer holds them all in memory: each file is
+  read, checked, fingerprinted and saved, and its bytes let go before the next one is read (at most
+  one file, `uploads.max_file_size_mb`, at a time).
+- **Memory on packages.** A zip of many CVs (and the whole-company export) is built in a temporary
+  file on disk and streamed to the store, instead of being built and copied in memory.
+- **Word files that unpack enormously.** Besides the total (`uploads.max_unpacked_mb`) and the
+  entry count, no single part may state more than `uploads.max_unpacked_part_mb` (20) unpacked,
+  measured from the headers before anything is opened (a part can never unpack past its header).
+- **Queue timing.** The queue's task timeout was 60 s, as long as one AI call, so a slow CV could be
+  stopped halfway. It is now 240 s (under `processing.stuck_minutes`, 5 minutes, so a stopped task
+  is recovered by the sweep and never runs twice at once) and `retry` 300 s. The queue looks at its
+  table every 2 s instead of five times a second.
+- **File store timeouts.** Calls to R2 stop waiting after `storage.timeout_seconds` (20) and are
+  then retried by the storage service's own waits.
+- **Estimate and parallel batches.** The cost estimate now counts the CVs already released and not
+  yet processed, so two batches cannot each fit under the token cap when together they do not.
+- **Cancelled CVs.** Cancelling a batch now removes the stored files (nothing is left behind) and
+  frees their fingerprints, so the same file can be sent again; it used to be refused as "already
+  in the project" although the CV was gone from the list.
+- **Indexes** for the counts per status on a project and for one upload's files.
+- **Browser.** At most `uploads.parallel_per_browser` (3) files are sent at the same time.
+
+Checked and found right (each has tests): the monthly and project limits and the counting are
+decided with the company row locked and are idempotent (two uploads at once never pass a limit or
+count a CV twice, a re-run or retry never counts again, a failed CV is never counted); a worker can
+only change a CV it holds the claim of; at most `Q_CLUSTER_WORKERS` CVs run at once; AI calls and PDF
+reading have timeouts; retries wait and stop at `processing.max_attempts`; stuck CVs are found by
+the once-a-minute sweep; the AI kill switch and the token cap stop new AI calls at once for every
+batch (a CV claimed after the cap is reached fails with its reason and can be retried); batch cancel
+works per upload; the queue is the database, so a worker restart loses nothing; the ranked list,
+filters, comparison, dashboards and reports are paged or aggregated in the database, with
+constant-query-count tests; the live updates ask no faster than `live_updates.max_delay_seconds`,
+pause in a hidden tab and back off; project, candidate and company deletion remove stored files.
+
+Left as a risk, to measure on the real server (see "Volume test (postponed)"):
+
+- Word files are read in the worker process, with no memory limit of their own (PDFs are read in a
+  limited child process). The part limit above and the queue timeout bound it; measure the worker's
+  memory with the biggest allowed Word file.
+- The ranking window function runs over the whole filtered set on every list request; fine for
+  thousands of CVs, measure at the plan's largest project.
+- A rate-limited AI provider backs off per CV (`processing.rate_limit_wait_seconds`), not for the
+  whole system; with many workers a burst of "too many requests" answers is possible before they
+  settle. Watch the AI calls' failure column in the AI usage table.
+- The whole-project and company export build a zip of every CV: disk space for the temporary file
+  (the largest company's CVs) must be available on the server.
+- Database connections: each web and queue process keeps one for 60 s (`conn_max_age`); with the
+  sizes in `deploy/bera_deploy.py` that is about 12 per environment against PostgreSQL's default
+  of 100. Re-count if workers are added.
+- Two people of one company can ask for estimates and confirm at the same moment; the lock makes
+  each answer correct for that moment, but the token cap is a limit checked per CV, so it can be
+  passed by what is already running.
+
+## Volume test (postponed)
+
+Not run: there is no real AI key and no server yet. Run it once both exist. Nothing for it is built
+in the code yet except what the steps below say.
+
+Before the run:
+
+1. **A fake AI for the 500-CV run.** The app has no fake-AI mode yet. Build a small one first: an
+   environment value, accepted only in staging, that makes the one AI function (`ai.client._send`)
+   return a fixed valid answer after a short fixed wait instead of calling the provider, so the
+   queue, the database and the storage carry the whole load for free. Add a test that production
+   refuses to start with it set.
+2. **A small real-AI sample.** Separately, 20 to 30 real CVs through the real AI, to measure real
+   time per CV, tokens and cost, and to check the cost estimate against what really happened.
+3. **A dedicated test company** on staging, with its own owner, a plan big enough for 500 CVs
+   and the token cap raised. Never use a real customer's company.
+4. **Only when no real users are on the site.** Staging and production run on one server, so a
+   test on staging takes resources from production too. Pick a quiet hour, tell the beta users, and
+   keep the production health check and its alerts on.
+5. 500 test CVs of realistic sizes (a mix of PDF and Word, 1 to 5 pages, a few at the size limit),
+   all different, made from fake names only.
+
+The run:
+
+1. Upload in batches of 30 as the screen does (several people at once, then one person alone),
+   confirm the estimate, and note the time.
+2. While it runs, every minute: memory (`free -m`, each service's `MemoryCurrent`), disk, database
+   connections, the waiting count and the longest wait (the Jobs monitor), and the health check.
+3. Start production's normal traffic check (the uptime monitor and a few page loads) at the same
+   time, and note any slowdown.
+4. Afterwards: failed CVs and their reasons, retries, the estimate against the real tokens, and
+   the cleanup of the test company's files.
+5. Adjust the server size or `Q_CLUSTER_WORKERS` only from these numbers, and write the change here.
+
+Results (the owner fills these in; leave empty until measured):
+
+| What | Target | Measured | Date |
+|------|--------|----------|------|
+| Time for 500 CVs, fake AI | | | |
+| Time per CV, real AI sample | | | |
+| Longest wait of one CV | | | |
+| Peak memory: web / worker / database | | | |
+| Peak disk used | | | |
+| Peak database connections | | | |
+| Failed or retried CVs | | | |
+| Estimate against real tokens | | | |
+| Production slowdown during the run | | | |
+| Server size or worker change made | | | |
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)

@@ -35,6 +35,30 @@ class TestLocalStore:
         with pytest.raises(StoredFileMissing):
             privatefiles.read_file("cvs/1/a")
 
+    def test_a_big_file_can_be_saved_from_a_file_without_holding_it_in_memory(self, tmp_path):
+        source = tmp_path / "big.bin"
+        source.write_bytes(b"0123456789" * 1000)
+        with source.open("rb") as opened:
+            privatefiles.save_file("packages/1/big.zip", opened)
+        assert privatefiles.read_file("packages/1/big.zip") == b"0123456789" * 1000
+
+    def test_a_retry_after_a_failure_starts_the_file_from_the_beginning(
+        self, monkeypatch, tmp_path
+    ):
+        source = tmp_path / "f.bin"
+        source.write_bytes(b"abcdef")
+        seen = []
+
+        def flaky(key, data):
+            seen.append(data.read())
+            if len(seen) == 1:
+                raise StorageError
+
+        monkeypatch.setattr(local, "save", flaky)
+        with source.open("rb") as opened:
+            privatefiles.save_file("packages/1/f.zip", opened)
+        assert seen == [b"abcdef", b"abcdef"]
+
     def test_removing_a_missing_file_is_fine(self):
         privatefiles.delete_file("cvs/none/none")
 

@@ -39,7 +39,8 @@ def content_hash(data):
 
 
 def split_identical(project, candidates):
-    """Splits `candidates` (each with `.data`) into those to go on with and those that repeat
+    """Splits `candidates` (each with its `.content_hash`) into those to go on with and those that
+    repeat
     a file already in the project or earlier in the same upload. Call it with the company
     locked, so two uploads at once cannot both add the same file."""
     known = set(
@@ -49,7 +50,6 @@ def split_identical(project, candidates):
     )
     fresh, repeated = [], []
     for candidate in candidates:
-        candidate.content_hash = content_hash(candidate.data)
         if candidate.content_hash in known:
             repeated.append(candidate)
         else:

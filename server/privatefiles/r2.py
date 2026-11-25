@@ -11,6 +11,8 @@ from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 from django.conf import settings
 
+from platform_settings.service import get_setting
+
 from .errors import StorageError, StoredFileMissing
 
 NOT_FOUND_CODES = {"NoSuchKey", "404", "NotFound"}
@@ -25,7 +27,13 @@ def make_client():
         aws_secret_access_key=settings.R2_SECRET_ACCESS_KEY,
         region_name="auto",
         # Retrying is the storage service's job (it waits and tells people); not the library's.
-        config=Config(signature_version="s3v4", retries={"max_attempts": 1}),
+        config=Config(
+            signature_version="s3v4",
+            retries={"max_attempts": 1},
+            # A call that hangs must not hold a worker until the queue's timeout kills it.
+            connect_timeout=get_setting("storage.timeout_seconds"),
+            read_timeout=get_setting("storage.timeout_seconds"),
+        ),
     )
 
 

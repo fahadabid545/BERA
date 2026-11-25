@@ -26,7 +26,7 @@ from projects.deletion import register_project_data
 from projects.service import require_editable
 from usage import service as usage
 
-from .duplicates import DUPLICATE_FILE, DUPLICATE_FILE_MESSAGE, split_identical
+from .duplicates import DUPLICATE_FILE, DUPLICATE_FILE_MESSAGE, content_hash, split_identical
 from .file_checks import TOO_MANY_FILES, FileCheck, check_cv_file, check_name_and_size
 from .models import CvFile
 
@@ -45,7 +45,7 @@ TOO_MANY_IN_PROGRESS = "too_many_in_progress"
 class _Candidate:
     index: int
     name: str
-    data: bytes
+    size: int
     check: FileCheck
     cv_id: uuid.UUID | None = None
     key: str = ""
@@ -88,6 +88,7 @@ def upload_rules(company_id, user_id=None):
         "max_files_per_batch": get_setting("uploads.max_files_per_batch"),
         "max_files_in_progress": get_setting("uploads.max_files_in_progress_per_user"),
         "files_in_progress": files_in_progress(user_id) if user_id else 0,
+        "parallel_uploads": get_setting("uploads.parallel_per_browser"),
     }
 
 
@@ -136,36 +137,36 @@ def upload_cvs(uploader, project, files, batch_id=None):
         if problem := check_name_and_size(name, size):
             results[index] = _result(name, REJECTED, problem.code, problem.message)
         else:
-            data = read()
+            data = read()  # one file at a time: its bytes are let go before the next is read
             checked = check_cv_file(name, data)
             if checked.problem:
                 results[index] = _result(
                     name, REJECTED, checked.problem.code, checked.problem.message
                 )
+            elif candidate := _save_file(
+                project, _Candidate(index, name, len(data), checked), data
+            ):
+                candidates.append(candidate)
             else:
-                candidates.append(_Candidate(index, name, data, checked))
+                results[index] = _result(name, FAILED, STORAGE_FAILED, STORAGE_FAILED_MESSAGE)
+            del data
     if candidates:
         _accept(uploader, project, candidates, results, batch_id)
     return results
 
 
-def _store(candidates, results, project):
-    """Saves each file before any limit is checked, so the store's retries never hold the
-    company lock. A file the store cannot take (even after trying again) is a failed file;
-    the others go on. Returns the candidates that were saved."""
-    saved = []
-    for candidate in candidates:
-        candidate.cv_id = uuid.uuid4()
-        candidate.key = storage.key_for_cv(project.company_id, candidate.cv_id)
-        try:
-            storage.save_file(candidate.key, candidate.data)
-        except StorageUnavailable:
-            results[candidate.index] = _result(
-                candidate.name, FAILED, STORAGE_FAILED, STORAGE_FAILED_MESSAGE
-            )
-        else:
-            saved.append(candidate)
-    return saved
+def _save_file(project, candidate, data):
+    """Saves the file before any limit is checked, so the store's retries never hold the company
+    lock, and so a request of many files never holds them all in memory at once. Returns the
+    candidate, or None when the store cannot take the file even after trying again."""
+    candidate.cv_id = uuid.uuid4()
+    candidate.key = storage.key_for_cv(project.company_id, candidate.cv_id)
+    candidate.content_hash = content_hash(data)
+    try:
+        storage.save_file(candidate.key, data)
+    except StorageUnavailable:
+        return None
+    return candidate
 
 
 def _discard(keys):
@@ -179,7 +180,7 @@ def _discard(keys):
 
 
 def _accept(uploader, project, candidates, results, batch_id):
-    saved = _store(candidates, results, project)
+    saved = candidates
     kept_keys = []
     try:
         with transaction.atomic():
@@ -205,7 +206,7 @@ def _accept(uploader, project, candidates, results, batch_id):
                     original_name=safe_file_name(candidate.name),
                     file_type=candidate.check.file_type,
                     page_count=candidate.check.page_count,
-                    size_bytes=len(candidate.data),
+                    size_bytes=candidate.size,
                     storage_key=candidate.key,
                     content_hash=candidate.content_hash,
                     uploaded_by=uploader,

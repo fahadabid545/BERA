@@ -18,6 +18,7 @@ const RULES = {
   max_files_per_batch: 3,
   max_files_in_progress: 5,
   files_in_progress: 0,
+  parallel_uploads: 2,
   blocked: null,
 };
 const pdf = (name = "a.pdf", size = 5) => new File([new Uint8Array(size)], name);
@@ -147,6 +148,22 @@ describe("CV upload", () => {
     await choose(pdf("big.pdf", 10 * 1024 * 1024 + 1));
     expect(await screen.findByText("This file is larger than 10 MB.")).toBeTruthy();
     expect(uploadFiles).not.toHaveBeenCalled();
+  });
+
+  it("sends only as many files at the same time as the rules allow", async () => {
+    let running = 0;
+    let most = 0;
+    uploadFiles.mockImplementation(async (_path, files: File[]) => {
+      running += 1;
+      most = Math.max(most, running);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      running -= 1;
+      return accepted(files[0].name);
+    });
+    await ready();
+    await choose(pdf("1.pdf"), pdf("2.pdf"), pdf("3.pdf"));
+    await waitFor(() => expect(screen.getAllByText("Added")).toHaveLength(3));
+    expect(most).toBe(2); // the rules in this test allow two at once
   });
 
   it("a drop over the batch size is refused as a whole and nothing is sent", async () => {

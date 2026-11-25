@@ -147,6 +147,16 @@ class TestDamaged:
     def test_a_cut_off_word_file(self):
         assert code_of(check_cv_file("cv.docx", make_docx()[:60])) == "damaged"
 
+    def test_one_part_that_unpacks_too_big_is_refused_before_it_is_read(self):
+        """A bomb: tiny to send, huge once opened. Measured from the headers, never unpacked."""
+        set_setting("uploads.max_unpacked_part_mb", 1)
+        bomb = make_docx(extra_parts={"word/media/bomb.bin": b"0" * (2 * 1024 * 1024)})
+        assert len(bomb) < 10_000  # it is small as sent
+        assert code_of(check_cv_file("cv.docx", bomb)) == "damaged"
+
+    def test_a_normal_part_is_fine_under_the_part_limit(self):
+        assert code_of(check_cv_file("cv.docx", make_docx())) is None
+
     def test_a_word_file_missing_its_content_types(self):
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w") as archive:

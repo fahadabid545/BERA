@@ -283,10 +283,14 @@ SETTINGS = [
     SettingDefinition("uploads.max_files_per_batch", 30, whole_number(1, 30)),
     # What one person may have waiting or being processed at once, over all their batches.
     SettingDefinition("uploads.max_files_in_progress_per_user", 60, whole_number(1, 1000)),
+    # How many files one browser sends at the same time; the rest wait their turn.
+    SettingDefinition("uploads.parallel_per_browser", 3, whole_number(1, 6)),
     SettingDefinition("uploads.cv_pages_read", 15, whole_number(1, 200)),
     # A file that would unpack to more than this (or hold more parts) is refused unopened.
     SettingDefinition("uploads.max_unpacked_mb", 100, whole_number(1, 2000)),
     SettingDefinition("uploads.max_archive_entries", 2000, whole_number(1, 100000)),
+    # No single part of a Word file (its text, above all) may unpack to more than this.
+    SettingDefinition("uploads.max_unpacked_part_mb", 20, whole_number(1, 500)),
     # Request limits: forms stay small, only uploads may be large (see uploads.* above)
     SettingDefinition("requests.max_form_kilobytes", 256, whole_number(1, 4096)),
     SettingDefinition("requests.max_file_name_characters", 150, whole_number(10, 255)),
@@ -332,6 +336,8 @@ SETTINGS = [
     # number of entries is the number of retries) and how long a download link works.
     SettingDefinition("storage.retry_waits_seconds", [1, 3], list_of_whole_numbers(1, 60)),
     SettingDefinition("storage.download_link_hours", 24, whole_number(1, 168)),
+    # How long one call to the file store may wait before it counts as failed (then retried).
+    SettingDefinition("storage.timeout_seconds", 20, whole_number(2, 300)),
     # Usage and account lifecycle
     SettingDefinition("usage.warning_percents", [80, 100], list_of_whole_numbers(1, 100)),
     # How many billing periods the Usage tab lists, newest first.

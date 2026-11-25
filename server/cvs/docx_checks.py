@@ -41,10 +41,16 @@ def _refuse(code, message):
 
 
 def _too_big_when_opened(archive):
+    """Measured from the headers, and a part can never unpack past the size its header states.
+    The text part is read in the worker, so it gets its own, much lower, limit."""
     entries = archive.infolist()
     total = sum(entry.file_size for entry in entries)
-    return len(entries) > get_setting("uploads.max_archive_entries") or total > (
-        get_setting("uploads.max_unpacked_mb") * shared.BYTES_PER_MEGABYTE
+    largest = max((entry.file_size for entry in entries), default=0)
+    megabyte = shared.BYTES_PER_MEGABYTE
+    return (
+        len(entries) > get_setting("uploads.max_archive_entries")
+        or total > get_setting("uploads.max_unpacked_mb") * megabyte
+        or largest > get_setting("uploads.max_unpacked_part_mb") * megabyte
     )
 
 

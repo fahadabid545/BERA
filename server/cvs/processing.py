@@ -36,6 +36,7 @@ from django.db.models.functions import Coalesce, Greatest
 from django.utils import timezone
 from django_q.tasks import async_task
 
+import privatefiles as storage
 from ai import control, spend_alerts
 from ai.client import AiBusy, AiPaused, AiUnavailable
 from companies.models import Company
@@ -44,6 +45,7 @@ from core.jobs import logged_job
 from notifications.progress import after_cv_finished
 from plans.limits import check_cvs_this_month
 from platform_settings.service import get_setting
+from privatefiles.errors import StorageUnavailable
 from projects.deletion import register_work_stopper
 from projects.service import require_editable
 from usage import service as usage
@@ -287,9 +289,15 @@ def cancel_unstarted(project, batch_id=None):
             waiting = waiting.filter(batch_id=batch_id)
         skipped = list(waiting.select_for_update())
         for item in skipped:
-            item.status, item.finished_at = CvFile.Status.CANCELLED, _now()
-            item.save(update_fields=["status", "finished_at"])
+            # The hash is let go so the same file can be sent again; the file itself goes below.
+            item.status, item.finished_at, item.content_hash = CvFile.Status.CANCELLED, _now(), None
+            item.save(update_fields=["status", "finished_at", "content_hash"])
             usage.mark_failed(item.company_id, item.pk)
+    for item in skipped:
+        try:
+            storage.delete_file(item.storage_key)  # a cancelled CV leaves nothing in storage
+        except StorageUnavailable:
+            logger.error("A cancelled CV's file could not be removed: %s", item.storage_key)
     for item in {item.batch_id: item for item in skipped}.values():
         after_cv_finished(item)  # skipping can be what finishes an upload
     return len(skipped)

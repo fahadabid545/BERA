@@ -10,6 +10,7 @@ for `sharing.download_package_link_hours`, then its file is removed.
 
 import io
 import logging
+import tempfile
 import uuid
 import zipfile
 from datetime import timedelta
@@ -144,7 +145,9 @@ def _write_cvs(archive, cv_files, prefix=""):
 
 
 def _zip_of(cv_files, *, by_project=False):
-    buffer = io.BytesIO()
+    """The zip as a temporary file on disk, never all in memory, since a package can hold
+    hundreds of CVs. The caller closes it, which removes it."""
+    buffer = tempfile.TemporaryFile()
     # The CVs are PDF and Word files, already compressed, so storing them is as small and faster.
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as archive:
         if not by_project:
@@ -158,7 +161,7 @@ def _zip_of(cv_files, *, by_project=False):
                 archive.writestr(
                     f"{folders[project_id]}/ranked-list.xlsx", ranked_list_xlsx(project)
                 )
-    return buffer.getvalue()
+    return buffer
 
 
 def _fail(package, reason):
@@ -181,9 +184,10 @@ def _build(package, *, notify):
         _fail(package, "cv_removed")
         return
     try:
-        data = _zip_of(cv_files, by_project=package.project_id is None)
-        key = privatefiles.key_for_package(package.company_id, package.pk)
-        privatefiles.save_file(key, data)
+        with _zip_of(cv_files, by_project=package.project_id is None) as data:
+            key = privatefiles.key_for_package(package.company_id, package.pk)
+            size = data.seek(0, io.SEEK_END)
+            privatefiles.save_file(key, data)
     except (privatefiles.StoredFileMissing, privatefiles.StorageUnavailable) as error:
         _fail(package, type(error).__name__)
         return
@@ -191,7 +195,7 @@ def _build(package, *, notify):
     hours = get_setting("sharing.download_package_link_hours")
     package.status = DownloadPackage.Status.READY
     package.storage_key = key
-    package.size_bytes = len(data)
+    package.size_bytes = size
     package.ready_at = now
     package.expires_at = now + timedelta(hours=hours)
     package.save()

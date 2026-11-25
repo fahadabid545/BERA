@@ -53,7 +53,14 @@ def key_for_package(company_id, package_id):
 
 
 def save_file(key, data):
-    _with_retries(lambda: _backend().save(key, data))
+    """`data` is bytes, or a binary file (a big zip is streamed from disk, never held whole)."""
+
+    def attempt():
+        if hasattr(data, "seek"):
+            data.seek(0)  # a retry starts from the beginning
+        _backend().save(key, data)
+
+    _with_retries(attempt)
 
 
 def read_file(key):

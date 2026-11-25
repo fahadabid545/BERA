@@ -80,7 +80,18 @@ def estimate(project, batch_id=None):
     current = usage.current_usage(company_id)
     used_tokens = current["tokens_in"] + current["tokens_out"]
     cap = limit_for(company_id, MONTHLY_AI_TOKEN_CAP)
-    after = used_tokens + tokens_in + tokens_out
+    # CVs already released (other batches, other people) have not used their tokens yet, but
+    # will: counting them stops several batches from each fitting under the cap alone.
+    in_flight = CvFile.objects.filter(
+        company_id=company_id,
+        status__in=(CvFile.Status.WAITING, CvFile.Status.READING, CvFile.Status.SCORING),
+    ).count()
+    after = (
+        used_tokens
+        + tokens_in
+        + tokens_out
+        + in_flight * sum((read_in, read_out, score_in, score_out))
+    )
     allowed = check_ai_allowed(company_id)
     blocked = not allowed.allowed or after > cap
     return {

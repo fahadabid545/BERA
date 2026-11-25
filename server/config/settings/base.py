@@ -124,9 +124,15 @@ Q_CLUSTER = {
     "orm": "default",
     # How many background processes: staging and production set their own (see deploy/).
     "workers": int(os.environ.get("Q_CLUSTER_WORKERS", "2")),
-    "timeout": 60,
-    "retry": 120,
+    # One CV is a read and a score, each with its own AI call of up to `ai.request_timeout_seconds`;
+    # the task may run longer than one call, but less than `processing.stuck_minutes`, so a task
+    # the queue stops is recovered by the sweep and never run twice at once. `retry` must exceed it.
+    "timeout": 240,
+    "retry": 300,
     "queue_limit": 50,
+    # Seconds between looks at the queue table (the default, 0.2, asks the database five times a
+    # second all day for nothing).
+    "poll": 2,
 }
 
 # One log format for everything. Handlers on the named loggers replace Django's

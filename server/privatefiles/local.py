@@ -1,6 +1,7 @@
 """Development: files in a private folder on this computer, never served by the web server."""
 
 import os
+import shutil
 from pathlib import Path
 
 from django.conf import settings
@@ -25,7 +26,10 @@ def save(key, data):
         path.parent.mkdir(parents=True, exist_ok=True, mode=FOLDER_MODE)
         descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, FILE_MODE)
         with os.fdopen(descriptor, "wb") as stored:
-            stored.write(data)
+            if hasattr(data, "read"):
+                shutil.copyfileobj(data, stored)
+            else:
+                stored.write(data)
     except OSError as error:
         raise StorageError from error
 
