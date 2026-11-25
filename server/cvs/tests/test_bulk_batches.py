@@ -97,7 +97,7 @@ class TestBatchesShareTheWorkers:
 
     def test_a_batch_that_arrives_later_starts_at_once(self, plan):
         first, second = Tenant(plan), Tenant(plan)
-        early = add_batch(first)
+        add_batch(first)
         for _ in range(10):  # the early batch is well under way
             processing.run_item(processing.claim_next())
         late = add_batch(second)
