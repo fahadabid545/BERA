@@ -455,6 +455,14 @@ a.ui-tab {
   flex-direction: column;
   max-width: 26rem;
 }
+/* The spam trap: out of sight for people and screen readers, still there for a bot. */
+.contact-trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
 .ui-text-link {
   color: var(--color-text);
   text-decoration: underline;

@@ -31,6 +31,7 @@ KINDS = _kinds(
     EventKind("security.billing_portal_opened"),
     EventKind("security.card_update_opened"),
     EventKind("security.card_update_result"),
+    EventKind("security.contact_spam_dropped"),
     # Key company actions.
     EventKind("invite.sent"),
     EventKind("invite.resent"),

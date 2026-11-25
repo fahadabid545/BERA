@@ -527,6 +527,21 @@ SETTINGS = [
     # The audit log viewer (audit/log_viewer.py): entries per page, most entries one export holds.
     SettingDefinition("audit_log.page_size", 50, whole_number(1, 500)),
     SettingDefinition("audit_log.export_max_rows", 50_000, whole_number(1, 1_000_000)),
+    # Contact form (see contact/): the longest name and message, how long a message is kept, the
+    # spam checks (a form sent faster than a person can type, or held longer than the maximum age,
+    # is treated as spam) and the notice shown beside the form. "{days}" in the notice is replaced
+    # by the retention period, so the notice always says what the code does.
+    SettingDefinition("contact.max_name_length", 100, whole_number(1, 200)),
+    SettingDefinition("contact.max_message_length", 3000, whole_number(1, 10000)),
+    SettingDefinition("contact.retention_days", 90, whole_number(1, 3650)),
+    SettingDefinition("contact.min_fill_seconds", 3, whole_number(1, 60)),
+    SettingDefinition("contact.form_max_age_seconds", 3600, whole_number(60, 86400)),
+    SettingDefinition(
+        "contact.privacy_note",
+        "We use your name and email only to reply to your message. "
+        "We keep your message for {days} days.",
+        lambda value: short_text(500)(value) and "{days}" in value,
+    ),
     # Announcement banners (see announcements/). The ceiling is the column size of the message.
     SettingDefinition("announcements.max_message_length", 300, whole_number(1, 2000)),
 ]

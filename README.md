@@ -708,6 +708,30 @@ else; the links carry no plan or price, and the plan is chosen on the billing pa
 the normal session rules (one silent renewal when only the refresh token is still valid, false for a
 blocked user, a suspended company or an ended session) and uses the general rate limit.
 
+### Contact form (BERA-172)
+
+`/contact` sends a message to the support address (`general.support_email`) and stores it.
+`GET /api/contact/form/` gives the page the privacy notice and a signed "form opened" token (a fresh
+one is fetched before it expires). `POST /api/contact/` takes `name`, `email`, `message`, the hidden
+`website` field and the token, and always answers with the same thank-you, so a bot learns nothing.
+
+- **Limit:** the existing contact rule, 3 per hour per address (`rate_limits.contact_per_hour`), on
+  every send including dropped spam. Opening the form is not counted.
+- **Spam:** no third-party captcha. A message is dropped silently (nothing stored or emailed) when the
+  hidden field is filled, or the token is missing, forged, sent faster than `contact.min_fill_seconds`
+  (3) or older than `contact.form_max_age_seconds` (1 hour). Each drop is a security event
+  `security.contact_spam_dropped` carrying only the reason, never what was written.
+- **Stored:** name, email and message are encrypted (`ContactMessage`) and a daily job deletes them
+  after `contact.retention_days` (90). There is no inbox screen yet: the email to support is how
+  messages are read. Limits for name and message length are `contact.max_name_length` and
+  `contact.max_message_length`.
+- **Failure:** if the email cannot be queued or the database fails, nothing is kept and the sender
+  gets "We could not send your message. Please try again in a few minutes." (503).
+- **Privacy notice:** the platform setting `contact.privacy_note`, shown beside the form with a link
+  to the Privacy page. `{days}` is replaced by the retention period, so the notice always says how
+  long a message is kept, and a note without `{days}` is refused. **Before launch the owner must
+  review this notice together with the Privacy page (BERA-174).**
+
 ### Plans management
 
 Super admins manage the subscription plans under `/api/admin/plans/` (list and create; read,

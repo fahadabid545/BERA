@@ -147,6 +147,17 @@ CATALOG = {
         button_label="Confirm email address",
         variables=("name", "link", "expires_in"),
     ),
+    "contact_message": EmailTemplate(
+        subject="New contact message for {app_name}",
+        heading="New contact message",
+        paragraphs=(
+            "From {sender_name} ({sender_email}). Reply to this address, not to the sender of "
+            "this email.",
+            "{message}",
+        ),
+        button_label="Open admin panel",
+        variables=("sender_name", "sender_email", "message", "link"),
+    ),
     "download_ready": EmailTemplate(
         subject="Your {app_name} download is ready",
         heading="Your download is ready",

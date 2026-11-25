@@ -61,6 +61,7 @@ def test_the_catalog_holds_exactly_the_agreed_emails():
         "retention_warning",
         "deletion_scheduled",
         "confirm_new_email",
+        "contact_message",
     }
 
 

@@ -38,6 +38,13 @@ EXPECTED_DEFAULTS = {
     "tokens.team_invite_days": 7,
     "tokens.admin_invite_days": 7,
     "announcements.max_message_length": 300,
+    "contact.max_name_length": 100,
+    "contact.max_message_length": 3000,
+    "contact.retention_days": 90,
+    "contact.min_fill_seconds": 3,
+    "contact.form_max_age_seconds": 3600,
+    "contact.privacy_note": "We use your name and email only to reply to your message. "
+    "We keep your message for {days} days.",
     "audit_log.page_size": 50,
     "audit_log.export_max_rows": 50000,
     "general.app_name": "Bera",

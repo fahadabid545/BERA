@@ -29,6 +29,7 @@ DESCRIPTIONS = {
     "security.card_update_opened": "A company owner opened the payment provider's card page.",
     "security.card_update_result": "A company owner came back from the payment provider's card "
     "page and the result was recorded.",
+    "security.contact_spam_dropped": "The contact form dropped a message that looked like spam.",
 }
 
 

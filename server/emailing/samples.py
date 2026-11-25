@@ -41,6 +41,12 @@ def sample_values(template_name):
             "what": "A sign-in token that had already been used was presented again.",
         },
         "confirm_new_email": {**shared, "expires_in": duration_text(24, "hour")},
+        "contact_message": {
+            "sender_name": shared["name"],
+            "sender_email": "user@example.com",
+            "message": "Hello, I have a question.",
+            "link": link,
+        },
         "download_ready": {**shared, "expires_in": duration_text(24, "hour")},
         "deletion_scheduled": shared,
         "retention_warning": {**shared, "files": "12 CVs"},

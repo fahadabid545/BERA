@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "usage",
     "notifications",
     "announcements",
+    "contact",
     "datarequests",
     "projects",
     "ai",

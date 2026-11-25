@@ -51,6 +51,20 @@ PUBLIC_ROUTES = [
         "never listed, and it returns no subscriber counts or internal fields.",
     ),
     PublicRoute(
+        route="api/contact/",
+        category="website",
+        reason="Anyone may write to the platform from the public contact page before an account "
+        "exists. It is limited to 3 messages an hour per address, refuses unknown fields, drops "
+        "spam (hidden field, signed form time) without telling the sender, and answers only "
+        "with a thank-you, never with anything stored.",
+    ),
+    PublicRoute(
+        route="api/contact/form/",
+        category="website",
+        reason="The public contact page needs the privacy notice and the signed time the form "
+        "was opened (the spam check). It holds no personal or account data.",
+    ),
+    PublicRoute(
         route="api/auth/company/status/",
         category="website",
         reason="The public pricing page must know whether the visitor is a signed-in owner to "
