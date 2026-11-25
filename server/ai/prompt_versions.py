@@ -18,14 +18,16 @@ from projects.models import Project
 
 from .models import PromptCounter, PromptVersion
 
-READING, SCORING, ASK = PromptVersion.READING, PromptVersion.SCORING, PromptVersion.ASK
-KINDS = (READING, SCORING, ASK)
+READING, SCORING = PromptVersion.READING, PromptVersion.SCORING
+ASK, CHATBOT = PromptVersion.ASK, PromptVersion.CHATBOT
+KINDS = (READING, SCORING, ASK, CHATBOT)
 CURRENT_SETTING = {
     READING: "ai.reading_prompt_version",
     SCORING: "ai.scoring_prompt_version",
     ASK: "ai.ask_prompt_version",
+    CHATBOT: "ai.chatbot_prompt_version",
 }
-# Ask Bera's prompt is not pinned by projects: every question uses the current version.
+# The Ask and chatbot prompts are not pinned by projects: they use the current version.
 PROJECT_FIELD = {READING: "reading_prompt_version", SCORING: "scoring_prompt_version"}
 PINNED_KINDS = tuple(PROJECT_FIELD)
 

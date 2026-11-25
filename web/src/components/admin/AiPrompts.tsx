@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, Dialog, Input, Select, Table, Tabs, Tag, Textarea } from "@/components/ui";
 import { deleteJson, getJson, postJson, putJson, type ApiError, type ApiResult } from "@/lib/api";
 
-type Kind = "reading" | "scoring" | "ask";
+type Kind = "reading" | "scoring" | "ask" | "chatbot";
 type Version = {
   kind: Kind;
   number: number;
@@ -26,7 +26,9 @@ const KINDS: { value: Kind; label: string }[] = [
   { value: "reading", label: "Reading" },
   { value: "scoring", label: "Scoring" },
   { value: "ask", label: "Ask" },
+  { value: "chatbot", label: "Chatbot" },
 ];
+const PINNED_KINDS: Kind[] = ["reading", "scoring"]; // only these are pinned by projects
 const BASE = "/api/admin/ai/prompts/";
 
 /** The numbered instructions given to the AI, for reading CVs and for scoring. A new version
@@ -139,7 +141,7 @@ export function AiPrompts() {
     <div className="page-stack">
       <div className="page-actions">
         <Button onClick={() => show({ kind: "create" })}>New version</Button>
-        {kind !== "ask" && (
+        {PINNED_KINDS.includes(kind) && (
           <Button variant="secondary" onClick={() => show({ kind: "move" })}>
             Move project
           </Button>

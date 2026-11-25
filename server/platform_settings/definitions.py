@@ -81,6 +81,12 @@ def list_of_words(maximum_items):
     return is_valid
 
 
+def short_text_or_empty(maximum):
+    """Like `short_text`, but an empty text is allowed (it means "not chosen")."""
+    one_line = short_text(maximum)
+    return lambda value: value == "" or one_line(value)
+
+
 def short_text(maximum):
     def is_valid(value):
         return (
@@ -466,6 +472,20 @@ SETTINGS = [
     SettingDefinition("ai.scoring_prompt_version", 1, whole_number(1, 1_000_000)),
     # Ask Bera (see askbera/): the prompt version every question uses, and its limits.
     SettingDefinition("ai.ask_prompt_version", 1, whole_number(1, 1_000_000)),
+    # The website chatbot (see chatbot/): off until a super admin turns it on. The model is empty
+    # until one is chosen. Its knowledge documents are public product information only.
+    SettingDefinition("chatbot.enabled", False, yes_or_no),
+    SettingDefinition("chatbot.model", "", short_text_or_empty(100)),
+    SettingDefinition("ai.chatbot_prompt_version", 1, whole_number(1, 1_000_000)),
+    SettingDefinition("chatbot.visitor_questions_per_hour", 20, whole_number(1, 1000)),
+    SettingDefinition("chatbot.max_question_length", 300, whole_number(20, 2000)),
+    SettingDefinition("chatbot.max_answer_length", 1500, whole_number(100, 10000)),
+    SettingDefinition("chatbot.daily_token_cap", 200_000, whole_number(1000, 100_000_000)),
+    SettingDefinition("chatbot.document_types", ["pdf", "docx", "txt", "md"], list_of_file_types),
+    SettingDefinition("chatbot.max_document_size_mb", 5, whole_number(1, 100)),
+    SettingDefinition("chatbot.max_document_characters", 100_000, whole_number(1000, 1_000_000)),
+    SettingDefinition("chatbot.max_documents", 20, whole_number(1, 500)),
+    SettingDefinition("chatbot.max_total_size_mb", 20, whole_number(1, 1000)),
     SettingDefinition("ask.max_question_length", 500, whole_number(20, 5000)),
     SettingDefinition("ask.max_answer_length", 2000, whole_number(100, 20000)),
     SettingDefinition("ask.max_candidates", 100, whole_number(1, 1000)),

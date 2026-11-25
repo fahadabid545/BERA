@@ -86,11 +86,16 @@ def pages_notice(page_count):
 def check_cv_file(name, data):
     """Everything about one file: refused with a reason, or accepted with its page count and
     any notice."""
-    from . import docx_checks, pdf_checks
-
     if problem := check_name_and_size(name, len(data)):
         return FileCheck(problem=problem)
-    claimed = file_type_of(name)
+    return check_content(file_type_of(name), data)
+
+
+def check_content(claimed, data):
+    """The content checks of a PDF or Word file whose name says it is a `claimed` file: its real
+    type, then everything `check_cv_file` lists. Size and name are the caller's to check."""
+    from . import docx_checks, pdf_checks
+
     kind = docx_checks.sniff(data) or pdf_checks.sniff(data)
     if kind != claimed:
         return FileCheck(

@@ -17,6 +17,7 @@ urlpatterns = [
     path("api/company/api-keys/", include("apikeys.company_urls")),
     path("api/v1/", include("apikeys.api_urls")),
     path("api/admin/feedback/", include("feedback.admin_urls")),
+    path("api/admin/chatbot/", include("chatbot.urls")),
     path("api/admin/audit-log/", include("audit.viewer_urls")),
     path("api/admin/settings/", include("platform_settings.admin_urls")),
     path("api/platform/", platform_info),

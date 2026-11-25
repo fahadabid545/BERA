@@ -93,6 +93,10 @@ export function postForm<T>(path: string, body: FormData) {
   return request<T>(path, { method: "POST", body });
 }
 
+export function putForm<T>(path: string, body: FormData) {
+  return request<T>(path, { method: "PUT", body });
+}
+
 export function deleteJson<T>(path: string, body?: unknown) {
   if (body === undefined) return request<T>(path, { method: "DELETE" });
   return request<T>(path, {

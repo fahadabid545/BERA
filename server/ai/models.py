@@ -34,7 +34,8 @@ class PromptVersion(models.Model):
     READING = "reading"
     SCORING = "scoring"
     ASK = "ask"
-    KINDS = [(READING, "Reading"), (SCORING, "Scoring"), (ASK, "Ask")]
+    CHATBOT = "chatbot"
+    KINDS = [(READING, "Reading"), (SCORING, "Scoring"), (ASK, "Ask"), (CHATBOT, "Chatbot")]
 
     kind = models.CharField(max_length=20, choices=KINDS)
     number = models.PositiveIntegerField()
@@ -46,7 +47,8 @@ class PromptVersion(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["kind", "number"], name="one_prompt_per_number"),
             models.CheckConstraint(
-                condition=Q(kind__in=["reading", "scoring", "ask"]), name="prompt_kind_is_known"
+                condition=Q(kind__in=["reading", "scoring", "ask", "chatbot"]),
+                name="prompt_kind_is_known",
             ),
         ]
 

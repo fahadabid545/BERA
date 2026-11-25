@@ -27,6 +27,7 @@ export const ADMIN_NAVIGATION: readonly NavigationItem<AdminRole>[] = [
       { label: "Playground", href: "/admin/ai/playground" },
       { label: "Models", href: "/admin/ai/models" },
       { label: "Prompts", href: "/admin/ai/prompts" },
+      { label: "Chatbot", href: "/admin/ai/chatbot" },
     ],
   },
   {

@@ -32,6 +32,8 @@ UPLOAD_ROUTE_PATTERNS = (
     re.compile(r"^/api/company/projects/[^/]+/cvs/$"),
     re.compile(r"^/api/company/projects/read-description/$"),
 )
+# The chatbot's knowledge documents: one file per request, with its own size limit.
+DOCUMENT_ROUTE_PATTERN = re.compile(r"^/api/admin/chatbot/documents/(\d+/)?$")
 METHODS_WITH_BODY = {"POST", "PUT", "PATCH", "DELETE"}
 BYTES_PER_KILOBYTE = 1024
 BYTES_PER_MEGABYTE = 1024 * 1024
@@ -44,6 +46,8 @@ def is_upload_route(path):
 
 
 def largest_allowed_request_bytes(path):
+    if DOCUMENT_ROUTE_PATTERN.match(path):
+        return (get_setting("chatbot.max_document_size_mb") + 1) * BYTES_PER_MEGABYTE
     if is_upload_route(path):
         files = get_setting("uploads.max_files_per_batch")
         return get_setting("uploads.max_file_size_mb") * files * BYTES_PER_MEGABYTE

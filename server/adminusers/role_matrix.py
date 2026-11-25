@@ -28,6 +28,7 @@ ROLES_ALLOWED = {
     # Pages only super admins may open (hidden from support, and refused if typed in).
     "plan.view": SUPER_ONLY,
     "ai.view": SUPER_ONLY,
+    "chatbot.view": SUPER_ONLY,
     "payment.view": SUPER_ONLY,
     "settings.view": SUPER_ONLY,
     "audit_log.view": SUPER_ONLY,
@@ -43,6 +44,7 @@ ROLES_ALLOWED = {
     "ai.control": SUPER_ONLY,  # pause or resume all AI work
     "ai.playground": SUPER_ONLY,  # run test scoring and set its monthly budget
     "prompt.change": SUPER_ONLY,
+    "chatbot.change": SUPER_ONLY,  # its settings and its knowledge documents
     "settings.change": SUPER_ONLY,
     "legal.review": SUPER_ONLY,  # say that the Terms and Privacy text was reviewed, or take it back
     "limit.change": SUPER_ONLY,

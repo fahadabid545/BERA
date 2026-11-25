@@ -342,7 +342,7 @@ class TestAi:
         ai = board(boss)["ai"]
         assert ai["calls"] == {"total": 3, "failed": 1, "failure_percent": 33.3}
         assert {row["purpose"]: row["count"] for row in ai["by_purpose"]} == {
-            "reading": 1, "scoring": 2, "requirement_extraction": 0, "playground": 0,
+            "reading": 1, "scoring": 2, "requirement_extraction": 0, "playground": 0, "ask": 0,
         }  # fmt: skip
         assert ai["by_model"][0]["model"] == "big" and ai["by_model"][0]["cost"] == 6.0
         assert ai["by_model"][0]["calls"] == 2

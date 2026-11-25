@@ -6,13 +6,14 @@ import { Button, Dialog, Input, Select, Table, Tag } from "@/components/ui";
 import { getJson, patchJson, postJson, putJson, type ApiError, type ApiResult } from "@/lib/api";
 
 type Roles = "reading" | "scoring";
+type ChosenFor = Roles | "chatbot";
 type Model = {
   id: number;
   name: string;
   input_price_per_million: string;
   output_price_per_million: string;
   enabled: boolean;
-  chosen_for: Roles[];
+  chosen_for: ChosenFor[];
   projects: Record<Roles, number>;
 };
 type Overview = { models: Model[]; choice: Record<Roles, string> };
@@ -24,7 +25,11 @@ type Open =
   | { kind: "switch"; model: Model }
   | { kind: "replace"; model: Model; replacements: Replacement[] };
 
-const ROLE_LABEL: Record<Roles, string> = { reading: "reading", scoring: "scoring" };
+const ROLE_LABEL: Record<ChosenFor, string> = {
+  reading: "reading",
+  scoring: "scoring",
+  chatbot: "chatbot",
+};
 
 /** The models list: add a model, price it, switch it on or off, and choose the reading and
  * scoring model that new projects start with. Existing projects keep the model they were

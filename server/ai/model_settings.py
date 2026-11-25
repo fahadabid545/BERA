@@ -20,6 +20,8 @@ READING, SCORING = "reading", "scoring"
 CHOICES = {READING: "ai.reading_model", SCORING: "ai.scoring_model"}
 PROJECT_FIELDS = {READING: "reading_model", SCORING: "scoring_model"}
 
+CHATBOT_SETTING = "chatbot.model"  # the website chatbot's model, chosen on its own page
+
 IN_USE_CODE = "model_in_use"
 IN_USE_MESSAGE = "This model is in use. Choose a replacement to disable it."
 NOT_ENABLED = "Choose a model that is switched on."
@@ -43,7 +45,8 @@ def usage_of(model):
     """Where a model is in use: which choices point at it and how many projects pinned it."""
     chosen = chosen_names()
     return {
-        "chosen_for": [role for role in CHOICES if chosen[role] == model.name],
+        "chosen_for": [role for role in CHOICES if chosen[role] == model.name]
+        + (["chatbot"] if get_setting(CHATBOT_SETTING) == model.name else []),
         "projects": {
             role: Project.objects.filter(**{PROJECT_FIELDS[role]: model.name}).count()
             for role in CHOICES
@@ -118,6 +121,11 @@ def _move_to(model, replacement):
         moved["projects"] += Project.objects.filter(**{PROJECT_FIELDS[role]: model.name}).update(
             **{PROJECT_FIELDS[role]: replacement.name}
         )
+    if get_setting(CHATBOT_SETTING) == model.name:
+        PlatformSetting.objects.update_or_create(
+            key=CHATBOT_SETTING, defaults={"value": replacement.name}
+        )
+        moved["chosen_for"].append("chatbot")
     return moved
 
 

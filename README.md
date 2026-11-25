@@ -2911,6 +2911,34 @@ candidates in plain language (`POST /api/company/projects/<id>/ask/`).
 Only simulated: tests use a stand-in AI. The owner must try real questions with the real AI key
 before launch and read the answers for quality.
 
+## Chatbot settings and knowledge documents (BERA-187)
+
+Admin page `AI > Chatbot` (super admin only; support is refused by the server). It holds the
+settings and documents the later website chat widget will read; **no chat widget exists and nothing
+answers visitors yet**.
+
+- **Settings:** an on/off switch (off by default; it cannot be switched on without a model), the
+  model (from the models list, switched on only), the prompt version (kind "Chatbot" on the Prompts
+  page, version 1 is created by the migration), and the limits: questions per visitor per hour,
+  longest question, longest answer and a daily token cap. They are ordinary platform settings
+  (`chatbot.*`, `ai.chatbot_prompt_version`), so the widget only has to read them. A model the
+  chatbot uses cannot be switched off without a replacement, like the reading and scoring models.
+- **Documents:** public product information only. Upload PDF, Word, text or Markdown; the file goes
+  through the same checks as a CV (real type, damaged, password protected, macros, scanned image)
+  and the same text reading. Only the extracted text, name, size, type, status (on or off) and dates
+  are kept; the original file is not stored. A document longer than `chatbot.max_document_characters`
+  (or a PDF with more pages than are read) is refused, not cut. Limits are platform settings:
+  `chatbot.document_types`, `max_document_size_mb`, `max_documents`, `max_total_size_mb`.
+- **Audit:** settings changes (old and new values), and adding, replacing, switching and deleting a
+  document; no reason is asked. Names and text never go into the audit log.
+- **No company data:** the feature has no link to any company, candidate, project or CV table (a
+  test checks that its tables hold no relation), and no company data is ever put into it.
+- **For the widget ticket:** `chatbot.documents.knowledge_texts()` returns the (name, text) of the
+  documents that are on.
+
+Only simulated: tests use generated PDF and Word files. The owner must upload the real product
+documents, check the extracted text reads well, choose a model, and review the prompt text.
+
 ## Library checks and updates
 
 `python scripts/check_vulnerabilities.py` checks the server (pip-audit) and web (npm audit)
