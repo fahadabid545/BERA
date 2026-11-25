@@ -88,8 +88,7 @@ def test_findings_only_in_the_full_audit_belong_to_development_tools():
 
 
 def test_the_projects_acceptances_are_complete_and_dated_in_the_future():
-    entries = check.load_acceptances()
-    assert entries
+    entries = check.load_acceptances()  # may be empty: nothing is accepted now
     for entry in entries:
         assert entry["reason"].strip() and isinstance(entry["review_by"], date), entry["package"]
         assert entry["scope"] in {PRODUCTION, DEVELOPMENT}

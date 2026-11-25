@@ -2593,7 +2593,8 @@ libraries against the public advisory databases. It runs on every change and eve
 (`.github/workflows/vulnerabilities.yml`). A high or critical finding in a production library
 fails the check; findings in development tools only warn. A risk we accept is written in
 `security/accepted-vulnerabilities.toml` with a reason and a review date; once the date passes
-the check fails until someone looks again.
+the check fails until someone looks again. Nothing is accepted now (BERA-181). The written result of
+the pre-launch review is `docs/security/pre-launch-review.md`.
 
 Updating routine (weekly, after the Monday check):
 
