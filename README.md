@@ -676,6 +676,25 @@ information** (billing details are edited in the app, BERA-168). Plan changes an
 cancellation go through the app's own flows (BERA-166 and BERA-167). Save the configuration (the
 default configuration is the one used).
 
+### Taxes (BERA-170): postponed
+
+Tax handling is postponed in writing. It depends on the business registration and on the payment
+provider setup, and neither is decided yet. No tax field, rate or calculation exists in the code.
+
+**Still to be decided by the owner**
+- The country where the business is registered.
+- Whether Stripe Tax is turned on.
+- How the tax number is used (for example reverse charge or exemption).
+- How the billing address country is used for tax.
+
+**Ready**
+- The billing country and the tax number are stored and shown on Stripe invoices (BERA-168).
+- The locked sign-up country (which decides the PKR display price) is separate from the billing
+  address country, and editing billing details never changes it.
+
+**The platform runs in Stripe test mode only until this is decided.** Live charging must not be
+switched on before it (the code already refuses any key that is not a test key).
+
 ### Plans management
 
 Super admins manage the subscription plans under `/api/admin/plans/` (list and create; read,
