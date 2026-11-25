@@ -714,6 +714,32 @@ The approved wording of Home, Features and How it works is kept word for word in
 `web/src/components/website/content.ts`; the pages only lay it out with the shared `Card` and
 design tokens (so both themes follow). Change the text there only when the owner approves new text.
 
+### Search engines and sharing (BERA-175)
+
+Every public page (Home, Features, How it works, Pricing, FAQ, Contact, Terms, Privacy, Log in, Sign
+up) has a title ("Page | Name", Home is just the name), a description, a canonical address and sharing
+tags (Open Graph and Twitter card). The approved wording is the `PUBLIC_PAGES` table in
+`web/src/lib/seo.ts`; the platform's name in it comes from the app name setting (`/api/platform/`), not
+from the table.
+
+- **Preview image:** put the cover at `web/public/og-cover.png` (1200 x 630). The image tags are
+  written only while that file exists, so a link never points at a missing image. **The cover image is
+  still to be provided.**
+- **`NEXT_PUBLIC_SITE_URL`:** the public address, used only for the sitemap, canonical and sharing
+  links, never for any security decision. In production it must be `https://...` with no path and no
+  trailing slash, or the web app will not build or start. Development falls back to
+  `http://localhost:3000`.
+- **Sitemap and robots:** `/sitemap.xml` lists only the ten public pages (no dates). `/robots.txt` allows
+  everything public and points to the sitemap; it names no private path, because that would publish
+  the address. Private pages are kept out of search by `noindex` instead: the middleware sends
+  `X-Robots-Tag: noindex, nofollow` and each page or layout carries the meta tag, for the company and
+  admin panels, `/r/<token>`, reset-password, verify-email, accept-invite, confirm-email-change,
+  undo-company-deletion, forgot-password and the development sample. The links that carry a secret
+  also send no referrer. A test walks every page of the app and fails if a private one comes back
+  without noindex.
+- **Speed:** the pages are small, use self-hosted fonts and no extra scripts; the app name is cached
+  for five minutes so it never slows a page.
+
 ### FAQ and legal pages (BERA-174)
 
 `/faq` shows the approved FAQ (`web/src/components/website/content.ts`; the two answers about cost and

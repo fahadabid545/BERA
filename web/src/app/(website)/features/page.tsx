@@ -1,6 +1,11 @@
 import { ButtonLink, Card } from "@/components/ui";
 import { FEATURES } from "@/components/website/content";
 import { ACCOUNT_LINKS } from "@/components/website/links";
+import { pageMetadata } from "@/lib/seo";
+
+export async function generateMetadata() {
+  return pageMetadata("features");
+}
 
 export default function FeaturesPage() {
   return (

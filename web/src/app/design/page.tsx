@@ -32,13 +32,15 @@ import {
   UpgradePrompt,
 } from "@/components/company/BillingPrompt";
 
+import { privatePage } from "@/lib/seo";
+
 import { AdminSample } from "./AdminSample";
 import { AnnouncementSample } from "./AnnouncementSample";
 import { ComparisonSample } from "./ComparisonSample";
 import { DashboardSample } from "./DashboardSample";
 import { DeleteConfirmation } from "./DeleteConfirmation";
 
-export const metadata = { title: "BERA design sample" };
+export const metadata = { ...privatePage, title: "BERA design sample" };
 
 /** Shows every building block. Only for development; hidden in production builds. */
 export default function DesignSample() {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { areaOf, contentSecurityPolicy, securityHeaders } from "./headers";
+import { areaOf, contentSecurityPolicy, isPrivatePage, securityHeaders } from "./headers";
 
 const nonce = "abc123";
 
@@ -90,5 +90,28 @@ describe("security headers", () => {
     const headers = securityHeaders({ area, nonce, development: true });
     expect(headers["Strict-Transport-Security"]).toBeUndefined();
     expect(headers["X-Frame-Options"]).toBe("DENY");
+  });
+});
+
+describe("private website pages", () => {
+  it.each(["/r/abc", "/reset-password", "/verify-email", "/forgot-password", "/company/projects"])(
+    "%s is not for search engines",
+    (pathname) => {
+      expect(isPrivatePage(pathname)).toBe(true);
+    },
+  );
+
+  it.each(["/", "/pricing", "/login", "/signup", "/rates", "/resetting"])(
+    "%s is a public page",
+    (pathname) => {
+      expect(isPrivatePage(pathname)).toBe(false);
+    },
+  );
+
+  it("sends no referrer from a link that holds a secret, but not from other website pages", () => {
+    const send = (pathname: string) =>
+      securityHeaders({ area: "website", nonce, development: false, pathname })["Referrer-Policy"];
+    expect(send("/reset-password")).toBe("no-referrer");
+    expect(send("/pricing")).toBe("strict-origin-when-cross-origin");
   });
 });

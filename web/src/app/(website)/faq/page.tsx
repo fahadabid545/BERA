@@ -1,8 +1,13 @@
 import { Card, TextLink } from "@/components/ui";
 import { FAQ } from "@/components/website/content";
 import { NAV_LINKS } from "@/components/website/links";
+import { pageMetadata } from "@/lib/seo";
 
 const CONTACT_LINK = NAV_LINKS.find((link) => link.label === "Contact")!;
+
+export async function generateMetadata() {
+  return pageMetadata("faq");
+}
 
 export default function FaqPage() {
   return (

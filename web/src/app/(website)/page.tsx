@@ -1,8 +1,13 @@
 import { ButtonLink, Card } from "@/components/ui";
 import { HOME } from "@/components/website/content";
 import { ACCOUNT_LINKS, NAV_LINKS } from "@/components/website/links";
+import { pageMetadata } from "@/lib/seo";
 
 const PRICING_LINK = NAV_LINKS.find((link) => link.label === "Pricing")!;
+
+export async function generateMetadata() {
+  return pageMetadata("home");
+}
 
 export default function WebsiteHome() {
   return (

@@ -14,7 +14,9 @@ export function middleware(request: NextRequest) {
   requestHeaders.set("Content-Security-Policy", contentSecurityPolicy({ nonce, development }));
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
-  for (const [name, value] of Object.entries(securityHeaders({ area, nonce, development }))) {
+  for (const [name, value] of Object.entries(
+    securityHeaders({ area, nonce, development, pathname: request.nextUrl.pathname }),
+  )) {
     response.headers.set(name, value);
   }
   return response;
