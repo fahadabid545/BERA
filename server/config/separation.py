@@ -15,8 +15,18 @@ SECRET_NAME = re.compile(r"SECRET|KEY|PASSWORD|TOKEN")
 PORTS = ("API_PORT", "WEB_PORT")
 LIST_SETTINGS = ("ALLOWED_HOSTS", "ALLOWED_ORIGINS")  # comma separated
 SINGLE_ADDRESSES = ("WEB_BASE_URL", "NEXT_PUBLIC_SITE_URL")
-DATABASE_URLS = ("DATABASE_URL", "MIGRATION_DATABASE_URL")
-BUCKETS = ("R2_BUCKET", "STAGING_EMAIL_FOLDER", "PRIVATE_FILES_ROOT")  # storage places
+DATABASE_URLS = (
+    "DATABASE_URL",
+    "MIGRATION_DATABASE_URL",
+    "BACKUP_DATABASE_URL",
+    "RESTORE_TEST_DATABASE_URL",
+)
+BUCKETS = (
+    "R2_BUCKET",
+    "BACKUP_R2_BUCKET",
+    "STAGING_EMAIL_FOLDER",
+    "PRIVATE_FILES_ROOT",
+)  # storage places
 
 
 def _hash(value):
@@ -27,6 +37,8 @@ def _parts(url):
     """The password, the account and the database a database address points at."""
     try:
         split = urlsplit(url)
+        if not split.hostname:  # nothing set: nothing to compare
+            return "", "", ""
         return (
             split.password or "",
             split.username or "",

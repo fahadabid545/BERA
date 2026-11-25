@@ -66,5 +66,4 @@ class Candidate(CompanyOwnedModel):
 - Hashing of user passwords (the login tickets). Refresh tokens are already stored hashed.
 - Changing the field keys: values carry a version byte for it, but re-encrypting all rows is
   not built.
-- Backup jobs, backup encryption and restore tests: the account exists, nothing uses it yet.
 - The server firewall and keeping the database off the internet (launch tickets).

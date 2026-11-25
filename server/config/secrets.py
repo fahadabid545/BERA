@@ -50,6 +50,20 @@ REQUIRED_SETTINGS = [
     RequiredSetting("R2_ACCESS_KEY_ID", roles=("app",)),
     RequiredSetting("R2_SECRET_ACCESS_KEY", roles=("app",)),
     RequiredSetting("R2_BUCKET", secret=False, roles=("app",)),
+    # Backups run in production only (staging holds fake data). The app's own process starts the
+    # backup commands, so these are app settings.
+    RequiredSetting("BACKUP_DATABASE_URL", roles=("app",), environments=("production",)),
+    RequiredSetting("RESTORE_TEST_DATABASE_URL", roles=("app",), environments=("production",)),
+    RequiredSetting(
+        "BACKUP_ENCRYPTION_KEY_ID",
+        secret=False,
+        roles=("app",),
+        environments=("production",),
+    ),
+    RequiredSetting("BACKUP_ENCRYPTION_KEY", roles=("app",), environments=("production",)),
+    RequiredSetting("BACKUP_R2_ACCESS_KEY_ID", roles=("app",), environments=("production",)),
+    RequiredSetting("BACKUP_R2_SECRET_ACCESS_KEY", roles=("app",), environments=("production",)),
+    RequiredSetting("BACKUP_R2_BUCKET", secret=False, roles=("app",), environments=("production",)),
     RequiredSetting("WEB_BASE_URL", secret=False),
     RequiredSetting("JWT_COMPANY_SECRET"),
     RequiredSetting("JWT_ADMIN_SECRET"),

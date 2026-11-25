@@ -531,6 +531,10 @@ SETTINGS = [
     # spam checks (a form sent faster than a person can type, or held longer than the maximum age,
     # is treated as spam) and the notice shown beside the form. "{days}" in the notice is replaced
     # by the retention period, so the notice always says what the code does.
+    SettingDefinition("backup.retention_days", 30, whole_number(1, 365)),
+    # Backups that are never removed, newest first, even when older than the retention.
+    SettingDefinition("backup.minimum_kept", 7, whole_number(1, 365)),
+    SettingDefinition("backup.late_after_hours", 26, whole_number(1, 168)),
     SettingDefinition("contact.max_name_length", 100, whole_number(1, 200)),
     SettingDefinition("contact.max_message_length", 3000, whole_number(1, 10000)),
     SettingDefinition("contact.retention_days", 90, whole_number(1, 3650)),

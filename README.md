@@ -760,6 +760,85 @@ active plan first). **A production backup is never restored into staging.** The 
 **Web build.** The lock file now pins Next.js 16.4.6 (still inside `^16.4.3`): version 16.4.3 made
 `next build` stop with a security notice, which would have stopped every deploy.
 
+### Backups (BERA-178)
+
+Production backs up its database every day to a separate private R2 bucket, encrypted, and proves every
+week that a backup can be restored. Staging holds only fake data and has no backups. This is built and
+tested with a real `pg_dump` and `pg_restore` against a local database; the first run against the real R2
+bucket is the owner's (see "First set-up").
+
+**What runs** (systemd timers, made by `python deploy/bera_deploy.py units production`; each is a short
+process that stops by itself, limited to 300 MB):
+
+| Job | When (UTC) | What it does |
+| --- | --- | --- |
+| `backup_database` | daily 02:30 | Streams `pg_dump` through the encryption into the backup bucket, checks the saved size, then removes backups past retention. |
+| `verify_backup_restore` | Sundays 04:30 | Downloads the newest backup, decrypts it with the key as configured now, restores it into a throwaway database, checks it has tables and applied migrations, and deletes the throwaway database. |
+| `check_backup_fresh` | hourly | Alerts when no backup succeeded in the last 26 hours (this catches a timer that stopped). |
+
+**Encryption.** The dump is encrypted as it streams (AES-256-GCM in 1 MiB chunks), so a dump of any size
+needs very little memory. The file starts with a header that names the key id, so after a key change older
+backups still open with their own key. Damage, a swapped or dropped chunk, or a file cut short is always
+noticed. Make a key with `python -c "import secrets; print(secrets.token_urlsafe(48))"`, set
+`BACKUP_ENCRYPTION_KEY_ID` (for example `k1`) and `BACKUP_ENCRYPTION_KEY`. To change the key: pick a new id and
+key, and set `BACKUP_PREVIOUS_KEYS=k1=<old key>` so old backups still open.
+**Keep an offline copy of every key that still has backups, in a place that is neither the server nor the
+backup bucket (for example the owner's password manager). Without the key a backup cannot be opened.**
+
+**Retention.** `backup.retention_days` (30) in the platform settings. After a backup was saved and its size
+checked, backups older than that are deleted, except the newest `backup.minimum_kept` (7). If a backup
+fails, nothing is deleted, so the system can never remove its way down to zero backups.
+`backup.late_after_hours` (26) sets when the "late" alert fires.
+Data that was deleted in the app stays in older backups until they age out (up to 30 days). Say so in the
+Privacy page text (BERA-174) when the owner writes it.
+
+**Alerts.** A failed backup, a failed restore test and a late backup email every active super admin (the
+same security alert email, at most once per kind per cooldown) and write an audit entry
+(`security.backup_failed`, `security.restore_test_failed`, `security.backup_late`). They state only the kind
+of failure (the database could not be copied, the storage could not be reached, the backup could not be
+decrypted with the configured key, ...), never an error message, address or value. The timers also end
+with a failed status, visible in `systemctl status`. A server that is down entirely cannot email anyone;
+watching it from outside is BERA-180.
+
+**First set-up (owner).**
+1. Install the PostgreSQL 16 client programs on the server (`pg_dump`, `pg_restore`).
+2. In Cloudflare R2 create a **new, separate bucket** for backups (private, no public address) and an access
+   key limited to that bucket only. R2 does not offer a key that can write but not delete (check the
+   dashboard when you create it), so also: add a **lifecycle rule** that expires objects after 30 days as a
+   second layer, and, if your R2 plan offers a bucket lock, a retention lock of a few days so a stolen
+   key cannot wipe the bucket at once. A key limited to this bucket cannot touch the CV bucket.
+3. Create the restore-test account in PostgreSQL (it can only create throwaway databases):
+   `CREATE ROLE bera_restore_test LOGIN PASSWORD '<real password>' CREATEDB NOSUPERUSER NOCREATEROLE;`
+   and put its address in `RESTORE_TEST_DATABASE_URL`, pointing at the `postgres` database.
+4. Fill the `BACKUP_*` and `RESTORE_TEST_DATABASE_URL` values in `/etc/bera/production.env` (see
+   `deploy/env/production.env.example`), run `provision_database_roles` (the read-only `backup` account is
+   the one named by `BACKUP_DATABASE_URL`), run `units production`, install the files and enable the timers
+   (`systemctl enable --now bera-production-backup.timer bera-production-restore-test.timer
+   bera-production-backup-check.timer`). Production does not start without these settings.
+5. Run the three commands once by hand (`python manage.py backup_database`, then `verify_backup_restore`) and
+   check the object appears in the bucket. Test the alert: set a wrong `BACKUP_ENCRYPTION_KEY` for one run of
+   `verify_backup_restore` and confirm the super admins get the email, then put the right key back.
+
+**Restoring after a loss.**
+1. Stop the app (`systemctl stop bera-production-api bera-production-worker`).
+2. Decrypt the newest backup (or one chosen with `--name`) into a dump file, restore it into a **new**
+   database, and delete the file: `python manage.py decrypt_backup /secure/folder/plain.dump`, then
+   `pg_restore --no-owner --dbname <new database> /secure/folder/plain.dump`. The right key is chosen by the id
+   in the file's header, so the old keys must be in `BACKUP_PREVIOUS_KEYS`. The dump file holds all the data:
+   keep it in a private folder and delete it as soon as the restore is done.
+3. Point `DATABASE_URL`, `MIGRATION_DATABASE_URL` and `BACKUP_DATABASE_URL` at it, run
+   `provision_database_roles` and `migrate`, start the app.
+4. **Re-apply every deletion made since the backup.** The restore brings back data that was deleted after the
+   backup was taken, which would break promises made to companies and candidates. The audit log records each
+   deletion by id only (`candidate.deleted`, `company.deleted`, and company deletions confirmed after the grace
+   period); take the audit log entries newer than the backup's time from the live log (the old database, or the
+   log files if it is gone), and delete the same candidates and companies again. The daily retention jobs
+   remove CVs that are past their retention by themselves. Do this **before** letting people in.
+5. A production backup is never restored into staging.
+
+The restore test and every command above use only the throwaway database for restores; nothing ever
+overwrites the live one.
+
 ### Taxes (BERA-170): postponed
 
 Tax handling is postponed in writing. It depends on the business registration and on the payment

@@ -58,6 +58,7 @@ RESOURCES = {
         "queue_memory": "600M",
         "web_memory": "350M",
         "web_heap_mb": 256,
+        "job_memory": "300M",
     },
     "staging": {
         "api_workers": 1,
@@ -68,6 +69,13 @@ RESOURCES = {
         "web_heap_mb": 160,
     },
 }
+# Production only (staging holds fake data): backup jobs run by timers, each a short-lived process
+# that stops by itself. (name, manage.py command, when, longest it may run)
+BACKUP_JOBS = (
+    ("backup", "backup_database", "*-*-* 02:30:00 UTC", "2h"),
+    ("restore-test", "verify_backup_restore", "Sun *-*-* 04:30:00 UTC", "2h"),
+    ("backup-check", "check_backup_fresh", "*-*-* *:15:00 UTC", "10min"),
+)
 HEALTH_ATTEMPTS = 20
 HEALTH_DELAY_SECONDS = 3
 
@@ -159,26 +167,30 @@ def database_environment(url):
     }
 
 
-def render_units(env, layout):
-    """The systemd service files for one environment: not root, memory limited, the secrets read
-    from the env file outside the releases, the code reached through the `current` link."""
-    numbers = RESOURCES[env]
-    current = layout.current
-    common = f"""[Unit]
+def unit_header(layout, restart_lines):
+    """What every service has in common: not root, secrets from the env file outside the releases,
+    limited rights."""
+    return f"""[Unit]
 After=network.target
 
 [Service]
 User={SERVICE_USER}
 Group={SERVICE_USER}
 EnvironmentFile={layout.env_file}
-Restart=on-failure
-RestartSec=5
-NoNewPrivileges=true
+{restart_lines}NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths={layout.base}/data
 """
+
+
+def render_units(env, layout):
+    """The systemd service files for one environment: not root, memory limited, the secrets read
+    from the env file outside the releases, the code reached through the `current` link."""
+    numbers = RESOURCES[env]
+    current = layout.current
+    common = unit_header(layout, "Restart=on-failure\nRestartSec=5\n")
     api_start = (
         f"{current}/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:${{API_PORT}} "
         f"--workers {numbers['api_workers']} --timeout 60"
@@ -212,7 +224,29 @@ MemoryMax={numbers["web_memory"]}
 WantedBy=multi-user.target
 """,
     }
-    return {f"bera-{env}-{name}.service": text for name, text in units.items()}
+    files = {f"bera-{env}-{name}.service": text for name, text in units.items()}
+    if env == "production":
+        files.update(render_backup_units(layout, numbers["job_memory"]))
+    return files
+
+
+def render_backup_units(layout, memory):
+    """A service and a timer for each backup job. `Persistent` runs a job missed while the
+    server was off as soon as it is back."""
+    files = {}
+    for name, command, schedule, longest in BACKUP_JOBS:
+        header = unit_header(layout, "Type=oneshot\n")
+        files[f"bera-production-{name}.service"] = (
+            f"{header}WorkingDirectory={layout.current}/server\n"
+            f"ExecStart={layout.current}/.venv/bin/python manage.py {command}\n"
+            f"MemoryMax={memory}\nTimeoutStartSec={longest}\n"
+        )
+        files[f"bera-production-{name}.timer"] = (
+            f"[Unit]\nDescription=Bera production {name}\n\n"
+            f"[Timer]\nOnCalendar={schedule}\nPersistent=true\n\n"
+            "[Install]\nWantedBy=timers.target\n"
+        )
+    return files
 
 
 class Deployer:

@@ -24,6 +24,8 @@ Replacing is not enough: the old value must stop working.
 | AI provider key | Delete the key in the provider's dashboard, create a new one. |
 | Payment keys and webhook secret | Roll the keys in the payment dashboard (the old key stops working), update the webhook secret. |
 | Email provider password (`EMAIL_HOST_PASSWORD`) | Delete it in the provider's dashboard, create a new one, update the setting, restart. |
+| `BACKUP_ENCRYPTION_KEY` | Whoever holds the key and a copy of a backup can read the whole database. Treat as a data breach if backups were also reachable. Set a new id and key, move the old one to `BACKUP_PREVIOUS_KEYS` so old backups still open, and run a backup. Backups made with the leaked key stay readable to the thief until they age out (30 days), or are deleted. |
+| Backup storage keys (`BACKUP_R2_*`) | Delete the access key in the storage dashboard, create a new one, update the setting, then check the bucket still holds the backups. |
 | Storage keys | Delete the access key in the storage dashboard, create a new one. |
 
 ## 3. Check what happened

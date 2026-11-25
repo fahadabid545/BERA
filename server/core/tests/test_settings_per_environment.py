@@ -28,6 +28,13 @@ FAKE_VALUES = {
     "R2_ACCESS_KEY_ID": "test-only-r2-key-id-5d8a3c1f7e92",
     "R2_SECRET_ACCESS_KEY": "test-only-r2-secret-b41e7c0a9d3f6528",
     "R2_BUCKET": "bera-test-bucket",
+    "BACKUP_DATABASE_URL": "postgres://backup:test-only-backup-pw-1414213562@127.0.0.1:5432/bera?sslmode=verify-full",  # nosecret: fake
+    "RESTORE_TEST_DATABASE_URL": "postgres://restorer:test-only-restore-pw-1732050807@127.0.0.1:5432/postgres?sslmode=verify-full",  # nosecret: fake
+    "BACKUP_ENCRYPTION_KEY_ID": "k1",
+    "BACKUP_ENCRYPTION_KEY": "test-only-backup-encryption-key-5e7a1c",
+    "BACKUP_R2_ACCESS_KEY_ID": "test-only-backup-r2-key-id-2f6b9d41",
+    "BACKUP_R2_SECRET_ACCESS_KEY": "test-only-backup-r2-secret-8c3a5e70d2",
+    "BACKUP_R2_BUCKET": "bera-test-backups",
     "WEB_BASE_URL": "https://app.example.com",
     "ALLOWED_HOSTS": "staging.example.com, www.example.com",
     "TRUSTED_PROXY_COUNT": "1",

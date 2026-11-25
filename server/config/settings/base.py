@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "projects",
     "ai",
     "cvs",
+    "backups",
 ]
 
 # Development only (see development.py): the country the sign-up form pretends the visitor is in.
@@ -147,3 +148,15 @@ LOGGING = {
         "django.server": {"handlers": ["console"], "level": "INFO", "propagate": False},
     },
 }
+
+# Database backups (see backups/). Production sets all of these; development may use a local
+# folder (BACKUP_LOCAL_FOLDER) instead of the backup bucket.
+BACKUP_DATABASE_URL = os.environ.get("BACKUP_DATABASE_URL", "").strip()
+RESTORE_TEST_DATABASE_URL = os.environ.get("RESTORE_TEST_DATABASE_URL", "").strip()
+BACKUP_ENCRYPTION_KEY_ID = os.environ.get("BACKUP_ENCRYPTION_KEY_ID", "").strip()
+BACKUP_ENCRYPTION_KEY = os.environ.get("BACKUP_ENCRYPTION_KEY", "").strip()
+BACKUP_PREVIOUS_KEYS = os.environ.get("BACKUP_PREVIOUS_KEYS", "").strip()
+BACKUP_R2_ACCESS_KEY_ID = os.environ.get("BACKUP_R2_ACCESS_KEY_ID", "").strip()
+BACKUP_R2_SECRET_ACCESS_KEY = os.environ.get("BACKUP_R2_SECRET_ACCESS_KEY", "").strip()
+BACKUP_R2_BUCKET = os.environ.get("BACKUP_R2_BUCKET", "").strip()
+BACKUP_LOCAL_FOLDER = os.environ.get("BACKUP_LOCAL_FOLDER") or BASE_DIR.parent / ".dev-backups"

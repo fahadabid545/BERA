@@ -21,6 +21,10 @@ STAGING = {
     "R2_ACCESS_KEY_ID": "test-only-staging-r2-key-id-0001",
     "R2_SECRET_ACCESS_KEY": "test-only-staging-r2-secret-0001",
     "R2_BUCKET": "bera-test-staging",
+    "BACKUP_R2_BUCKET": "bera-test-staging-backups",
+    "BACKUP_R2_SECRET_ACCESS_KEY": "test-only-staging-backup-r2-secret-01",
+    "BACKUP_ENCRYPTION_KEY": "test-only-staging-backup-key-000001",
+    "BACKUP_DATABASE_URL": "postgres://staging_bak:test-only-staging-bak-pw-1@127.0.0.1:5432/bera_staging",  # nosecret: fake
     "DATABASE_URL": "postgres://staging_app:test-only-staging-db-pw-1@127.0.0.1:5432/bera_staging",
     "MIGRATION_DATABASE_URL": "postgres://staging_mig:test-only-staging-mig-pw-1@127.0.0.1:5432/bera_staging",  # nosecret: fake
     "WEB_BASE_URL": "https://staging.example.com",
@@ -42,6 +46,10 @@ PRODUCTION = {
     "R2_ACCESS_KEY_ID": "test-only-production-r2-key-id-0001",
     "R2_SECRET_ACCESS_KEY": "test-only-production-r2-secret-001",
     "R2_BUCKET": "bera-test-production",
+    "BACKUP_R2_BUCKET": "bera-test-production-backups",
+    "BACKUP_R2_SECRET_ACCESS_KEY": "test-only-production-backup-r2-secret-1",
+    "BACKUP_ENCRYPTION_KEY": "test-only-production-backup-key-0001",
+    "BACKUP_DATABASE_URL": "postgres://production_bak:test-only-production-bak-pw-1@127.0.0.1:5432/bera_production",  # nosecret: fake
     "DATABASE_URL": "postgres://production_app:test-only-production-db-pw-1@127.0.0.1:5432/bera_production",  # nosecret: fake
     "MIGRATION_DATABASE_URL": "postgres://production_mig:test-only-production-mig-pw-1@127.0.0.1:5432/bera_production",  # nosecret: fake
     "WEB_BASE_URL": "https://www.example.com",
@@ -66,6 +74,8 @@ def test_two_separate_environments_pass():
         "OPENAI_API_KEY",
         "STRIPE_WEBHOOK_SECRET",
         "R2_SECRET_ACCESS_KEY",
+        "BACKUP_R2_SECRET_ACCESS_KEY",
+        "BACKUP_ENCRYPTION_KEY",
     ],
 )
 def test_a_shared_secret_fails_and_is_named(name):
@@ -73,7 +83,9 @@ def test_a_shared_secret_fails_and_is_named(name):
     assert problems == [f"{name} is the same secret in both environments."]
 
 
-@pytest.mark.parametrize("name", ["R2_BUCKET", "API_PORT", "WEB_PORT", "WEB_BASE_URL"])
+@pytest.mark.parametrize(
+    "name", ["R2_BUCKET", "BACKUP_R2_BUCKET", "API_PORT", "WEB_PORT", "WEB_BASE_URL"]
+)
 def test_a_shared_bucket_port_or_address_fails(name):
     assert any(name in problem for problem in compare(STAGING, {**PRODUCTION, name: STAGING[name]}))
 
@@ -84,6 +96,11 @@ def test_a_shared_database_account_password_or_name_fails():
     assert "DATABASE_URL has the same database password" in text
     assert "DATABASE_URL uses the same database account" in text
     assert "DATABASE_URL points at the same database" in text
+
+
+def test_a_shared_backup_database_account_fails():
+    same = {**PRODUCTION, "BACKUP_DATABASE_URL": STAGING["BACKUP_DATABASE_URL"]}
+    assert any("BACKUP_DATABASE_URL" in problem for problem in compare(STAGING, same))
 
 
 def test_the_same_database_name_on_the_same_server_fails_even_with_other_accounts():

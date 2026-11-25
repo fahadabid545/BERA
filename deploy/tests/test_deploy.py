@@ -336,13 +336,46 @@ class TestTheServiceFiles:
     def test_run_as_a_normal_user_with_limits_and_secrets_outside_the_releases(self, server, env):
         layout = Layout(Path("/srv/bera"), env, Path("/etc/bera"))
         units = deploy.render_units(env, layout)
-        assert set(units) == {f"bera-{env}-{name}.service" for name in deploy.SERVICES}
-        for text in units.values():
+        services = {f"bera-{env}-{name}.service" for name in deploy.SERVICES}
+        assert services <= set(units)
+        for name, text in units.items():
+            if name.endswith(".timer"):
+                continue
             assert "User=bera" in text and "User=root" not in text
             assert f"EnvironmentFile=/etc/bera/{env}.env" in text
             assert "NoNewPrivileges=true" in text and "ProtectSystem=strict" in text
             assert "/releases/" not in text  # reached through the `current` link only
             assert "MemoryMax=" in text
+
+    def test_staging_has_no_backup_jobs_and_production_has_three_timers(self):
+        staging = deploy.render_units(
+            "staging", Layout(Path("/srv/bera"), "staging", Path("/etc/bera"))
+        )
+        production = deploy.render_units(
+            "production", Layout(Path("/srv/bera"), "production", Path("/etc/bera"))
+        )
+        assert not [name for name in staging if "backup" in name or "restore" in name]
+        timers = {name for name in production if name.endswith(".timer")}
+        assert timers == {
+            "bera-production-backup.timer",
+            "bera-production-restore-test.timer",
+            "bera-production-backup-check.timer",
+        }
+
+    def test_each_backup_job_runs_once_as_the_service_user_with_a_limit(self):
+        units = deploy.render_units(
+            "production", Layout(Path("/srv/bera"), "production", Path("/etc/bera"))
+        )
+        for name, command in {
+            "backup": "backup_database",
+            "restore-test": "verify_backup_restore",
+            "backup-check": "check_backup_fresh",
+        }.items():
+            text = units[f"bera-production-{name}.service"]
+            assert "Type=oneshot" in text and "Restart=" not in text
+            assert f"manage.py {command}" in text and "User=bera" in text
+            assert f"MemoryMax={deploy.RESOURCES['production']['job_memory']}" in text
+            assert "Persistent=true" in units[f"bera-production-{name}.timer"]
 
     def test_the_numbers_come_from_the_one_table(self):
         layout = Layout(Path("/srv/bera"), "production", Path("/etc/bera"))

@@ -32,6 +32,9 @@ KINDS = _kinds(
     EventKind("security.card_update_opened"),
     EventKind("security.card_update_result"),
     EventKind("security.contact_spam_dropped"),
+    EventKind("security.backup_failed"),
+    EventKind("security.restore_test_failed"),
+    EventKind("security.backup_late"),
     # Key company actions.
     EventKind("invite.sent"),
     EventKind("invite.resent"),

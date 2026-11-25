@@ -30,6 +30,9 @@ DESCRIPTIONS = {
     "security.card_update_result": "A company owner came back from the payment provider's card "
     "page and the result was recorded.",
     "security.contact_spam_dropped": "The contact form dropped a message that looked like spam.",
+    "security.backup_failed": "The daily database backup failed.",
+    "security.restore_test_failed": "The weekly test that restores the latest backup failed.",
+    "security.backup_late": "No new database backup has been made in the expected time.",
 }
 
 
@@ -65,12 +68,13 @@ def _send(admins, what):
         )
 
 
-def alert_admins(kind):
+def alert_admins(kind, note=None):
     """Emails every active super admin about `kind`, unless that kind was announced within the
-    cooldown. With nobody to tell, nothing is sent and the cooldown is not used up."""
+    cooldown. With nobody to tell, nothing is sent and the cooldown is not used up. `note` is
+    a short fixed phrase added to the wording (never data from the event)."""
     admins = _recipients()
     if admins and _claim(kind):
-        _send(admins, DESCRIPTIONS[kind])
+        _send(admins, f"{DESCRIPTIONS[kind]} {note}" if note else DESCRIPTIONS[kind])
         return True
     return False
 

@@ -26,6 +26,13 @@ REAL = {
     "JWT_ADMIN_SECRET": "test-only-admin-signing-key-8d2e6b4f0a",
     "TRUSTED_PROXY_COUNT": "1",
     "STAGING_EMAIL_FOLDER": "/var/lib/bera/staging-emails",
+    "BACKUP_DATABASE_URL": "postgres://backup:test-only-backup-pw-1414213562@127.0.0.1:5432/bera",  # nosecret: fake
+    "RESTORE_TEST_DATABASE_URL": "postgres://restorer:test-only-restore-pw-1732050807@127.0.0.1:5432/postgres",  # nosecret: fake
+    "BACKUP_ENCRYPTION_KEY_ID": "k1",
+    "BACKUP_ENCRYPTION_KEY": "test-only-backup-encryption-key-5e7a1c",
+    "BACKUP_R2_ACCESS_KEY_ID": "test-only-backup-r2-key-id-2f6b9d41",
+    "BACKUP_R2_SECRET_ACCESS_KEY": "test-only-backup-r2-secret-8c3a5e70d2",
+    "BACKUP_R2_BUCKET": "bera-test-backups",
 }
 ENVIRONMENTS = ["staging", "production"]
 # The migrator's address is held only by the process that changes the structure.
@@ -85,6 +92,14 @@ def test_staging_needs_its_email_folder_and_no_email_account():
     check_required_settings(environ, "staging")
 
 
+def test_staging_holds_fake_data_and_needs_no_backup_settings():
+    environ = {k: v for k, v in REAL.items() if not k.startswith(("BACKUP_", "RESTORE_TEST"))}
+    check_required_settings(environ, "staging")
+    assert refusal(environ, "production").details["missing"] == [
+        name for name in APP_SETTINGS_IN_ORDER if name.startswith(("BACKUP_", "RESTORE_TEST"))
+    ]
+
+
 def test_the_app_never_needs_the_migrator_password_and_the_migrator_never_the_apps():
     only_app = {name: value for name, value in REAL.items() if name != "MIGRATION_DATABASE_URL"}
     only_migrator = {name: value for name, value in REAL.items() if name != "DATABASE_URL"}
@@ -122,6 +137,9 @@ def test_a_placeholder_password_in_the_migrator_address_is_refused():
         "STRIPE_WEBHOOK_SECRET",
         "R2_ACCESS_KEY_ID",
         "R2_SECRET_ACCESS_KEY",
+        "BACKUP_ENCRYPTION_KEY",
+        "BACKUP_R2_ACCESS_KEY_ID",
+        "BACKUP_R2_SECRET_ACCESS_KEY",
     ],
 )
 @pytest.mark.parametrize(

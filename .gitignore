@@ -18,3 +18,4 @@ local_storage/
 
 # Development email inbox
 .dev-inbox/
+.dev-backups/

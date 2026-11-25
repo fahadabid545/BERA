@@ -9,11 +9,12 @@ from .service import record
 SECONDS_PER_MINUTE = 60
 
 
-def record_security_event(kind, **details_of_the_entry):
+def record_security_event(kind, *, note=None, **details_of_the_entry):
     """Same as `audit.service.record`, then emails the super admins (at most once per kind per
-    hour). Use it for every kind that starts with "security."."""
+    hour). Use it for every kind that starts with "security." `note` is a fixed phrase added to
+    the email, never event data."""
     entry = record(kind, **details_of_the_entry)
-    alert_admins(kind)
+    alert_admins(kind, note)
     return entry
 
 
