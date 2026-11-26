@@ -7,6 +7,7 @@ describe("visibleNavigation", () => {
     expect(visibleNavigation("owner").map((item) => item.label)).toEqual([
       "Dashboard",
       "Projects",
+      "Candidates",
       "Team",
       "Usage and Billing",
       "Settings",
@@ -18,6 +19,7 @@ describe("visibleNavigation", () => {
     expect(visibleNavigation("member").map((item) => item.label)).toEqual([
       "Dashboard",
       "Projects",
+      "Candidates",
     ]);
   });
 

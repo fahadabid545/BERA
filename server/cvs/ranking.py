@@ -53,28 +53,29 @@ NEUTRAL = ("created_at", "original_name", "id")  # the tie-breakers, always in t
 def _base(project):
     """The project's CVs with every value the list shows, read through joins, so one query
     serves a page."""
-    return (
-        CvFile.objects.filter(company_id=project.company_id, project=project)
-        .exclude(status=CvFile.Status.CANCELLED)
-        .annotate(
-            candidate_pk=F("candidate__pk"),
-            contact_name=F("contact__name"),
-            score_value=F("candidate__score__score"),
-            grade_value=F("candidate__score__grade"),
-            outdated_value=F("candidate__score__outdated"),
-            label_value=F("candidate__score__label"),
-            borderline_value=F("candidate__score__borderline"),
-            ats_value=F("candidate__ats_score__score"),
-            stage_value=F("candidate__stage"),
-            label_order=LABEL_ORDER,
-            has_score=Case(
-                When(candidate__score__isnull=False, then=0), default=1, output_field=IntegerField()
-            ),
-            ranking=Window(
-                RowNumber(),
-                order_by=[F("score_value").desc(nulls_last=True), *NEUTRAL],
-            ),
-        )
+    return annotated(CvFile.objects.filter(company_id=project.company_id, project=project))
+
+
+def annotated(rows):
+    """`rows` (CVs) without the cancelled ones, with every value a list shows."""
+    return rows.exclude(status=CvFile.Status.CANCELLED).annotate(
+        candidate_pk=F("candidate__pk"),
+        contact_name=F("contact__name"),
+        score_value=F("candidate__score__score"),
+        grade_value=F("candidate__score__grade"),
+        outdated_value=F("candidate__score__outdated"),
+        label_value=F("candidate__score__label"),
+        borderline_value=F("candidate__score__borderline"),
+        ats_value=F("candidate__ats_score__score"),
+        stage_value=F("candidate__stage"),
+        label_order=LABEL_ORDER,
+        has_score=Case(
+            When(candidate__score__isnull=False, then=0), default=1, output_field=IntegerField()
+        ),
+        ranking=Window(
+            RowNumber(),
+            order_by=[F("score_value").desc(nulls_last=True), *NEUTRAL],
+        ),
     )
 
 

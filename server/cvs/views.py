@@ -13,6 +13,7 @@ from signin.company_views import CandidateDataView, CompanyObjectView
 
 from .candidate_deletion import delete_candidate
 from .charts import company_charts, project_charts
+from .company_candidates import candidates_page
 from .comparison import matrix, side_by_side
 from .dashboard import dashboard, report_csv
 from .dashboard import detail as dashboard_detail
@@ -531,6 +532,22 @@ class CompanyDashboard(CandidateDataView):
     def get(self, request):
         self.get_queryset()  # checks the role and the company
         return Response(dashboard(request.user.company_id, request.query_params.get("days")))
+
+
+class CompanyCandidates(CandidateDataView):
+    """Every candidate of the company in one list (`?flag=`, filters, sort and page)."""
+
+    queryset = Project.objects.all()
+
+    def get_throttles(self):
+        return [throttle() for throttle in live()]
+
+    def permitted_roles(self):
+        return roles_allowed("project.view")
+
+    def get(self, request):
+        self.get_queryset()
+        return Response(candidates_page(request.user.company_id, request.query_params))
 
 
 class CompanyDashboardDetail(CandidateDataView):

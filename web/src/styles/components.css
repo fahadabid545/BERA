@@ -2605,3 +2605,7 @@ button.chart-mark.ui-card {
 .score-cell {
   font-variant-numeric: tabular-nums;
 }
+.candidate-filters {
+  flex-wrap: wrap;
+  align-items: flex-end;
+}

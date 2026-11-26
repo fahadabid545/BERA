@@ -8,6 +8,7 @@ const OWNER_ONLY: readonly CompanyRole[] = ["owner"];
 export const NAVIGATION: readonly NavigationItem<CompanyRole>[] = [
   { label: "Dashboard", href: "/company", icon: "dashboard", roles: EVERYONE, exact: true },
   { label: "Projects", href: "/company/projects", icon: "projects", roles: EVERYONE },
+  { label: "Candidates", href: "/company/candidates", icon: "candidates", roles: EVERYONE },
   { label: "Team", href: "/company/team", icon: "team", roles: OWNER_ONLY, guarded: true },
   {
     label: "Usage and Billing",

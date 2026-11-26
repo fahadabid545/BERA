@@ -110,6 +110,8 @@ def checked_filters(params, project):
         elif chosen:
             filters[name] = chosen
     for name in ("missing", "has"):
+        if not params.get(name):
+            continue
         ids = _requirement_ids(name, params.get(name) or "", project, problems)
         if ids:
             filters[name] = ids

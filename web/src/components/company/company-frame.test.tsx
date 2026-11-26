@@ -36,6 +36,7 @@ describe("sidebar items", () => {
     const expected = {
       Dashboard: "/company",
       Projects: "/company/projects",
+      Candidates: "/company/candidates",
       Team: "/company/team",
       "Usage and Billing": "/company/billing",
     };

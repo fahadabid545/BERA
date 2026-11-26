@@ -24,6 +24,7 @@ urlpatterns = [
     path("api/legal/", legal_text),
     path("api/admin/announcements/", include("announcements.admin_urls")),
     path("api/company/activity/", include("activity.urls")),
+    path("api/company/candidates/", include("cvs.company_candidate_urls")),
     path("api/company/charts/", include("cvs.company_urls")),
     path("api/company/dashboard/", include("cvs.dashboard_urls")),
     path("api/company/downloads/", include("cvs.package_urls")),
