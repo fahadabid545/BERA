@@ -101,15 +101,15 @@ describe("CompanyCandidates", () => {
       const last = asked().at(-1) ?? "";
       for (const part of [
         "project=p1",
-        "score_min=80",
-        "ats_min=70",
+        "score_min=80.1",
+        "ats_min=71",
         "missing=must",
         "grade=A",
         "label=possible",
       ])
         expect(last).toContain(part);
     });
-    expect(screen.getByLabelText("AI score").textContent).toContain("90 and above");
+    expect(screen.getByLabelText("AI score").textContent).toContain(">90");
     expect(screen.getByRole("link", { name: "Compare in this project" }).getAttribute("href")).toBe(
       "/company/projects/p1/compare",
     );

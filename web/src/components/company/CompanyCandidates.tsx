@@ -43,10 +43,11 @@ type Filters = {
 
 const FLAG_TABS = [{ value: "all", label: "All" }, ...STAGES] as const;
 const TAB_VALUES = FLAG_TABS.map((tab) => tab.value);
+const STRICT_STEP: Record<string, number> = { score_min: 0.1, ats_min: 1 };
 const ANY = { value: "", label: "Any" };
 const ABOVE = [90, 80, 70, 60, 50].map((value) => ({
   value: String(value),
-  label: `${value} and above`,
+  label: `>${value}`,
 }));
 const MISSING = [
   ANY,
@@ -101,8 +102,12 @@ export function CompanyCandidates() {
   useEffect(() => {
     const request = ++latest.current;
     const query = new URLSearchParams({ flag: tab, sort, page: String(page) });
-    for (const [key, value] of Object.entries(filters))
-      if (value.trim()) query.set(key, value.trim());
+    for (const [key, value] of Object.entries(filters)) {
+      if (!value.trim()) continue;
+      // ">90" means above 90: the server takes a lowest value, and AI scores have one decimal.
+      const step = STRICT_STEP[key];
+      query.set(key, step ? String(Math.round((Number(value) + step) * 10) / 10) : value.trim());
+    }
     void getJson<Listing>(`/api/company/candidates/?${query}`).then((result) => {
       if (request !== latest.current) return; // a newer question already replaced this one
       if (result.ok) {
