@@ -96,6 +96,8 @@ KINDS = _kinds(
     EventKind("admin.free_access_revoked"),
     EventKind("admin.free_access_revoked_all"),
     EventKind("admin.free_access_extended"),
+    EventKind("admin.free_access_invite_deleted"),
+    EventKind("admin.free_access_plan_changed"),
     EventKind("free_access.granted"),
     EventKind("admin.trial_code_created"),
     EventKind("admin.trial_code_switched"),

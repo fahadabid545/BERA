@@ -10,7 +10,7 @@ from plans.models import Subscription
 from signin.authentication import AdminAuthentication
 from signin.company_views import CompanyObjectView
 
-from . import entitlement, service
+from . import entitlement, insight, service
 from .models import FreeAccess, FreeAccessInvite
 
 WHOLE = {"min_value": 1, "max_value": 2_000_000_000}
@@ -41,6 +41,10 @@ class NewInvite(StrictSerializer):
 class SwitchInvite(StrictSerializer):
     enabled = serializers.BooleanField()
     also_revoke_users = serializers.BooleanField(required=False, default=False)
+
+
+class ChangePlan(StrictSerializer):
+    plan_id = serializers.IntegerField(**WHOLE)
 
 
 class Days(StrictSerializer):
@@ -112,6 +116,11 @@ class InviteDetail(FreeAccessAdminView):
         )
         return Response(service.describe_invite(invite))
 
+    def delete(self, request, id):
+        self.allow("free_access.manage")
+        service.delete_invite(self.admin(), id)
+        return Response(status=204)
+
 
 class InviteExtend(FreeAccessAdminView):
     def post(self, request, id):
@@ -124,17 +133,27 @@ class AccessList(FreeAccessAdminView):
     def get(self, request):
         self.allow("free_access.view")
         query = request.query_params
-        page = query.get("page", "1")
         return Response(
             service.list_grants(
                 kind=query.get("kind") if query.get("kind") in ("beta", "permitted") else None,
                 status=query.get("status"),
-                page=int(page) if page.isdigit() and int(page) > 0 else 1,
+                page=insight.checked_page(query.get("page", "1")),
             )
         )
 
 
 class AccessDetail(FreeAccessAdminView):
+    def get(self, request, id):
+        """The access with the company's usage, daily CVs, activity and feedback."""
+        self.allow("free_access.view")
+        return Response(insight.grant_detail(id))
+
+    def patch(self, request, id):
+        """Gives a permitted access another plan."""
+        self.allow("free_access.manage")
+        grant = service.change_plan(self.admin(), id, plan_id=self.valid(ChangePlan)["plan_id"])
+        return Response(service.describe_grant(FreeAccess.objects.get(pk=grant.pk)))
+
     def delete(self, request, id):
         """Revoke one access."""
         self.allow("free_access.manage")
@@ -147,6 +166,24 @@ class AccessExtend(FreeAccessAdminView):
         self.allow("free_access.manage")
         grant = service.extend(self.admin(), id, days=self.valid(Days)["days"])
         return Response(service.describe_grant(FreeAccess.objects.get(pk=grant.pk)))
+
+
+class BetaOverview(FreeAccessAdminView):
+    def get(self, request):
+        self.allow("free_access.view")
+        return Response(insight.beta_overview())
+
+
+class PaidList(FreeAccessAdminView):
+    def get(self, request):
+        self.allow("free_access.view")
+        query = request.query_params
+        return Response(
+            insight.list_paid(
+                search=query.get("search", "")[:100],
+                page=insight.checked_page(query.get("page", "1")),
+            )
+        )
 
 
 class AccessRevokeAllBeta(FreeAccessAdminView):

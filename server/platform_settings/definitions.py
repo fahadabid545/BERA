@@ -513,6 +513,8 @@ SETTINGS = [
     SettingDefinition("beta.max_access_days", 365, whole_number(1, 3650)),
     SettingDefinition("beta.max_code_uses", 1000, whole_number(1, 1_000_000)),
     SettingDefinition("free_access.page_size", 50, whole_number(5, 500)),
+    SettingDefinition("free_access.chart_days", 14, whole_number(7, 90)),
+    SettingDefinition("free_access.detail_items", 20, whole_number(5, 100)),
     SettingDefinition("ask.max_projects", 50, whole_number(1, 1000)),
     SettingDefinition("ask.default_rows", 10, whole_number(1, 1000)),
     SettingDefinition("ask.max_steps", 5, whole_number(1, 20)),

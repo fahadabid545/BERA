@@ -2742,3 +2742,34 @@ button.chart-mark.ui-card {
   flex-wrap: wrap;
   gap: var(--space-2);
 }
+
+/* ---------- Daily columns (admin Access) ---------- */
+.chart-days {
+  display: flex;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chart-days__item {
+  flex: 1;
+  min-width: 0;
+}
+.chart-days__column {
+  display: block;
+  width: 100%;
+}
+.chart-days__track {
+  display: flex;
+  align-items: flex-end;
+  height: 6rem;
+  border-radius: var(--radius);
+  background: var(--color-surface-muted);
+  overflow: hidden;
+}
+.chart-days__bar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--color-accent);
+}

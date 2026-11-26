@@ -55,6 +55,7 @@ describe("sidebar items", () => {
     expect(visibleAdminNavigation("super").map((item) => item.label)).toEqual([
       "Dashboard",
       "Companies",
+      "Access",
       "Plans and Pricing",
       "AI",
       "Operations",
@@ -106,6 +107,7 @@ describe("sidebar items", () => {
     expect(visibleAdminNavigation("super").map((item) => item.label)).toEqual([
       "Dashboard",
       "Companies",
+      "Access",
       "Plans and Pricing",
       "AI",
       "Operations",
@@ -258,6 +260,7 @@ describe("Advanced section", () => {
     expect(blockedAdminHrefs("support").sort()).toEqual(
       [
         "/admin/plans",
+        "/admin/access",
         "/admin/ai",
         "/admin/settings",
         "/admin/advanced",
@@ -281,6 +284,7 @@ describe("Advanced section", () => {
     "/admin/advanced/limits",
     "/admin/advanced/maintenance",
     "/admin/plans",
+    "/admin/access",
     "/admin/ai/models",
     "/admin/settings/audit-log",
     "/admin/settings/admins",

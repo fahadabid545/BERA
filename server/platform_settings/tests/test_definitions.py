@@ -306,6 +306,8 @@ EXPECTED_DEFAULTS = {
     "beta.max_access_days": 365,
     "beta.max_code_uses": 1000,
     "free_access.page_size": 50,
+    "free_access.chart_days": 14,
+    "free_access.detail_items": 20,
     "ask.max_projects": 50,
     "ask.default_rows": 10,
     "ask.max_steps": 5,

@@ -198,6 +198,26 @@ def switch_invite(admin, invite_id, *, enabled, also_revoke_users=False):
     return invite
 
 
+def delete_invite(admin, invite_id):
+    """Removes an invite nobody has used. One that gave access stays (switch it off instead), so
+    the record of who got access and why is never lost."""
+    with transaction.atomic():
+        invite = _get_invite(invite_id)
+        if invite.grants.exists():
+            raise AppError(
+                "free_access_invite_used",
+                "This invite has been used, so it cannot be deleted. Switch it off instead.",
+                status_code=409,
+            )
+        kind = invite.kind
+        invite.delete()
+        record(
+            "admin.free_access_invite_deleted",
+            actor=admin,
+            details={"invite": invite_id, "kind": kind},
+        )
+
+
 # --- when an email address becomes a company's owner's ------------------------------------------
 
 
@@ -281,6 +301,28 @@ def revoke(admin, grant_id):
         if grant.revoked_at is not None:
             raise AppError("nothing_changed", "Nothing was changed.", status_code=400)
         _revoke(grant, admin)
+    return grant
+
+
+def change_plan(admin, grant_id, *, plan_id):
+    """Gives a running permitted access another plan. Beta access has no plan to change."""
+    plan = Plan.objects.filter(pk=plan_id, status=Plan.Status.ACTIVE).first()
+    if plan is None:
+        raise _problem("plan_id", "Choose one of the active plans.")
+    with transaction.atomic():
+        grant = _get_grant(grant_id)
+        if grant.kind != FreeAccess.Kind.PERMITTED or grant.revoked_at is not None:
+            raise AppError(
+                "nothing_changed", "Only a running permitted access has a plan.", status_code=400
+            )
+        grant.plan = plan
+        grant.save(update_fields=["plan"])
+        record(
+            "admin.free_access_plan_changed",
+            actor=admin,
+            company_id=grant.company_id,
+            details={"plan_id": plan.pk},
+        )
     return grant
 
 

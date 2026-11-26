@@ -55,6 +55,15 @@ PAGES = {
         "tokens.team_invite_days",
         "team.max_accounts_per_company",
     ],
+    "beta": [
+        "beta.cvs_per_day",
+        "beta.cvs_per_month",
+        "beta.cvs_per_project",
+        "beta.max_projects",
+        "beta.max_team_accounts",
+        "beta.max_access_days",
+        "beta.max_code_uses",
+    ],
     "rate_limits": sorted(key for key in DEFINITIONS if key.startswith("rate_limits.")),
     "security": [
         "tokens.access_minutes",

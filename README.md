@@ -2999,7 +2999,7 @@ signed-in users is a separate, later ticket.
 ## Free access: beta and permitted (server)
 
 Two kinds of free access, both given by a super admin, both separate from paying and from the admin
-role. This is the server part; the admin tab and the beta user's screens come next.
+role. The server part is described here; the admin tab is below.
 
 - **Beta access:** limited, for some days. By default a beta company may make as many projects as
   it likes, but only `beta.cvs_per_day` CVs a day (5), and only `beta.max_team_accounts` people (1,
@@ -3033,8 +3033,28 @@ role. This is the server part; the admin tab and the beta user's screens come ne
 
 Only simulated: tests use fake addresses and a stand-in for email. The owner must decide the real
 beta limits and the end of the beta, create the smallest paid plan the beta limits borrow from, and
-read the two beta emails. Not built yet: the admin tab (beta users, permitted users, paid users with
-usage, charts and feedback) and the beta user's screens (code entry, end-date banner, feedback).
+read the two beta emails. Not built yet: the beta user's screens (code entry, end-date banner,
+feedback).
+
+### Admin Access tab (`/admin/access`, super admins only)
+
+One tab with three sections, each managed apart from the others:
+
+- **Beta users:** Overview (counts, CVs a day of all beta companies, feedback sent, revoke all),
+  Users (paged list with status filter; per person: details, extend, revoke), Codes and emails
+  (make a code, add an email, switch off with or without taking back the access it gave, extend
+  everyone who came with it, delete one nobody used), Settings (the `beta.*` limits).
+- **Admin-permitted users:** Users (details, change plan, revoke) and Emails (add an email with a
+  plan, switch off, delete an unused one).
+- **Paid users:** companies paying by card, searchable and paged, each linking to its company page;
+  a free access the company also holds is named, because it is revoked on its own.
+
+A person's details show usage (CVs today against the daily limit, CVs this period, AI tokens, cost,
+projects), a CVs-a-day chart (`free_access.chart_days`), the team's latest activity and the feedback
+the company sent (`free_access.detail_items` entries each). Nothing from a CV is read.
+
+Extra routes: `GET .../access/<id>/` (details), `PATCH .../access/<id>/` (permitted plan),
+`DELETE .../invites/<id>/` (unused only), `GET .../overview/`, `GET .../paid/` (`search`, `page`).
 
 ## Coupons and trials (BERA-188)
 

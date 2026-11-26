@@ -11,6 +11,13 @@ export const ADMIN_NAVIGATION: readonly NavigationItem<AdminRole>[] = [
   { label: "Dashboard", href: "/admin", icon: "dashboard", roles: ALL_ADMINS, exact: true },
   { label: "Companies", href: "/admin/companies", icon: "companies", roles: ALL_ADMINS },
   {
+    label: "Access",
+    href: "/admin/access",
+    icon: "team",
+    roles: SUPER_ONLY,
+    guarded: true,
+  },
+  {
     label: "Plans and Pricing",
     href: "/admin/plans",
     icon: "pricing",
