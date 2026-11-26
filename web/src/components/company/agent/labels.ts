@@ -1,4 +1,14 @@
 /** The company agent's labels. The owner supplies any other wording. */
+/** The questions the bar suggests, one after the other, while it is empty. */
+export const AGENT_SUGGESTIONS = [
+  "Who are my best candidates this week?",
+  "Compare my top three candidates",
+  "Which candidates are missing a must-have?",
+  "Show shortlisted candidates in my newest project",
+  "How many CVs have I scored this month?",
+  "Who should I interview next?",
+] as const;
+
 export const AGENT = {
   barLabel: "Ask a question",
   askButton: "Ask",

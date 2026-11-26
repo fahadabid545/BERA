@@ -1,8 +1,9 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AgentBar } from "./AgentBar";
+import { AGENT_SUGGESTIONS } from "./labels";
 import { AgentProvider } from "./AgentProvider";
 
 const fetchMock = vi.fn();
@@ -98,6 +99,30 @@ async function ask(user: ReturnType<typeof userEvent.setup>, text: string) {
 }
 
 describe("the talk bar", () => {
+  it("suggests a different question every few seconds while it is empty", () => {
+    vi.useFakeTimers();
+    try {
+      page();
+      const input = () => screen.getByLabelText("Ask a question") as HTMLInputElement;
+      expect(input().placeholder).toBe(AGENT_SUGGESTIONS[0]);
+      act(() => vi.advanceTimersByTime(4000));
+      expect(input().placeholder).toBe(AGENT_SUGGESTIONS[1]);
+      act(() => vi.advanceTimersByTime(4000 * AGENT_SUGGESTIONS.length));
+      expect(input().placeholder).toBe(AGENT_SUGGESTIONS[1]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stops changing the suggestion while something is typed", async () => {
+    const user = userEvent.setup();
+    page();
+    const input = screen.getByLabelText("Ask a question") as HTMLInputElement;
+    await user.type(input, "Hi");
+    expect(input.value).toBe("Hi");
+    expect(input.placeholder).toBe(AGENT_SUGGESTIONS[0]);
+  });
+
   it("cannot send an empty question", async () => {
     const user = userEvent.setup();
     page();

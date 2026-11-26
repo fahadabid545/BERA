@@ -848,8 +848,24 @@ a.ui-tab {
 .panel-below-topbar {
   padding: var(--space-4) var(--page-gutter) 0;
 }
+/* In the panel the talk bar is lighter than on the home page: thin border, small radius. */
 .panel-below-topbar .chat-search {
+  max-width: 40rem;
   margin: 0 auto;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+  border-width: 1px;
+  border-color: var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+.panel-below-topbar .chat-search:focus-within {
+  border-color: var(--color-control-border);
+}
+.panel-below-topbar .chat-search__input {
+  font-size: var(--text-md);
+}
+.chat-search__input::placeholder {
+  color: var(--color-text-muted);
 }
 .panel-menu-button,
 .panel-scrim {
