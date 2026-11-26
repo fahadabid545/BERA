@@ -30,6 +30,7 @@ ROLES_ALLOWED = {
     "ai.view": SUPER_ONLY,
     "chatbot.view": SUPER_ONLY,
     "trial_code.view": SUPER_ONLY,
+    "free_access.view": SUPER_ONLY,
     "discount.view": SUPER_ONLY,
     "payment.view": SUPER_ONLY,
     "settings.view": SUPER_ONLY,
@@ -47,6 +48,7 @@ ROLES_ALLOWED = {
     "ai.playground": SUPER_ONLY,  # run test scoring and set its monthly budget
     "prompt.change": SUPER_ONLY,
     "discount.manage": SUPER_ONLY,  # make a discount code, switch it, limit it to a plan
+    "free_access.manage": SUPER_ONLY,  # invite, revoke and extend beta and permitted access
     "trial_code.manage": SUPER_ONLY,  # make a trial code, switch it on or off
     "chatbot.change": SUPER_ONLY,  # its settings and its knowledge documents
     "settings.change": SUPER_ONLY,

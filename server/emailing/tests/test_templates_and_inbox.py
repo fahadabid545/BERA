@@ -56,6 +56,8 @@ def test_the_catalog_holds_exactly_the_agreed_emails():
         "subscription_ending",
         "subscription_renewing",
         "trial_ending",
+        "beta_access_granted",
+        "beta_access_extended",
         "security_alert",
         "account_notice",
         "download_ready",

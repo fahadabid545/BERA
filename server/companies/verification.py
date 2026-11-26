@@ -12,6 +12,7 @@ from emailing.links import build_link
 from emailing.models import LinkToken
 from emailing.rendering import duration_text
 from emailing.service import send_email
+from freeaccess import service as free_access
 from platform_settings.service import get_setting
 
 from .models import CompanyUser
@@ -47,6 +48,10 @@ def verify_email(token):
     if not confirmed:
         # The account is gone. Raising here also undoes the use of the link.
         raise link_refusal("link_invalid", "This link is not valid.")
+    person = CompanyUser.objects.get(pk=person_id)
+    if person.role == CompanyUser.Role.OWNER:
+        # An invited address gets its free access once the owner has proven it is theirs.
+        free_access.apply_for_company(person.company_id)
 
 
 def resend_verification(email):

@@ -6,6 +6,8 @@ from adminusers.models import AdminUser
 from adminusers.role_matrix import require_action
 from core.throttles import CodeAttemptThrottle, limited
 from core.validation import SafeTextField, StrictSerializer
+from freeaccess import service as free_access
+from platform_settings.service import get_setting
 from signin.authentication import AdminAuthentication
 from signin.company_views import CompanyObjectView
 
@@ -109,6 +111,15 @@ class CheckCode(CompanyObjectView):
                     "plan": row.plan.name,
                     "days": row.days,
                     "cv_limit": row.cv_limit,
+                }
+            )
+        invite = free_access.usable_code(code)
+        if invite is not None:
+            return Response(
+                {
+                    "kind": "beta",
+                    "days": invite.access_days,
+                    "cvs_per_day": get_setting("beta.cvs_per_day"),
                 }
             )
         plan_id = serializer.validated_data.get("plan_id")

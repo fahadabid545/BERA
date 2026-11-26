@@ -10,12 +10,14 @@ and then records them (see `usage.service`), so parallel uploads cannot pass a l
 from dataclasses import dataclass
 
 from core.errors import AppError
+from freeaccess import entitlement
+from freeaccess.models import FreeAccess
 from platform_settings.service import get_setting
 from usage import service as usage
 
 from . import trials
 from .models import LimitOverride, Plan
-from .subscriptions import State, effective_state, get_subscription
+from .subscriptions import State, access_of, get_subscription
 
 UPGRADE = "upgrade"
 RENEWAL = "renewal"
@@ -89,15 +91,17 @@ def limit_for(company_id, name):
     override = LimitOverride.objects.filter(company_id=company_id, name=name).first()
     if override:
         return override.value
-    plan = get_subscription(company_id).plan
-    if plan is not None:
-        return getattr(plan, name)
+    access = access_of(company_id)
+    if access.grant is not None and access.grant.kind == FreeAccess.Kind.BETA:
+        return entitlement.beta_limit(name)
+    if access.plan is not None:
+        return getattr(access.plan, name)
     return get_setting("team.max_accounts_per_company") if name == MAX_TEAM_ACCOUNTS else 0
 
 
 def is_on_highest_plan(company_id):
     """No other active plan costs more than the company's own."""
-    plan = get_subscription(company_id).plan
+    plan = access_of(company_id).plan
     if plan is None or plan.price_usd is None:
         return False
     dearer = Plan.objects.filter(status=Plan.Status.ACTIVE, price_usd__gt=plan.price_usd)
@@ -108,7 +112,7 @@ def prompt_kind(company_id):
     """Renewal for an expired subscription; for the highest plan (nothing bigger to upgrade to)
     the highest-plan prompt, which offers contact instead; Upgrade otherwise."""
     subscription = get_subscription(company_id)
-    if effective_state(subscription) == State.EXPIRED:
+    if access_of(company_id).state == State.EXPIRED:
         # A company whose only subscription was a free trial has nothing to renew: it chooses.
         never_paid = (
             subscription.trial_started_at is not None and not subscription.stripe_subscription_id
@@ -120,7 +124,7 @@ def prompt_kind(company_id):
 
 
 def _expired(company_id, name):
-    if effective_state(get_subscription(company_id)) != State.EXPIRED:
+    if access_of(company_id).state != State.EXPIRED:
         return None
     return LimitCheck(
         False,
@@ -170,6 +174,29 @@ def _trial_check(subscription, requested):
     return LimitCheck(True, CVS_PER_MONTH, limit=limit, used=used, room=room)
 
 
+BETA_DAILY_CODE = "beta_daily_cv_limit_reached"
+BETA_DAILY_MESSAGE = "Your beta access allows {limit} CVs a day. Try again tomorrow."
+
+
+def _beta_daily_check(company_id, requested):
+    """Beta access's CVs a day, counted from the start of today (the server's day)."""
+    limit = get_setting("beta.cvs_per_day")
+    used = usage.cvs_since(company_id, entitlement.start_of_today())
+    room = max(limit - used, 0)
+    if requested > room:
+        return LimitCheck(
+            False,
+            CVS_PER_MONTH,
+            code=BETA_DAILY_CODE,
+            message=BETA_DAILY_MESSAGE.format(limit=limit),
+            prompt=None,
+            limit=limit,
+            used=used,
+            room=room,
+        )
+    return LimitCheck(True, CVS_PER_MONTH, limit=limit, used=used, room=room)
+
+
 def check_cvs_this_month(company_id, requested=1):
     """CVs scored this period plus those accepted and still waiting. A CV that failed has given
     its allowance back, because only scored and waiting ones are counted. A running free trial
@@ -177,10 +204,13 @@ def check_cvs_this_month(company_id, requested=1):
     used = usage.current_usage(company_id)["cvs_scored"] + usage.waiting_cvs(company_id)
     monthly = _count_check(company_id, CVS_PER_MONTH, used, requested)
     subscription = get_subscription(company_id)
-    if not trials.on_trial(subscription):
-        return monthly
-    trial = _trial_check(subscription, requested)
-    return min((monthly, trial), key=lambda check: check.room)
+    checks = [monthly]
+    if trials.on_trial(subscription):
+        checks.append(_trial_check(subscription, requested))
+    grant = access_of(company_id).grant
+    if grant is not None and grant.kind == FreeAccess.Kind.BETA:
+        checks.append(_beta_daily_check(company_id, requested))
+    return min(checks, key=lambda check: check.room)
 
 
 def check_cvs_per_project(company_id, cvs_in_project, requested=1):

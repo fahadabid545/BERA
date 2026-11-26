@@ -23,6 +23,7 @@ from emailing.links import build_link
 from emailing.models import LinkToken
 from emailing.rendering import duration_text
 from emailing.service import send_email
+from freeaccess import service as free_access
 from platform_settings.service import get_setting
 from signin.password_change import require_current_password
 
@@ -107,6 +108,8 @@ def confirm_email_change(token):
     person.save(update_fields=["email", "email_verified"])
     pending.delete()
     send_email_changed_notice(person, previous_address)
+    if person.role == CompanyUser.Role.OWNER:
+        free_access.apply_for_company(person.company_id)
 
 
 def company_settings(company):

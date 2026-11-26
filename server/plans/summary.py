@@ -1,13 +1,14 @@
 """The plan and usage figures a company sees. Every number comes from the same functions the
 limit checks use, so what is shown always matches what is enforced."""
 
+from freeaccess import entitlement
 from platform_settings.service import get_setting
 from projects.service import active_project_count
 from usage import service as usage
 
 from . import limits, trials
 from .plan_change import pending_of
-from .subscriptions import State, effective_state, get_subscription, grace_ends_at
+from .subscriptions import State, access_of, get_subscription, grace_ends_at
 
 
 def projects_in_use(company_id):
@@ -35,7 +36,8 @@ def _measure(used, limit):
 
 def plan_and_usage(company_id):
     subscription = get_subscription(company_id)
-    state = effective_state(subscription)
+    access = access_of(company_id)
+    state = access.state
     current = usage.current_usage(company_id)
     cv_limit = limits.limit_for(company_id, limits.CVS_PER_MONTH)
     cvs_used = current["cvs_scored"] + usage.waiting_cvs(company_id)
@@ -46,7 +48,8 @@ def plan_and_usage(company_id):
     token_limit = limits.limit_for(company_id, limits.MONTHLY_AI_TOKEN_CAP)
     project_limit = limits.limit_for(company_id, limits.MAX_PROJECTS)
     return {
-        "plan_name": subscription.plan.name if subscription.plan else None,
+        "plan_name": access.plan.name if access.plan else None,
+        "free_access": entitlement.describe(access.grant),
         "plan_id": subscription.plan_id,
         "can_manage_billing": bool(subscription.stripe_customer_id),
         "pending_change": pending_of(subscription),

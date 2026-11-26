@@ -213,6 +213,24 @@ CATALOG = {
         button_label="Open billing",
         variables=("name", "when", "link"),
     ),
+    "beta_access_granted": EmailTemplate(
+        subject="You have beta access to {app_name}",
+        heading="You have beta access",
+        paragraphs=(
+            GREETING,
+            "You can use {app_name} as a beta tester until {when}. Beta access has limits: a "
+            "few CVs a day and no other people in your company.",
+        ),
+        button_label="Open {app_name}",
+        variables=("name", "when", "link"),
+    ),
+    "beta_access_extended": EmailTemplate(
+        subject="Your {app_name} beta access was extended",
+        heading="Your beta access was extended",
+        paragraphs=(GREETING, "Your beta access now lasts until {when}."),
+        button_label="Open {app_name}",
+        variables=("name", "when", "link"),
+    ),
     "trial_ending": EmailTemplate(
         subject="Your {app_name} free trial ends soon",
         heading="Your free trial is ending",

@@ -1,10 +1,13 @@
 from django.urls import path
 
+from freeaccess import views as free_access_views
+
 from . import card_views, checkout_views, discount_views, invoice_views, renewal_views, trial_views
 
 urlpatterns = [
     path("code/", discount_views.CheckCode.as_view()),
     path("trial/redeem/", trial_views.RedeemTrialCode.as_view()),
+    path("beta/redeem/", free_access_views.RedeemBetaCode.as_view()),
     path("checkout/", checkout_views.CheckoutView.as_view()),
     path("checkout/confirm/", checkout_views.CheckoutConfirmView.as_view()),
     path("change-plan/", checkout_views.ChangePlanView.as_view()),

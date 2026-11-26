@@ -57,6 +57,8 @@ def sample_values(template_name):
         },
         "subscription_ending": shared,
         "trial_ending": shared,
+        "beta_access_granted": shared,
+        "beta_access_extended": shared,
         "subscription_renewing": {**shared, "plan": "Fake Plan", "amount": "USD 10.00"},
         "payment_problem": {
             **shared,

@@ -1,6 +1,7 @@
 """Every change to a company's subscription state. Only payment events and admin actions call
 these (their tickets come later); there is no route, so a company can never change its own."""
 
+from dataclasses import dataclass
 from datetime import timedelta
 
 from django.db import transaction
@@ -12,6 +13,7 @@ from core.errors import AppError
 from core.jobs import logged_job
 from emailing.links import build_link
 from emailing.service import send_email
+from freeaccess import entitlement
 from notifications.payment_notice import payment_failed
 from platform_settings.service import get_setting
 
@@ -90,6 +92,29 @@ def status_of(company_id, now=None):
     }
 
 
+@dataclass(frozen=True)
+class Access:
+    """What a company may do now: a state, the plan whose limits apply, and the free access
+    (`freeaccess.models.FreeAccess`) that gives it, if that is what applies."""
+
+    state: str
+    plan: object
+    grant: object = None
+
+
+def access_of(company_id, now=None):
+    """A running paid plan or trial wins. Otherwise permitted free access, then beta access, give
+    full use; each is its own record, so none of them changes the others."""
+    subscription = get_subscription(company_id)
+    state = effective_state(subscription, now)
+    if state in FULL_ACCESS_STATES:
+        return Access(state, subscription.plan)
+    grant = entitlement.active_grant(company_id, now)
+    if grant is not None:
+        return Access(State.GRANTED_FREE, grant.plan, grant)
+    return Access(state, subscription.plan)
+
+
 # The access rules, one place for the projects, upload and scoring tickets to call.
 def can_view(company_id):
     """Viewing and downloading are allowed in every state."""
@@ -97,15 +122,15 @@ def can_view(company_id):
 
 
 def can_create_project(company_id):
-    return effective_state(get_subscription(company_id)) in FULL_ACCESS_STATES
+    return access_of(company_id).state in FULL_ACCESS_STATES
 
 
 def can_upload(company_id):
-    return effective_state(get_subscription(company_id)) in FULL_ACCESS_STATES
+    return access_of(company_id).state in FULL_ACCESS_STATES
 
 
 def can_score(company_id):
-    return effective_state(get_subscription(company_id)) in FULL_ACCESS_STATES
+    return access_of(company_id).state in FULL_ACCESS_STATES
 
 
 def _refuse(message):

@@ -33,6 +33,7 @@ urlpatterns = [
     path("api/admin/plans/", include("plans.urls")),
     path("api/admin/payments/", include("plans.payment_urls")),
     path("api/admin/trials/", include("plans.trial_urls")),
+    path("api/admin/free-access/", include("freeaccess.urls")),
     path("api/admin/discounts/", include("plans.discount_urls")),
     path("api/admin/ai/", include("ai.urls")),
     path("api/admin/jobs/", include("cvs.admin_job_urls")),

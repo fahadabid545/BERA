@@ -2996,6 +2996,46 @@ documents do not cover). Wording of the labels ("Ask a question", "Chat" and so 
 `web/src/components/website/content.ts` for the owner to change. The company-data assistant for
 signed-in users is a separate, later ticket.
 
+## Free access: beta and permitted (server)
+
+Two kinds of free access, both given by a super admin, both separate from paying and from the admin
+role. This is the server part; the admin tab and the beta user's screens come next.
+
+- **Beta access:** limited, for some days. By default a beta company may make as many projects as
+  it likes, but only `beta.cvs_per_day` CVs a day (5), and only `beta.max_team_accounts` people (1,
+  so nobody can be invited). Its top-list size and monthly AI allowance come from the smallest paid
+  plan, so no new number was invented; asking the company agent uses those tokens too. The other
+  limits (`beta.cvs_per_month`, `beta.cvs_per_project`, `beta.max_projects`) are very high platform
+  settings. All are editable on the admin settings page.
+- **Permitted access:** an email a super admin adds, with a plan the admin chooses. The plan's own
+  limits and features apply, free, with no end date, until it is revoked. No beta limits.
+- **Ways in:** (1) a super admin adds an email (beta, with days, or permitted, with a plan); it
+  takes effect when that address is the company owner's and is verified, now or later (also after an
+  email change is confirmed); only the owner's address counts, and an unverified address gets
+  nothing. (2) A super admin makes a code (label, days of access from the day it is used, how many
+  companies may use it, an optional last day to use it); the owner types it where other codes go
+  (`POST /api/company/billing/beta/redeem/`; the code check says `kind: beta`). A code is kept as a
+  hash and shown once. Every code that cannot be used gets one message, and tries are limited per
+  company like trial codes.
+- **Which access applies:** a running paid plan or free trial first, then permitted access, then
+  beta (`plans.subscriptions.access_of`). Each is its own record, so revoking beta leaves a paid
+  plan and an admin role untouched, revoking permitted leaves paid and beta untouched, and "revoke
+  all beta" never touches permitted or paid companies. A company whose beta ends or is revoked
+  becomes view-and-download only, like any company with no plan; nothing is deleted.
+- **Revoking and extending (super admin only, all audited):** revoke one access; revoke all beta;
+  switch off a code or an email invite, with or without taking back the access it already gave;
+  extend one beta access or every one that came with a code (an ended access is extended from
+  today). The owner is emailed the end date when beta is granted and when it is extended; there is
+  no email when access is revoked or ends, and none for permitted access.
+- **Routes:** `api/admin/free-access/invites/`, `.../invites/<id>/` (switch), `.../invites/<id>/extend/`,
+  `.../access/` (paged list, filters `kind`, `status`), `.../access/<id>/` (DELETE revokes),
+  `.../access/<id>/extend/`, `.../access/revoke-all-beta/`.
+
+Only simulated: tests use fake addresses and a stand-in for email. The owner must decide the real
+beta limits and the end of the beta, create the smallest paid plan the beta limits borrow from, and
+read the two beta emails. Not built yet: the admin tab (beta users, permitted users, paid users with
+usage, charts and feedback) and the beta user's screens (code entry, end-date banner, feedback).
+
 ## Coupons and trials (BERA-188)
 
 **Discount codes** are Stripe's own coupons and promotion codes, made from the admin page
