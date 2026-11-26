@@ -4,7 +4,6 @@ import { ChartCard } from "@/components/charts/ChartCard";
 import { ChartMark, TipLines } from "@/components/charts/ChartTip";
 import { TrendCard } from "@/components/charts/TrendCard";
 import { Donut } from "@/components/company/dashboard/Donut";
-import { Gauge } from "@/components/company/dashboard/Gauge";
 import { KpiCard } from "@/components/company/dashboard/KpiCard";
 import { periodWords } from "@/components/company/dashboard/types";
 import { Button, Card, Table, Tag, TextLink } from "@/components/ui";
@@ -301,22 +300,14 @@ export function AiSection({ ai, open }: { ai: NonNullable<AdminData["ai"]>; open
       <div className="dashboard__row">
         <Card className="ui-card">
           <div className="chart-card__header">
-            <h2>Token budget</h2>
+            <h2>AI tokens used</h2>
             <Tag variant={ai.control.paused ? "warning" : "neutral"}>
               {ai.control.paused ? "AI work paused" : "AI work running"}
             </Tag>
           </div>
-          <Gauge
-            percent={ai.tokens.percent}
-            scored={ai.tokens.used}
-            uploaded={ai.tokens.cap}
-            label="of the plans' tokens"
-            title="Token budget"
-            lines={[
-              `${whole(ai.tokens.used)} tokens used in the last ${ai.tokens.days} days`,
-              `${whole(ai.tokens.cap)} tokens in the paying plans' caps`,
-            ]}
-          />
+          <p>
+            <strong>{whole(ai.tokens.used)}</strong> tokens in the last {ai.tokens.days} days
+          </p>
         </Card>
         <Card className="ui-card">
           <div className="chart-card__header">

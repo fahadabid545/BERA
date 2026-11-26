@@ -37,7 +37,6 @@ def plan():
         max_projects=5,
         max_team_accounts=3,
         max_top_n=10,
-        monthly_ai_token_cap=1000,
     )
 
 

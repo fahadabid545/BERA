@@ -302,19 +302,6 @@ class TestWhatTheUserSeesFirst:
         shown = rescoring.estimate(project, items)
         assert (shown["cvs"], shown["tokens_total"], shown["blocked"]) == (0, 0, False)
 
-    def test_passing_the_token_cap_is_refused_and_nothing_is_saved(self, scored, kicks):
-        from core.errors import AppError
-        from plans.models import LimitOverride
-
-        LimitOverride.objects.create(
-            company_id=scored.company_id, name="monthly_ai_token_cap", value=1
-        )
-        with pytest.raises(AppError) as refused:
-            edit(scored, {1: "Leading engineering teams"})
-        assert refused.value.code == "rescoring_over_token_cap"
-        assert Requirement.objects.filter(text="Leading engineering teams").count() == 0
-        assert score_of(scored).outdated is False and kicks == []
-
     def test_unscored_cvs_are_not_counted(self, scored):
         second = candidates.create_candidate(
             add_profile(make_cv(company=scored.company, project=scored.project))

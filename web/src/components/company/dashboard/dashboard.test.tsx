@@ -621,7 +621,6 @@ describe("CompanyDashboard", () => {
           period_start: "2026-11-01",
           period_end: "2026-11-30",
           cvs: { used: 90, limit: 100, left: 10, warning: 90 },
-          tokens: { used: 5, limit: 10, left: 5, warning: null },
           estimated_cost: "0.00",
           projects: { used: 3, limit: 10 },
           refresh_seconds: 3,

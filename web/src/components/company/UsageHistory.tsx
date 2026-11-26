@@ -8,9 +8,6 @@ import { getJson } from "@/lib/api";
 
 type Figures = {
   cvs: number;
-  tokens_in: number;
-  tokens_out: number;
-  tokens: number;
   estimated_cost: string;
 };
 type Period = Figures & { id: string; start: string; end: string };
@@ -38,8 +35,6 @@ function FigureHeads() {
   return (
     <>
       <th scope="col">CVs</th>
-      <th scope="col">Tokens in</th>
-      <th scope="col">Tokens out</th>
       <th scope="col">Estimated cost</th>
     </>
   );
@@ -49,8 +44,6 @@ function FigureCells({ figures }: { figures: Figures }) {
   return (
     <>
       <td>{number(figures.cvs)}</td>
-      <td>{number(figures.tokens_in)}</td>
-      <td>{number(figures.tokens_out)}</td>
       <td>{cost(figures.estimated_cost)}</td>
     </>
   );

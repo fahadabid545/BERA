@@ -19,7 +19,6 @@ NUMBERS_NEEDED_TO_BE_ACTIVE = (
     "max_projects",
     "max_team_accounts",
     "max_top_n",
-    "monthly_ai_token_cap",
 )
 # What subscribers pay or may use. Changing these never touches subscribers until renewal
 # unless the admin chooses "now". Name, description, order and status do not change what a
@@ -32,7 +31,6 @@ ENTITLEMENT_FIELDS = (
     "max_projects",
     "max_team_accounts",
     "max_top_n",
-    "monthly_ai_token_cap",
 )
 IMMEDIATE_FIELDS = ("name", "description", "status", "display_order")
 EDITABLE_FIELDS = IMMEDIATE_FIELDS + ENTITLEMENT_FIELDS

@@ -192,12 +192,10 @@ describe("cost estimate before processing", () => {
     cvs: 3,
     tokens_in: 6000,
     tokens_out: 1000,
-    tokens_total: 7000,
     estimated_cost: "0.021000",
     limits: {
       cvs_this_month: { used: 3, limit: 100 },
       cvs_in_project: { used: 3, limit: 50 },
-      tokens: { used: 500, limit: 100000, after_estimate: 7500 },
     },
     blocked: false,
     message: "",
@@ -233,11 +231,9 @@ describe("cost estimate before processing", () => {
         .map((li) => li.textContent),
     ).toEqual([
       "CVs: 3",
-      "Approximate tokens: 7000",
       "Approximate cost: $0.021000",
       "CVs this month: 3 of 100",
       "CVs in this project: 3 of 50",
-      "AI tokens this period: 500 of 100000",
     ]);
     expect(screen.getByText("Approximate cost")).toBeTruthy();
   });
@@ -262,7 +258,7 @@ describe("cost estimate before processing", () => {
     expect(callsTo("cvs/estimate/").some((c) => c[1]?.method === "POST")).toBe(false);
   });
 
-  it("a batch that would pass the token cap shows the message and cannot be confirmed", async () => {
+  it("a batch that is not allowed to run shows the message and cannot be confirmed", async () => {
     serve({
       ...ESTIMATE,
       blocked: true,

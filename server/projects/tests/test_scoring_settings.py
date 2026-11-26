@@ -38,7 +38,6 @@ def make_plan(max_top_n=20, name="Basic", price=10):
         max_projects=5,
         max_team_accounts=3,
         max_top_n=max_top_n,
-        monthly_ai_token_cap=10000,
     )
 
 

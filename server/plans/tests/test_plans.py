@@ -24,7 +24,6 @@ FULL = {
     "max_projects": 5,
     "max_team_accounts": 3,
     "max_top_n": 10,
-    "monthly_ai_token_cap": 1_000_000,
     "status": "active",
     "display_order": 1,
 }
@@ -62,7 +61,7 @@ class TestTheStartingPlans:
         assert (scale.cvs_per_month, scale.price_pkr) == (None, Decimal("7000.00"))
         for plan in (starter, growth, scale):
             assert plan.status == "hidden" and plan.price_usd is None
-            assert plan.max_projects is None and plan.monthly_ai_token_cap is None
+            assert plan.max_projects is None
 
     def test_they_cannot_be_made_active_until_every_number_is_filled_in(self, boss):
         client, _ = boss
@@ -87,7 +86,6 @@ class TestTheStartingPlans:
             max_projects=5,
             max_team_accounts=3,
             max_top_n=10,
-            monthly_ai_token_cap=500000,
         )
         assert response.status_code == 200
         starter.refresh_from_db()
@@ -149,7 +147,6 @@ class TestTheNumbers:
             "max_projects",
             "max_team_accounts",
             "max_top_n",
-            "monthly_ai_token_cap",
         ],
     )
     @pytest.mark.parametrize("bad", [0, -1, 2.5, "7", True, 3_000_000_000])

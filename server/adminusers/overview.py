@@ -326,11 +326,6 @@ def _ai(start, end):
         ).aggregate(used=Sum("tokens_in") + Sum("tokens_out"))["used"]
         or 0
     )
-    cap = sum(
-        subscription.plan.monthly_ai_token_cap or 0
-        for subscription, state in _subscriptions()
-        if state in (*PAYING, State.GRANTED_FREE) and subscription.plan
-    )
     return {
         "calls": {
             "total": total,
@@ -343,8 +338,6 @@ def _ai(start, end):
         "by_model": by_model,
         "tokens": {
             "used": recent,
-            "cap": cap,
-            "percent": round(recent * PERCENT / cap, 1) if cap else None,
             "days": margin_days,
         },
         "control": control.describe(),

@@ -35,12 +35,12 @@ into `POSTGRES_ADMIN_PASSWORD` in `.env`; run the command again afterwards.
 
 When ready it prints:
 
-| Area          | Address                             |
-| ------------- | ----------------------------------- |
-| Website       | http://localhost:3000/              |
-| Company panel | http://localhost:3000/company       |
-| Admin panel   | http://localhost:3000/admin         |
-| API health    | http://localhost:8000/api/health/   |
+| Area          | Address                           |
+| ------------- | --------------------------------- |
+| Website       | http://localhost:3000/            |
+| Company panel | http://localhost:3000/company     |
+| Admin panel   | http://localhost:3000/admin       |
+| API health    | http://localhost:8000/api/health/ |
 
 Press `Ctrl+C` to stop everything.
 
@@ -282,7 +282,7 @@ short-lived signed step, and the session starts after the code. An admin with no
 yet sets one up at that point. There is no public admin sign up and no recovery codes.
 
 - **First super admin:** on the server run `python manage.py create_first_super_admin --name "…"
-  --email …`. The password is typed at a hidden prompt (never an option) and follows the normal
+--email …`. The password is typed at a hidden prompt (never an option) and follows the normal
   password rules. It works only while no admin exists at all; afterwards it refuses.
 - **Sessions:** access token 10 minutes (`tokens.admin_access_minutes`), refresh 8 hours
   (`tokens.admin_refresh_hours`). Admin tokens use their own keys and are accepted only by admin
@@ -727,11 +727,11 @@ previous release), restarts and health-checks. It never touches the database.
 starting figures to check against the real machine with `free -m`, set once in `RESOURCES` in
 `deploy/bera_deploy.py` and used by the service files):
 
-| Service | Production | Staging |
-| --- | --- | --- |
-| API (gunicorn workers, memory limit) | 2, 700M | 1, 350M |
-| Background worker (processes, memory limit) | 2, 600M | 1, 350M |
-| Web (Node heap, memory limit) | 256 MB, 350M | 160 MB, 250M |
+| Service                                     | Production   | Staging      |
+| ------------------------------------------- | ------------ | ------------ |
+| API (gunicorn workers, memory limit)        | 2, 700M      | 1, 350M      |
+| Background worker (processes, memory limit) | 2, 600M      | 1, 350M      |
+| Web (Node heap, memory limit)               | 256 MB, 350M | 160 MB, 250M |
 
 That is about 2.6 GB of limits for both environments, before PostgreSQL and nginx. Each service has
 `MemoryMax`, restarts on failure, and runs with `NoNewPrivileges`, `ProtectSystem=strict` and
@@ -770,11 +770,11 @@ bucket is the owner's (see "First set-up").
 **What runs** (systemd timers, made by `python deploy/bera_deploy.py units production`; each is a short
 process that stops by itself, limited to 300 MB):
 
-| Job | When (UTC) | What it does |
-| --- | --- | --- |
-| `backup_database` | daily 02:30 | Streams `pg_dump` through the encryption into the backup bucket, checks the saved size, then removes backups past retention. |
+| Job                     | When (UTC)    | What it does                                                                                                                                                                                     |
+| ----------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `backup_database`       | daily 02:30   | Streams `pg_dump` through the encryption into the backup bucket, checks the saved size, then removes backups past retention.                                                                     |
 | `verify_backup_restore` | Sundays 04:30 | Downloads the newest backup, decrypts it with the key as configured now, restores it into a throwaway database, checks it has tables and applied migrations, and deletes the throwaway database. |
-| `check_backup_fresh` | hourly | Alerts when no backup succeeded in the last 26 hours (this catches a timer that stopped). |
+| `check_backup_fresh`    | hourly        | Alerts when no backup succeeded in the last 26 hours (this catches a timer that stopped).                                                                                                        |
 
 **Encryption.** The dump is encrypted as it streams (AES-256-GCM in 1 MiB chunks), so a dump of any size
 needs very little memory. The file starts with a header that names the key id, so after a key change older
@@ -801,6 +801,7 @@ with a failed status, visible in `systemctl status`. A server that is down entir
 watching it from outside is BERA-180.
 
 **First set-up (owner).**
+
 1. Install the PostgreSQL 16 client programs on the server (`pg_dump`, `pg_restore`).
 2. In Cloudflare R2 create a **new, separate bucket** for backups (private, no public address) and an access
    key limited to that bucket only. R2 does not offer a key that can write but not delete (check the
@@ -814,12 +815,13 @@ watching it from outside is BERA-180.
    `deploy/env/production.env.example`), run `provision_database_roles` (the read-only `backup` account is
    the one named by `BACKUP_DATABASE_URL`), run `units production`, install the files and enable the timers
    (`systemctl enable --now bera-production-backup.timer bera-production-restore-test.timer
-   bera-production-backup-check.timer`). Production does not start without these settings.
+bera-production-backup-check.timer`). Production does not start without these settings.
 5. Run the three commands once by hand (`python manage.py backup_database`, then `verify_backup_restore`) and
    check the object appears in the bucket. Test the alert: set a wrong `BACKUP_ENCRYPTION_KEY` for one run of
    `verify_backup_restore` and confirm the super admins get the email, then put the right key back.
 
 **Restoring after a loss.**
+
 1. Stop the app (`systemctl stop bera-production-api bera-production-worker`).
 2. Decrypt the newest backup (or one chosen with `--name`) into a dump file, restore it into a **new**
    database, and delete the file: `python manage.py decrypt_backup /secure/folder/plain.dump`, then
@@ -845,15 +847,15 @@ The server answers web traffic only for Cloudflare, accepts logins only with an 
 updates by itself, and has a scan that checks the public address. Everything below is in `deploy/harden/`,
 `deploy/nginx/` and `scripts/scan_public_address.py`.
 
-| Layer | What it does | Where |
-| --- | --- | --- |
-| Firewall | Ports **80 and 443 only** accept Cloudflare's address ranges, fetched from Cloudflare and refreshed every 6 hours. If the fetch fails, the last good list is kept; with no good list nothing is changed, so the ports are never opened to everyone. **SSH is never touched by this rule.** | `deploy/harden/cloudflare_firewall.py`, `systemd/` |
-| Authenticated Origin Pulls | nginx accepts a request only if it carries **our own** client certificate (one for staging, a different one for production), uploaded to Cloudflare. Without it, or with the other environment's, the connection is closed with no answer. This is what stops another Cloudflare customer from reaching us, which the shared Cloudflare certificate would allow. | `origin_pull_certificate.py`, `nginx/bera.example.conf` |
-| Unknown names and the server's IP | No certificate is shown (`ssl_reject_handshake`) and plain web requests are closed (`return 444`). | `nginx/bera.example.conf` |
-| HTTPS and headers | TLS 1.2 and 1.3 only, no version in headers, HSTS (one year), and the app's own headers (CSP with a one-time script code, no framing, no sniffing, no referrer for token links). | `nginx/00-bera-global.conf`, the app |
-| SSH | Key only: no passwords, no root login, 3 tries. Who may reach the port is **not** set here; see "Hetzner firewall". | `ssh_hardening.py` |
-| Updates | Operating system security updates install daily by themselves; a restart happens at 05:30 UTC only when needed (a kernel), after the backup and the restore test. | `automatic_updates.py` |
-| Scan | Checks the public address from outside (certificate, old TLS, http to https, headers, versions, search-engine rules, the payment notification path) and, with `--origin-ip`, that the server ignores anyone who is not Cloudflare. | `scripts/scan_public_address.py` |
+| Layer                             | What it does                                                                                                                                                                                                                                                                                                                                                     | Where                                                   |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Firewall                          | Ports **80 and 443 only** accept Cloudflare's address ranges, fetched from Cloudflare and refreshed every 6 hours. If the fetch fails, the last good list is kept; with no good list nothing is changed, so the ports are never opened to everyone. **SSH is never touched by this rule.**                                                                       | `deploy/harden/cloudflare_firewall.py`, `systemd/`      |
+| Authenticated Origin Pulls        | nginx accepts a request only if it carries **our own** client certificate (one for staging, a different one for production), uploaded to Cloudflare. Without it, or with the other environment's, the connection is closed with no answer. This is what stops another Cloudflare customer from reaching us, which the shared Cloudflare certificate would allow. | `origin_pull_certificate.py`, `nginx/bera.example.conf` |
+| Unknown names and the server's IP | No certificate is shown (`ssl_reject_handshake`) and plain web requests are closed (`return 444`).                                                                                                                                                                                                                                                               | `nginx/bera.example.conf`                               |
+| HTTPS and headers                 | TLS 1.2 and 1.3 only, no version in headers, HSTS (one year), and the app's own headers (CSP with a one-time script code, no framing, no sniffing, no referrer for token links).                                                                                                                                                                                 | `nginx/00-bera-global.conf`, the app                    |
+| SSH                               | Key only: no passwords, no root login, 3 tries. Who may reach the port is **not** set here; see "Hetzner firewall".                                                                                                                                                                                                                                              | `ssh_hardening.py`                                      |
+| Updates                           | Operating system security updates install daily by themselves; a restart happens at 05:30 UTC only when needed (a kernel), after the backup and the restore test.                                                                                                                                                                                                | `automatic_updates.py`                                  |
+| Scan                              | Checks the public address from outside (certificate, old TLS, http to https, headers, versions, search-engine rules, the payment notification path) and, with `--origin-ip`, that the server ignores anyone who is not Cloudflare.                                                                                                                               | `scripts/scan_public_address.py`                        |
 
 Every script that changes the firewall, SSH or updates has `--dry-run`, **prints the change before it applies
 it**, never restarts SSH (only reloads it, so open sessions stay open) and has an undo command.
@@ -869,6 +871,7 @@ package, uploading a certificate to Cloudflare, and the scan against the real pu
 each of these first on the real server, starting with `--dry-run`, in the order below.**
 
 **Order of work on the real server** (the order matters: the firewall comes last, so the site is never cut off):
+
 1. Copy the scripts: `sudo install -d /usr/local/lib/bera-harden && sudo cp deploy/harden/*.py /usr/local/lib/bera-harden/`.
 2. **Updates.** `sudo apt install unattended-upgrades`, then `sudo python3 /usr/local/lib/bera-harden/automatic_updates.py apply --dry-run`,
    then without `--dry-run`. Use `--no-auto-reboot` to restart by hand; `automatic_updates.py check` says if a
@@ -934,24 +937,24 @@ above. Do not do steps 7 to 9 in the wrong order.
 
 Two separate things watch the system, because each catches what the other cannot:
 
-| | What it proves | Where it runs | Built in code? |
-| --- | --- | --- | --- |
-| **Heartbeat** (dead-man check) | The server, the timer and the app's own checks are alive and healthy. | Our server pings an outside service every 5 minutes. When the pings **stop**, the service alerts. | Yes |
-| **Public uptime check** | A visitor can really reach the site: Cloudflare, nginx, the certificate, the app and the database together. | An outside service requests the public health address like a visitor. | No: set up by the owner (below) |
+|                                | What it proves                                                                                              | Where it runs                                                                                     | Built in code?                  |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------- |
+| **Heartbeat** (dead-man check) | The server, the timer and the app's own checks are alive and healthy.                                       | Our server pings an outside service every 5 minutes. When the pings **stop**, the service alerts. | Yes                             |
+| **Public uptime check**        | A visitor can really reach the site: Cloudflare, nginx, the certificate, the app and the database together. | An outside service requests the public health address like a visitor.                             | No: set up by the owner (below) |
 
 **The health check** (`python manage.py check_system_health`, run every 5 minutes by `bera-<env>-health.timer`,
 made by `deploy/bera_deploy.py units`) measures the following. Limits are platform settings (`monitor.*`), so
 they can change without a release:
 
-| Measurement | Alert when | Setting |
-| --- | --- | --- |
-| Disk (the fullest of `/` and the app folder, as `df` shows it) | more than 85% used | `monitor.disk_used_percent_limit` |
-| Memory, from the kernel's **available** figure (not "free", which looks alarming on a healthy server because the cache uses the rest) | more than 90% in use | `monitor.memory_used_percent_limit` |
-| Background jobs waiting (due now; work held while AI is paused on purpose is ignored) | more than 200 | `monitor.waiting_jobs_limit` |
-| The longest wait of a job that is due | more than 30 minutes | `monitor.job_waiting_minutes_limit` |
-| Stuck jobs | more than 3 | `monitor.stuck_jobs_limit` |
-| Emails queued for longer than 15 minutes (`monitor.email_queue_minutes`) | more than 10 | `monitor.email_backlog_limit` |
-| Server errors (a count per minute, numbers only) | 10 or more within 5 minutes | `monitor.error_limit`, `monitor.error_window_minutes` |
+| Measurement                                                                                                                           | Alert when                  | Setting                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------- |
+| Disk (the fullest of `/` and the app folder, as `df` shows it)                                                                        | more than 85% used          | `monitor.disk_used_percent_limit`                     |
+| Memory, from the kernel's **available** figure (not "free", which looks alarming on a healthy server because the cache uses the rest) | more than 90% in use        | `monitor.memory_used_percent_limit`                   |
+| Background jobs waiting (due now; work held while AI is paused on purpose is ignored)                                                 | more than 200               | `monitor.waiting_jobs_limit`                          |
+| The longest wait of a job that is due                                                                                                 | more than 30 minutes        | `monitor.job_waiting_minutes_limit`                   |
+| Stuck jobs                                                                                                                            | more than 3                 | `monitor.stuck_jobs_limit`                            |
+| Emails queued for longer than 15 minutes (`monitor.email_queue_minutes`)                                                              | more than 10                | `monitor.email_backlog_limit`                         |
+| Server errors (a count per minute, numbers only)                                                                                      | 10 or more within 5 minutes | `monitor.error_limit`, `monitor.error_window_minutes` |
 
 **Noise control.** Every limit above except the error rate must be exceeded for **3 checks in a row**
 (`monitor.checks_in_a_row`) before anything is sent; one busy moment is not an alert. The error rate is already
@@ -970,6 +973,7 @@ address: no body, no query, no data about us. Both addresses are secrets (they n
 not start without them (`config/secrets.py`). Staging may set its own `HEARTBEAT_URL` (never production's; the
 environment check compares them), or none.
 Set up at Healthchecks.io (free plan is enough):
+
 1. Create a check **Bera production health**: period 5 minutes, grace 10 minutes. Copy its ping address into
    `HEARTBEAT_URL`.
 2. Create **Bera production backup**: period 1 day, grace 3 hours (the backup runs at 02:30 UTC). Its address goes into
@@ -992,6 +996,7 @@ nothing from us. The alerts in our email are for the problems that leave the ser
 
 **Testing every alert.** In the code, one test per alert (`monitoring/tests/`, `core/tests/test_health_reveals_nothing.py`,
 `backups/tests/`) makes the reading cross its limit and checks the audit entry, the email and the ping. On the real server:
+
 - `python manage.py send_test_monitoring_alert` sends all seven monitoring emails to every active super admin once,
   ignoring the cooldown, so you see how each looks and that they arrive. `python manage.py send_test_security_alert`
   does the same for the security alert.
@@ -1010,12 +1015,14 @@ Tax handling is postponed in writing. It depends on the business registration an
 provider setup, and neither is decided yet. No tax field, rate or calculation exists in the code.
 
 **Still to be decided by the owner**
+
 - The country where the business is registered.
 - Whether Stripe Tax is turned on.
 - How the tax number is used (for example reverse charge or exemption).
 - How the billing address country is used for tax.
 
 **Ready**
+
 - The billing country and the tax number are stored and shown on Stripe invoices (BERA-168).
 - The locked sign-up country (which decides the PKR display price) is separate from the billing
   address country, and editing billing details never changes it.
@@ -1291,8 +1298,7 @@ token cap (409 with the Upgrade prompt).
 
 `GET` and `PUT /api/company/projects/<id>/requirements/` (own company; owners and members). The
 whole list is sent and replaces the stored one, so order, weights and removals can never
-disagree. Each requirement has a `kind` (`must` or `nice`), `text` (up to `requirements.max_length`,
-120) and a `weight` from 1 to `requirements.weight_max` (5, default `requirements.weight_default`,
+disagree. Each requirement has a `kind` (`must` or `nice`), `text` (up to `requirements.max_length`, 120) and a `weight` from 1 to `requirements.weight_max` (5, default `requirements.weight_default`,
 3); at most `requirements.max_total` (30) per project. Sending an `id` keeps an existing one.
 An archived project is read-only (409 `project_archived`).
 
@@ -1318,7 +1324,7 @@ default 70/30), `recommendation_threshold` (0 to 100; default 75) and `top_n` (d
 `GET` also returns `top_n_cap`, the plan's limit. The panel is on the project's Settings tab.
 
 - **Defaults.** A project with no saved row follows `projects/scoring_settings.py::
-  scoring_defaults()`, today the platform settings `scoring.must_have_weight_percent`,
+scoring_defaults()`, today the platform settings `scoring.must_have_weight_percent`,
   `scoring.nice_to_have_weight_percent`, `scoring.strong_match_min` and `scoring.top_n`; the
   company's own scoring defaults plug in there. Saving stores the project's own values.
 - **Plan cap.** `top_n` is checked with `plans.limits.check_top_n` (409 `top_n_limit_exceeded`
@@ -2035,13 +2041,13 @@ live updates routine. The project's Overview tab shows all five above the upload
 dashboard's Overview tab shows the funnel, the distribution and the trend for all projects together.
 Code: `server/cvs/charts.py`, `web/src/components/charts/`; every chart is on the `/design` page.
 
-| Question | Chart | Notes |
-| --- | --- | --- |
-| How far do CVs get? | Funnel | Uploaded, read, scored, shortlisted, interviewed, selected. The last three count scored candidates that ever reached the stage (from the stage history), so each step is a part of the one before. |
-| How are scores spread? | Score distribution | A column for each grade A to E, counts written above. |
-| Who is at the top? | Ranking (project) | The Top-N list, at most `charts.ranking_max_bars` (10) bars, names as initials. |
-| How well are requirements met? | Requirement coverage (project) | Met, partly met, missing, not judged for each requirement; a verdict for older wording counts as not judged. |
-| More or less than before? | Trend | CVs uploaded or scored per day for the last N days against the N before, with the change in percent. N is one of `charts.trend_days_choices` (7, 30, 90; default `charts.trend_days_default`). |
+| Question                       | Chart                          | Notes                                                                                                                                                                                              |
+| ------------------------------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| How far do CVs get?            | Funnel                         | Uploaded, read, scored, shortlisted, interviewed, selected. The last three count scored candidates that ever reached the stage (from the stage history), so each step is a part of the one before. |
+| How are scores spread?         | Score distribution             | A column for each grade A to E, counts written above.                                                                                                                                              |
+| Who is at the top?             | Ranking (project)              | The Top-N list, at most `charts.ranking_max_bars` (10) bars, names as initials.                                                                                                                    |
+| How well are requirements met? | Requirement coverage (project) | Met, partly met, missing, not judged for each requirement; a verdict for older wording counts as not judged.                                                                                       |
+| More or less than before?      | Trend                          | CVs uploaded or scored per day for the last N days against the N before, with the change in percent. N is one of `charts.trend_days_choices` (7, 30, 90; default `charts.trend_days_default`).     |
 
 - API: `GET /api/company/projects/<id>/charts/?days=` and `GET /api/company/charts/?days=` (any
   company role, live allowance, a wrong `days` is a form error). A fixed number of queries
@@ -2057,17 +2063,17 @@ The company dashboard (Overview tab) answers one question per card, all counted 
 when asked (no AI) and refreshed by the live-updates routine. Numbers for the chosen period (today,
 this week, this month) sit next to the period before it.
 
-| Card | Question | Opens |
-| --- | --- | --- |
-| CVs uploaded, CVs scored, Shortlisted, Average AI score | More or less than before? | The CVs or candidates counted |
-| Hiring pace, Match quality, Time to shortlist | Better or worse than before? | The same lists |
-| CVs by recommendation, Projects overview (donuts) | How are they split? | Who is in each part |
-| Screening progress (gauge) | How much is scored? | Projects with their counts |
-| Top candidates | Who is best? Pick two to four to compare | The candidate, the comparison page |
-| Quick actions | What is done most often? | Upload, new project, share report, export |
-| Pending actions | What waits for me? | The CVs or links waiting |
-| Funnel, Score distribution, Trend | Where do CVs drop out, how do scores spread, how is the pace? | Steps and grades as lists |
-| Live activity | What just happened? | The candidate or project |
+| Card                                                    | Question                                                      | Opens                                     |
+| ------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------- |
+| CVs uploaded, CVs scored, Shortlisted, Average AI score | More or less than before?                                     | The CVs or candidates counted             |
+| Hiring pace, Match quality, Time to shortlist           | Better or worse than before?                                  | The same lists                            |
+| CVs by recommendation, Projects overview (donuts)       | How are they split?                                           | Who is in each part                       |
+| Screening progress (gauge)                              | How much is scored?                                           | Projects with their counts                |
+| Top candidates                                          | Who is best? Pick two to four to compare                      | The candidate, the comparison page        |
+| Quick actions                                           | What is done most often?                                      | Upload, new project, share report, export |
+| Pending actions                                         | What waits for me?                                            | The CVs or links waiting                  |
+| Funnel, Score distribution, Trend                       | Where do CVs drop out, how do scores spread, how is the pace? | Steps and grades as lists                 |
+| Live activity                                           | What just happened?                                           | The candidate or project                  |
 
 Every card and every mark of a chart shows its details on hover or keyboard focus. Where it makes
 sense it also opens a popup with the list behind it; every name in that list is a link to the page
@@ -2118,13 +2124,13 @@ refreshed by the live-updates routine. The period (today, this week, this month,
 card and mark shows details on hover or focus, opens a popup listing the companies (or AI calls)
 behind it, and every name links to its company page. The chosen tab is kept in the address.
 
-| Tab | Shows | Who |
-| --- | --- | --- |
-| Overview | Companies, paying, suspended, monthly revenue; new companies, CVs scored, AI cost; the newest companies | both (money and AI cost: super only) |
-| Revenue | Revenue against AI cost with the margin; plan mix; subscriptions by state | super |
-| Usage | The pace of scoring and AI calls; the companies using the platform most | both (tokens, cost, AI calls: super only) |
-| AI | Token budget; calls by purpose and failure rate; cost by model; whether AI work is paused | super |
-| Attention | Past-due subscriptions, free grants ending soon, suspended companies, failed AI calls, open data requests, new feedback | both (failed AI calls: super only) |
+| Tab       | Shows                                                                                                                   | Who                                       |
+| --------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Overview  | Companies, paying, suspended, monthly revenue; new companies, CVs scored, AI cost; the newest companies                 | both (money and AI cost: super only)      |
+| Revenue   | Revenue against AI cost with the margin; plan mix; subscriptions by state                                               | super                                     |
+| Usage     | The pace of scoring and AI calls; the companies using the platform most                                                 | both (tokens, cost, AI calls: super only) |
+| AI        | Token budget; calls by purpose and failure rate; cost by model; whether AI work is paused                               | super                                     |
+| Attention | Past-due subscriptions, free grants ending soon, suspended companies, failed AI calls, open data requests, new feedback | both (failed AI calls: super only)        |
 
 - `GET /api/admin/dashboard/?days=`: the cards. `GET /api/admin/dashboard/detail/?kind=&key=&days=`:
   what is behind one (`metric`, `state`, `plan`, `pending`, `ai_purpose`, `ai_model`).
@@ -2224,7 +2230,7 @@ the company activity log below it: newest first, `activity.page_size` (50) entri
   the same whether or not the new address is already taken: a taken address gets the "you already have
   an account" notice instead of a link, and a taken one found at confirmation is refused.
 - **Company** (`/company/settings/company`, owner only, `settings.change`): `GET`/`PATCH
-  /api/company/settings/` change the company name. The billing country is shown and locked (any other
+/api/company/settings/` change the company name. The billing country is shown and locked (any other
   field is refused).
 - **Retention** (`/company/advanced/retention`): the same route takes `retention_days`, one of the
   platform's `retention.choices_days`, or `null` for `retention.default_days`. The activity list and the
@@ -2301,6 +2307,7 @@ confirmation offers it again first.
 
 **The company** is deleted by the owner on Advanced > Data and export (`GET` and `POST
 /api/company/deletion/`, owner only, `company.delete`; `companies/deletion.py`):
+
 - The owner types the company name exactly. An active subscription (active, past due, cancelled
   but still running, or granted free) must be acknowledged (`subscription_active`, 409; the
   popup shows a checkbox).
@@ -2332,13 +2339,13 @@ The emails a person gets besides the account ones (sign-in, password, invites), 
 (company, kind, key), and the row and the emails are written together, so a failed send is tried
 again and a repeat never goes out. The key is an id or a date, never a name.
 
-| Email | When | Who | Can be switched off |
-| --- | --- | --- | --- |
-| Finished uploads | no CV of an upload is waiting or being worked on (an upload that was only cancelled says nothing) | the person who uploaded | yes |
-| Usage warnings | a metric (CVs, AI tokens) first reaches a level of `usage.warning_percents` below 100, in a billing period | the owner | yes |
-| Usage limit reached | the same, at 100% | the owner | yes |
-| Subscription ending | `notifications.subscription_ending_days` (7) before a subscription stops at its period end (cancelled, free grant, or active without renewal) | the owner | no |
-| Payment failed | the subscription goes past due | the owner | no |
+| Email               | When                                                                                                                                          | Who                     | Can be switched off |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------- |
+| Finished uploads    | no CV of an upload is waiting or being worked on (an upload that was only cancelled says nothing)                                             | the person who uploaded | yes                 |
+| Usage warnings      | a metric (CVs, AI tokens) first reaches a level of `usage.warning_percents` below 100, in a billing period                                    | the owner               | yes                 |
+| Usage limit reached | the same, at 100%                                                                                                                             | the owner               | yes                 |
+| Subscription ending | `notifications.subscription_ending_days` (7) before a subscription stops at its period end (cancelled, free grant, or active without renewal) | the owner               | no                  |
+| Payment failed      | the subscription goes past due                                                                                                                | the owner               | no                  |
 
 - A jump over several usage levels sends one email, for the highest. Levels checked after a CV
   is counted (`usage.mark_scored`); the finished-upload check runs when a CV is done, fails, or
@@ -2356,11 +2363,11 @@ Tests: `notifications/tests/test_notifications.py`, `web/src/app/company/advance
 When access is blocked the screen opens a popup (`BillingPrompt`), chosen by the server's
 `prompt` answer (`plans.limits.prompt_kind`):
 
-| Case | `prompt` | Owner's button |
-| --- | --- | --- |
-| A limit is reached on a plan with a bigger one | `upgrade` | Upgrade plan (billing page) |
-| A limit is reached on the highest plan | `highest_plan` | Contact us (`/contact`) |
-| The subscription has expired | `renewal` | Renew subscription (billing page) |
+| Case                                           | `prompt`       | Owner's button                    |
+| ---------------------------------------------- | -------------- | --------------------------------- |
+| A limit is reached on a plan with a bigger one | `upgrade`      | Upgrade plan (billing page)       |
+| A limit is reached on the highest plan         | `highest_plan` | Contact us (`/contact`)           |
+| The subscription has expired                   | `renewal`      | Renew subscription (billing page) |
 
 - Only owners get the button. A member sees "Please ask your company owner to upgrade." (renew,
   or get in touch, for the other two). The role comes from `CompanySession` (`useCompanyRole`);
@@ -2495,17 +2502,17 @@ export functions of the company panel.
 There is no beta flag and no invite-only sign-up. Beta companies sign up normally; the super admin
 then gives each one a free subscription.
 
-| Item | Decision |
-| --- | --- |
-| Who | Recruiters the owner invites personally, one account owner per company (each company has at most 3 accounts) |
-| How many companies | ______ (owner fills in) |
-| Start and end dates | ______ to ______ (owner fills in) |
-| Free access | Admin > Companies > the company > "Grant free subscription": the plan with every feature to test, and an end date at the end of the beta. The audit log keeps who granted it and why |
-| What to ask them to test | Sign up and verify; create a project and requirements; upload 10 to 30 real CVs (a batch is at most 30); read the ranked list, filters, comparison and the candidate page; download a package; share a report; invite a team member; change retention settings |
-| Collecting feedback | "Send feedback" in the app (bug, idea, question). The owner reads Operations > Feedback every working day, sets each item to Reviewing, then Fixed or Won't fix, with a short note |
-| List of fixes | The feedback list itself: filter by status. Each item is Fixed (done) or Reviewing (planned); the Won't fix ones carry the reason in the note |
+| Item                      | Decision                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Who                       | Recruiters the owner invites personally, one account owner per company (each company has at most 3 accounts)                                                                                                                                                                                                                                 |
+| How many companies        | ______ (owner fills in)                                                                                                                                                                                                                                                                                                                      |
+| Start and end dates       | ______ to ______ (owner fills in)                                                                                                                                                                                                                                                                                                            |
+| Free access               | Admin > Companies > the company > "Grant free subscription": the plan with every feature to test, and an end date at the end of the beta. The audit log keeps who granted it and why                                                                                                                                                         |
+| What to ask them to test  | Sign up and verify; create a project and requirements; upload 10 to 30 real CVs (a batch is at most 30); read the ranked list, filters, comparison and the candidate page; download a package; share a report; invite a team member; change retention settings                                                                               |
+| Collecting feedback       | "Send feedback" in the app (bug, idea, question). The owner reads Operations > Feedback every working day, sets each item to Reviewing, then Fixed or Won't fix, with a short note                                                                                                                                                           |
+| List of fixes             | The feedback list itself: filter by status. Each item is Fixed (done) or Reviewing (planned); the Won't fix ones carry the reason in the note                                                                                                                                                                                                |
 | When the free period ends | The subscription ends on its end date: the account becomes view and download only. Nothing is deleted by the end of the period; a company's own retention setting still applies as before. The owner is emailed before it ends (`notifications.subscription_ending_days`) and the company can buy a plan at any time to get full access back |
-| Stopping early | Admin > Companies > the company > end the free subscription (reason required) |
+| Stopping early            | Admin > Companies > the company > end the free subscription (reason required)                                                                                                                                                                                                                                                                |
 
 Before the beta starts, the owner has to run the first real deploy, switch on real email sending and
 the real AI key, and have the legal text reviewed (see the earlier sections). Only the code and its
@@ -2513,13 +2520,13 @@ tests exist so far: no real recruiter, real AI or real server has been used for 
 beta itself (invitations, dates, the feedback received and the fixes made) is still to be done and
 recorded here by the owner.
 
-| Result | Value |
-| --- | --- |
-| Companies in the beta | |
-| Feedback received (bug / idea / question) | |
-| Fixed | |
-| Planned | |
-| Won't fix | |
+| Result                                    | Value |
+| ----------------------------------------- | ----- |
+| Companies in the beta                     |       |
+| Feedback received (bug / idea / question) |       |
+| Fixed                                     |       |
+| Planned                                   |       |
+| Won't fix                                 |       |
 
 ## Admin users
 
@@ -2753,18 +2760,18 @@ The run:
 
 Results (the owner fills these in; leave empty until measured):
 
-| What | Target | Measured | Date |
-|------|--------|----------|------|
-| Time for 500 CVs, fake AI | | | |
-| Time per CV, real AI sample | | | |
-| Longest wait of one CV | | | |
-| Peak memory: web / worker / database | | | |
-| Peak disk used | | | |
-| Peak database connections | | | |
-| Failed or retried CVs | | | |
-| Estimate against real tokens | | | |
-| Production slowdown during the run | | | |
-| Server size or worker change made | | | |
+| What                                 | Target | Measured | Date |
+| ------------------------------------ | ------ | -------- | ---- |
+| Time for 500 CVs, fake AI            |        |          |      |
+| Time per CV, real AI sample          |        |          |      |
+| Longest wait of one CV               |        |          |      |
+| Peak memory: web / worker / database |        |          |      |
+| Peak disk used                       |        |          |      |
+| Peak database connections            |        |          |      |
+| Failed or retried CVs                |        |          |      |
+| Estimate against real tokens         |        |          |      |
+| Production slowdown during the run   |        |          |      |
+| Server size or worker change made    |        |          |      |
 
 ## Launch checklist (BERA-184)
 
@@ -2790,23 +2797,23 @@ settings in use. `--staging-env` and `--production-env` name the two environment
 - `launch.restore_test_max_age_days` (8) is the one new platform setting: how old the last passed
   restore test may be. The age of the last backup is `backup.late_after_hours` (26).
 
-| # | Item | The command checks | The owner confirms |
-| --- | --- | --- | --- |
-| 1 | Two-step reset by a super admin works and is audited | Only super admins hold the action, and the audit entry needs a reason. Tests (`adminusers/tests/test_admin_controls.py`, `TestTurningOffACompanyUsersTwoStep`) prove it turns two-step off, signs the person out of every session, emails them, writes the audit entry with the reason and that the identity was checked, and that the support role is refused | |
-| 2 | At least two active super admins | The count | |
-| 3 | Starter, Growth and Scale are active | Each exists once, is active, has a US dollar price and every number | |
-| 4 | The pricing page shows only active plans with matching prices | Asks the real public pricing route and compares | |
-| 5 | Legal pages ready | Terms and Privacy text in place, `legal.reviewed` on with a reviewer name and the current text version, and the Privacy text says deleted data stays in backups for `backup.retention_days` days | |
-| 6 | Live payments | A live Stripe key is in use with `STRIPE_ALLOW_LIVE_KEYS=true`, and the webhook secret is set | Taxes (BERA-170) decided and written down before going live; the webhook receives events; the billing portal allows card updates and invoices only; a test payment, a refund and a failed payment were tried in test mode |
-| 7 | Backups | A successful backup within the last 26 hours; a passed restore test within the last 8 days | The encryption key has an offline copy; the R2 lifecycle rule is set |
-| 8 | Monitoring | Both heartbeat addresses are set (https) | The outside uptime check exists and a test alert was received |
-| 9 | Server | Cloudflare-only firewall loaded, origin pulls on in the web server, SSH key-only, staging and production share nothing, secret scan clean, library check clean (accepted findings need a review date) | |
-| 10 | Volume test (BERA-182) | | Run on the real server with a fake AI and with the real AI; targets and results filled in |
-| 11 | AI | An OpenAI key is set; a model is enabled; reading and scoring prompts exist; AI is not paused; the monthly AI spend limit is set | The kill switch was tried once on the real server |
-| 12 | Email and names | The support email looks real; email is set up to send for real | The app name is right; a contact form test message arrives; sign-up, verification, reset and invite emails arrive in a real inbox |
-| 13 | Public side | An announcement that has not ended exists; `web/public/og-cover.png` exists; the public address is https | |
-| 14 | Private beta (BERA-183) | | Done; no New feedback left that blocks the launch |
-| 15 | Pre-launch security review (BERA-181) | The written review exists and the library check has no open high finding | |
+| #   | Item                                                          | The command checks                                                                                                                                                                                                                                                                                                                                             | The owner confirms                                                                                                                                                                                                        |
+| --- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Two-step reset by a super admin works and is audited          | Only super admins hold the action, and the audit entry needs a reason. Tests (`adminusers/tests/test_admin_controls.py`, `TestTurningOffACompanyUsersTwoStep`) prove it turns two-step off, signs the person out of every session, emails them, writes the audit entry with the reason and that the identity was checked, and that the support role is refused |                                                                                                                                                                                                                           |
+| 2   | At least two active super admins                              | The count                                                                                                                                                                                                                                                                                                                                                      |                                                                                                                                                                                                                           |
+| 3   | Starter, Growth and Scale are active                          | Each exists once, is active, has a US dollar price and every number                                                                                                                                                                                                                                                                                            |                                                                                                                                                                                                                           |
+| 4   | The pricing page shows only active plans with matching prices | Asks the real public pricing route and compares                                                                                                                                                                                                                                                                                                                |                                                                                                                                                                                                                           |
+| 5   | Legal pages ready                                             | Terms and Privacy text in place, `legal.reviewed` on with a reviewer name and the current text version, and the Privacy text says deleted data stays in backups for `backup.retention_days` days                                                                                                                                                               |                                                                                                                                                                                                                           |
+| 6   | Live payments                                                 | A live Stripe key is in use with `STRIPE_ALLOW_LIVE_KEYS=true`, and the webhook secret is set                                                                                                                                                                                                                                                                  | Taxes (BERA-170) decided and written down before going live; the webhook receives events; the billing portal allows card updates and invoices only; a test payment, a refund and a failed payment were tried in test mode |
+| 7   | Backups                                                       | A successful backup within the last 26 hours; a passed restore test within the last 8 days                                                                                                                                                                                                                                                                     | The encryption key has an offline copy; the R2 lifecycle rule is set                                                                                                                                                      |
+| 8   | Monitoring                                                    | Both heartbeat addresses are set (https)                                                                                                                                                                                                                                                                                                                       | The outside uptime check exists and a test alert was received                                                                                                                                                             |
+| 9   | Server                                                        | Cloudflare-only firewall loaded, origin pulls on in the web server, SSH key-only, staging and production share nothing, secret scan clean, library check clean (accepted findings need a review date)                                                                                                                                                          |                                                                                                                                                                                                                           |
+| 10  | Volume test (BERA-182)                                        |                                                                                                                                                                                                                                                                                                                                                                | Run on the real server with a fake AI and with the real AI; targets and results filled in                                                                                                                                 |
+| 11  | AI                                                            | An OpenAI key is set; a model is enabled; reading and scoring prompts exist; AI is not paused; the monthly AI spend limit is set                                                                                                                                                                                                                               | The kill switch was tried once on the real server                                                                                                                                                                         |
+| 12  | Email and names                                               | The support email looks real; email is set up to send for real                                                                                                                                                                                                                                                                                                 | The app name is right; a contact form test message arrives; sign-up, verification, reset and invite emails arrive in a real inbox                                                                                         |
+| 13  | Public side                                                   | An announcement that has not ended exists; `web/public/og-cover.png` exists; the public address is https                                                                                                                                                                                                                                                       |                                                                                                                                                                                                                           |
+| 14  | Private beta (BERA-183)                                       |                                                                                                                                                                                                                                                                                                                                                                | Done; no New feedback left that blocks the launch                                                                                                                                                                         |
+| 15  | Pre-launch security review (BERA-181)                         | The written review exists and the library check has no open high finding                                                                                                                                                                                                                                                                                       |                                                                                                                                                                                                                           |
 
 Checklist for the owner (tick when the command shows the item `OK` or you confirmed it yourself):
 
@@ -2850,17 +2857,18 @@ can use Bera through an API. The owner makes the keys in the company panel: Adva
   `not_signed_in`; a valid key of a company that no longer qualifies gets 403 `api_access_closed`.
 - **Routes (`/api/v1/`).**
 
-| Route | Scope | What |
-| --- | --- | --- |
-| `GET projects/` | `projects:read` | The company's projects (the panel's list, same query) |
-| `GET projects/<id>/` | `projects:read` | One project: id, title, status, updated |
-| `POST projects/<id>/cvs/` | `cvs:upload` | CVs as multipart `files` (and an optional `batch`) |
-| `GET projects/<id>/candidates/` | `candidates:read` | The ranked list (the panel's sorting and filters): rank, score, grade, label, ATS score, stage, status |
-| `GET projects/<id>/candidates/<id>/` | `candidates:read` | Score, grade, label, ATS score and each requirement's verdict and confidence |
+| Route                                | Scope             | What                                                                                                   |
+| ------------------------------------ | ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `GET projects/`                      | `projects:read`   | The company's projects (the panel's list, same query)                                                  |
+| `GET projects/<id>/`                 | `projects:read`   | One project: id, title, status, updated                                                                |
+| `POST projects/<id>/cvs/`            | `cvs:upload`      | CVs as multipart `files` (and an optional `batch`)                                                     |
+| `GET projects/<id>/candidates/`      | `candidates:read` | The ranked list (the panel's sorting and filters): rank, score, grade, label, ATS score, stage, status |
+| `GET projects/<id>/candidates/<id>/` | `candidates:read` | Score, grade, label, ATS score and each requirement's verdict and confidence                           |
 
-  No name, email, phone, address, file name, evidence quote, strengths, risks or notes is ever
-  returned: contact details and CV content stay in the panel. A missing scope is 403
-  `scope_missing`; another company's project or candidate is 404, like in the panel.
+No name, email, phone, address, file name, evidence quote, strengths, risks or notes is ever
+returned: contact details and CV content stay in the panel. A missing scope is 403
+`scope_missing`; another company's project or candidate is 404, like in the panel.
+
 - **Upload is the panel's own path** (`cvs.service.upload_cvs`): the same file checks, batch size,
   in-progress limit (counted for the person who made the key), company upload rate limit, plan
   limits, usage counting and fair processing, and it is refused when the subscription does not
@@ -3066,6 +3074,17 @@ the company sent (`free_access.detail_items` entries each). Nothing from a CV is
 
 Extra routes: `GET .../access/<id>/` (details), `PATCH .../access/<id>/` (permitted plan),
 `DELETE .../invites/<id>/` (unused only), `GET .../overview/`, `GET .../paid/` (`search`, `page`).
+
+## No token limit for companies
+
+Companies are bound only by their projects and CVs (and the plan's team size and top-list size).
+There is no monthly AI token cap on a plan, in the limit checks, the cost estimate before a
+confirmation, the re-scoring estimate, beta access or free access, and no tokens are shown on the
+usage meter, the Usage tab, the usage history or the company's admin page. `plans.limits.check_ai_allowed`
+now only refuses work for an ended subscription. Wherever earlier sections of this README speak of
+the monthly token cap, they describe the old behaviour. Tokens are still counted for cost records,
+and the admin AI page shows the tokens used (no budget). The only token limit left is the company
+agent's own (see the agent section). A migration drops the plan column and any admin override.
 
 ## Coupons and trials (BERA-188)
 

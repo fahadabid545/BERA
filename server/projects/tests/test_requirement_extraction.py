@@ -8,7 +8,7 @@ from ai import client
 from ai.client import AiAnswer, AiUnavailable
 from core.tests.factories import make_company, make_company_user, start_session_for
 from plans import subscriptions as subs
-from plans.models import LimitOverride, Plan
+from plans.models import Plan
 from projects.models import Project
 from usage import service as usage
 
@@ -35,7 +35,6 @@ def company():
         max_projects=5,
         max_team_accounts=3,
         max_top_n=10,
-        monthly_ai_token_cap=10000,
     )
     subs.activate(company.pk, plan, period_start=now, period_end=now + timezone.timedelta(days=30))
     return company
@@ -139,20 +138,11 @@ class TestTokens:
         owner.post(url(project))
         assert usage.current_usage(company.pk)["tokens_in"] == 0
 
-    def test_the_token_cap_pauses_ai_with_the_upgrade_prompt(
+    def test_there_is_no_token_limit_so_the_ai_is_asked_however_much_was_used(
         self, owner, project, company, monkeypatch
     ):
-        calls = answer_with(monkeypatch, good(("must", "Python")))
-        usage.add_tokens(company.pk, 10000, 0, 0)
-        response = owner.post(url(project))
-        assert response.status_code == 409
-        assert response.json()["error"]["code"] == "ai_paused_token_cap"
-        assert calls == {}  # the AI was never asked
-
-    def test_an_admin_raised_cap_lets_it_through(self, owner, project, company, monkeypatch):
         answer_with(monkeypatch, good(("must", "Python")))
-        usage.add_tokens(company.pk, 10000, 0, 0)
-        LimitOverride.objects.create(company=company, name="monthly_ai_token_cap", value=99999)
+        usage.add_tokens(company.pk, 10_000_000, 0, 0)
         assert owner.post(url(project)).status_code == 200
 
 

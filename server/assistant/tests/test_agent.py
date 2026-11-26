@@ -16,8 +16,7 @@ from cvs.models import AtsScore, Candidate
 from cvs.tests.test_ai_reading import set_setting
 from cvs.tests.test_processing import Tenant, make_plan
 from cvs.tests.test_ranked_list import add
-from plans.limits import MONTHLY_AI_TOKEN_CAP
-from plans.models import LimitOverride, Subscription
+from plans.models import Subscription
 from usage import service as usage
 
 pytestmark = pytest.mark.django_db
@@ -128,14 +127,6 @@ class TestWhoMayUseIt:
     def test_a_member_may_ask_and_signed_out_may_not(self, tenant, provider):
         assert ask(member_client(tenant)).status_code == 200
         assert ask(APIClient()).status_code == 401
-
-    def test_the_token_allowance_is_used_up_like_scoring(self, tenant, provider):
-        LimitOverride.objects.create(company=tenant.company, name=MONTHLY_AI_TOKEN_CAP, value=10)
-        usage.add_tokens(tenant.company.pk, 50, 50, 0)
-        response = ask(tenant.client)
-        assert response.status_code == 409
-        assert response.json()["error"]["code"] == "ai_paused_token_cap"
-        assert provider.sent == []
 
     def test_when_ai_work_is_paused_it_says_so_and_calls_nothing(
         self, tenant, provider, monkeypatch

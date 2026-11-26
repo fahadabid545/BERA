@@ -24,7 +24,6 @@ LIMITS = {
     "max_projects": 5,
     "max_team_accounts": 3,
     "max_top_n": 10,
-    "monthly_ai_token_cap": 1_000_000,
 }
 
 
@@ -158,7 +157,7 @@ class TestThePublicList:
     def test_no_internal_fields_are_shown(self):
         make_plan()
         shown = set(visitor_sees("US")[0])
-        assert shown.isdisjoint({"status", "subscribers", "pending_change", "monthly_ai_token_cap"})
+        assert shown.isdisjoint({"status", "subscribers", "pending_change"})
 
     def test_only_reading_is_allowed(self):
         for method in ("post", "patch", "delete"):

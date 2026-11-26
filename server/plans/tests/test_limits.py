@@ -23,7 +23,6 @@ LIMITS = {
     "max_projects": 2,
     "max_team_accounts": 2,
     "max_top_n": 10,
-    "monthly_ai_token_cap": 1000,
 }
 
 
@@ -172,29 +171,18 @@ class TestEachLimitBlocks:
         limits.check_projects(company.pk, 0).raise_if_blocked()
 
 
-class TestTheTokenCap:
-    def test_ai_is_allowed_below_the_cap(self, company):
-        usage.add_tokens(company.pk, 400, 100, "0.1")
+class TestNoTokenLimit:
+    def test_ai_stays_allowed_however_many_tokens_were_used(self, company):
+        usage.add_tokens(company.pk, 6_000_000, 4_000_000, "0.1")
         assert limits.check_ai_allowed(company.pk).allowed
 
-    def test_reaching_the_cap_pauses_ai_with_a_clear_message(self, company):
-        usage.add_tokens(company.pk, 600, 400, "0.1")  # in and out together
+    def test_an_ended_subscription_still_pauses_ai(self, company):
+        subs.expire(company.pk)
         check = limits.check_ai_allowed(company.pk)
-        assert (check.allowed, check.code, check.prompt) == (
-            False,
-            "ai_paused_token_cap",
-            "upgrade",
-        )
-        assert "paused until the next period" in check.message
+        assert (check.allowed, check.code) == (False, "subscription_expired")
 
-    def test_a_limit_increase_resumes_it_at_once(self, company):
-        usage.add_tokens(company.pk, 600, 400, "0.1")
-        LimitOverride.objects.create(company=company, name="monthly_ai_token_cap", value=2000)
-        assert limits.check_ai_allowed(company.pk).allowed
-
-    def test_the_next_period_resumes_it(self, company):
-        usage.add_tokens(company.pk, 600, 400, "0.1", now=timezone.now() - 40 * DAY)
-        assert limits.check_ai_allowed(company.pk).allowed
+    def test_a_token_limit_is_no_longer_a_limit_name(self):
+        assert "monthly_ai_token_cap" not in limits.LIMIT_NAMES
 
 
 class TestWhichPrompt:

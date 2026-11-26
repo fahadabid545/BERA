@@ -28,14 +28,12 @@ CVS_PER_PROJECT = "cvs_per_project"
 MAX_PROJECTS = "max_projects"
 MAX_TOP_N = "max_top_n"
 MAX_TEAM_ACCOUNTS = "max_team_accounts"
-MONTHLY_AI_TOKEN_CAP = "monthly_ai_token_cap"
 LIMIT_NAMES = (
     CVS_PER_MONTH,
     CVS_PER_PROJECT,
     MAX_PROJECTS,
     MAX_TOP_N,
     MAX_TEAM_ACCOUNTS,
-    MONTHLY_AI_TOKEN_CAP,
 )
 
 CODES = {
@@ -44,7 +42,6 @@ CODES = {
     MAX_PROJECTS: "project_limit_reached",
     MAX_TOP_N: "top_n_limit_exceeded",
     MAX_TEAM_ACCOUNTS: "team_limit_reached",
-    MONTHLY_AI_TOKEN_CAP: "ai_paused_token_cap",
 }
 MESSAGES = {
     CVS_PER_MONTH: "You have reached your plan's limit of {limit} CVs this month.",
@@ -53,8 +50,6 @@ MESSAGES = {
     MAX_TOP_N: "Your plan allows a top list of at most {limit}.",
     MAX_TEAM_ACCOUNTS: "Your company can have at most {limit} accounts, including the owner. "
     "Remove someone or revoke an invitation first.",
-    MONTHLY_AI_TOKEN_CAP: "Your company has used all its AI allowance for this period. AI work "
-    "is paused until the next period or until the limit is raised.",
 }
 EXPIRED_CODE = "subscription_expired"
 EXPIRED_MESSAGE = "Your subscription has ended, so this is not available. Renew to continue."
@@ -233,13 +228,11 @@ def check_top_n(company_id, top_n):
 
 
 def check_ai_allowed(company_id):
-    """AI work is paused once the period's tokens (in and out) reach the cap, until the next
-    period or a limit increase."""
-    if blocked := _expired(company_id, MONTHLY_AI_TOKEN_CAP):
+    """AI work needs a running plan, trial or free access. There is no token limit: companies are
+    bound by their projects and CVs only."""
+    if blocked := _expired(company_id, CVS_PER_MONTH):
         return blocked
-    current = usage.current_usage(company_id)
-    used = current["tokens_in"] + current["tokens_out"]
-    return _count_check(company_id, MONTHLY_AI_TOKEN_CAP, used, 1)
+    return LimitCheck(True, CVS_PER_MONTH)
 
 
 @dataclass(frozen=True)

@@ -316,7 +316,6 @@ class TestDeletionRemovesFilesFromTheStore:
             max_projects=5,
             max_team_accounts=3,
             max_top_n=10,
-            monthly_ai_token_cap=10000,
         )
         subs.activate(company.pk, plan, period_start=now, period_end=now + timedelta(days=30))
         owner = make_company_user(company)

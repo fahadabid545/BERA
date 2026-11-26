@@ -32,7 +32,6 @@ def plan():
         max_projects=3,
         max_team_accounts=3,
         max_top_n=10,
-        monthly_ai_token_cap=1000,
     )
 
 
@@ -64,7 +63,7 @@ class TestTheNumbers:
         assert data["plan_name"] == "Fake Plan"
         assert data["state"] == "active"
         assert data["cvs"] == {"used": 0, "limit": 10, "left": 10, "warning": None}
-        assert data["tokens"] == {"used": 0, "limit": 1000, "left": 1000, "warning": None}
+        assert "tokens" not in data  # nobody is limited by tokens
         assert data["projects"] == {"used": 0, "limit": 3}
         assert data["estimated_cost"] == "0.000000"
 
@@ -86,7 +85,6 @@ class TestTheNumbers:
         usage.add_tokens(company.pk, 300, 120, "0.012345", cv_id=cv)
         data = summary(client)
         assert data["cvs"]["used"] == 5 and data["cvs"]["left"] == 5
-        assert (data["tokens"]["used"], data["tokens"]["left"]) == (420, 580)
         assert data["estimated_cost"] == "0.012345"
 
     def test_figures_match_what_the_limit_checks_enforce(self, owned):
@@ -100,8 +98,6 @@ class TestTheNumbers:
             month.room,
             month.limit,
         )
-        ai = limits.check_ai_allowed(company.pk)
-        assert (data["tokens"]["used"], data["tokens"]["limit"]) == (ai.used, ai.limit)
 
     def test_a_failed_cv_gives_its_cv_back_in_the_display(self, owned):
         company, client = owned
@@ -167,21 +163,6 @@ class TestWarnings:
         assert summary(client)["cvs"]["warning"] == 80
         score(company, 1)
         assert summary(client)["cvs"]["warning"] == 100
-
-    def test_token_warnings_appear_at_80_and_100_percent(self, owned):
-        company, client = owned
-        usage.add_tokens(company.pk, 700, 99, "0")
-        assert summary(client)["tokens"]["warning"] is None
-        usage.add_tokens(company.pk, 1, 0, "0")
-        assert summary(client)["tokens"]["warning"] == 80
-        usage.add_tokens(company.pk, 100, 100, "0")
-        assert summary(client)["tokens"]["warning"] == 100
-
-    def test_cv_and_token_warnings_are_separate(self, owned):
-        company, client = owned
-        score(company, 10)
-        data = summary(client)
-        assert (data["cvs"]["warning"], data["tokens"]["warning"]) == (100, None)
 
     def test_the_thresholds_follow_the_platform_setting(self, owned, monkeypatch):
         company, client = owned

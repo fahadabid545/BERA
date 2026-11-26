@@ -355,14 +355,11 @@ class TestAi:
     def test_no_failure_rate_without_calls(self, boss):
         assert board(boss)["ai"]["calls"]["failure_percent"] is None
 
-    def test_the_token_budget_is_used_against_the_plans_caps(self, boss):
-        tenant = Tenant(make_plan(monthly_ai_token_cap=10_000))
+    def test_the_tokens_used_are_summed_over_the_days(self, boss):
+        tenant = Tenant(make_plan())
         ai_call(tenant.company, tokens=1000)
         tokens = board(boss)["ai"]["tokens"]
-        assert (tokens["used"], tokens["cap"], tokens["percent"]) == (2000, 10_000, 20.0)
-
-    def test_no_percent_without_caps(self, boss):
-        assert board(boss)["ai"]["tokens"]["percent"] is None
+        assert tokens["used"] == 2000 and "cap" not in tokens
 
     def test_it_says_whether_ai_work_is_paused(self, boss):
         assert board(boss)["ai"]["control"]["paused"] is False

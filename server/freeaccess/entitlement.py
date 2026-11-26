@@ -27,7 +27,7 @@ BETA_SETTINGS = {
     "max_projects": "beta.max_projects",
     "max_team_accounts": "beta.max_team_accounts",
 }
-FROM_SMALLEST_PLAN = ("max_top_n", "monthly_ai_token_cap")
+FROM_SMALLEST_PLAN = ("max_top_n",)
 
 
 def active_grants(company_id, now=None):

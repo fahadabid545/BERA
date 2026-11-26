@@ -53,7 +53,7 @@ export type AdminData = {
     calls: { total: number; failed: number; failure_percent: number | null };
     by_purpose: { purpose: string; count: number }[];
     by_model: { model: string; calls: number; tokens: number; cost: number }[];
-    tokens: { used: number; cap: number; percent: number | null; days: number };
+    tokens: { used: number; days: number };
     control: { paused: boolean; paused_by_admin: boolean; paused_automatically: boolean };
   };
 };

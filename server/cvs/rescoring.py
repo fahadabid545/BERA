@@ -18,19 +18,14 @@ from decimal import Decimal
 from django.utils import timezone
 
 from ai.costs import price_call
-from plans.limits import MONTHLY_AI_TOKEN_CAP, check_ai_allowed, limit_for, prompt_kind
+from plans.limits import check_ai_allowed, prompt_kind
 from platform_settings.service import get_setting
 from projects.models import Requirement
-from usage import service as usage
 
 from .models import Candidate, CandidateScore, CvFile
 from .processing import kick
 
-OVER_CAP_CODE = "rescoring_over_token_cap"
-OVER_CAP_MESSAGE = (
-    "Scoring the changed requirements is expected to use more AI than your plan has left this "
-    "period. Raise your limit, or change fewer requirements."
-)
+BLOCKED_CODE = "rescoring_ai_not_allowed"
 
 
 def changed_texts(project, items):
@@ -46,7 +41,7 @@ def _scored_candidates(project):
 
 def estimate(project, items):
     """What re-scoring would run: the scored CVs, the changed requirements and the approximate
-    tokens and cost, and whether it would pass the monthly AI token cap."""
+    tokens and cost, and whether AI work is allowed."""
     changed = changed_texts(project, items)
     cvs = _scored_candidates(project).count()
     per_token = get_setting("estimate.characters_per_token")
@@ -67,13 +62,8 @@ def estimate(project, items):
         (tokens_out // cvs) if cvs else 0,
     )
     company_id = project.company_id
-    current = usage.current_usage(company_id)
-    used = current["tokens_in"] + current["tokens_out"]
     allowed = check_ai_allowed(company_id)
-    blocked = bool(cvs and changed) and (
-        not allowed.allowed
-        or used + tokens_in + tokens_out > limit_for(company_id, MONTHLY_AI_TOKEN_CAP)
-    )
+    blocked = bool(cvs and changed) and not allowed.allowed
     return {
         "approximate": True,
         "cvs": cvs if changed else 0,
@@ -81,10 +71,8 @@ def estimate(project, items):
         "tokens_total": tokens_in + tokens_out if changed else 0,
         "estimated_cost": Decimal(cost) if changed else Decimal(0),
         "blocked": blocked,
-        "code": OVER_CAP_CODE,
-        "message": (allowed.message if not allowed.allowed else OVER_CAP_MESSAGE)
-        if blocked
-        else "",
+        "code": BLOCKED_CODE,
+        "message": allowed.message if blocked else "",
         "prompt": prompt_kind(company_id) if blocked else None,
     }
 

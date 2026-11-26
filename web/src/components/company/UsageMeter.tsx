@@ -23,7 +23,6 @@ export type PlanAndUsage = {
   period_start: string;
   period_end: string;
   cvs: Measure;
-  tokens: Measure;
   estimated_cost: string;
   projects: { used: number; limit: number };
   refresh_seconds: number;
@@ -97,7 +96,7 @@ export function usePlanAndUsage() {
 export function UsageMeter() {
   const summary = usePlanAndUsage();
   if (!summary) return null;
-  const worst = Math.max(summary.cvs.warning ?? 0, summary.tokens.warning ?? 0);
+  const worst = summary.cvs.warning ?? 0;
   return (
     <Dialog
       title="Plan and usage"
@@ -146,11 +145,6 @@ export function UsageMeter() {
         <dd>
           {number(summary.cvs.used)} of {number(summary.cvs.limit)}, {number(summary.cvs.left)} left{" "}
           <WarningTag label="CVs" warning={summary.cvs.warning} />
-        </dd>
-        <dt>AI tokens used</dt>
-        <dd>
-          {number(summary.tokens.used)} of {number(summary.tokens.limit)}{" "}
-          <WarningTag label="Tokens" warning={summary.tokens.warning} />
         </dd>
         <dt>Estimated AI cost</dt>
         <dd>${summary.estimated_cost}</dd>

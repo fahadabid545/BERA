@@ -12,9 +12,8 @@ type Item = { id: string; name: string; status: Status; reason: string; can_retr
 type Used = { used: number; limit: number };
 type Estimate = {
   cvs: number;
-  tokens_total: number;
   estimated_cost: string;
-  limits: { cvs_this_month: Used; cvs_in_project: Used; tokens: Used & { after_estimate: number } };
+  limits: { cvs_this_month: Used; cvs_in_project: Used };
   blocked: boolean;
   message: string;
 };
@@ -127,7 +126,6 @@ export function CvProcessing({ projectId }: { projectId: string }) {
         >
           <ul aria-label="Cost estimate">
             <li>CVs: {estimate.cvs}</li>
-            <li>Approximate tokens: {estimate.tokens_total}</li>
             <li>Approximate cost: ${estimate.estimated_cost}</li>
             <li>
               CVs this month: {estimate.limits.cvs_this_month.used} of{" "}
@@ -136,9 +134,6 @@ export function CvProcessing({ projectId }: { projectId: string }) {
             <li>
               CVs in this project: {estimate.limits.cvs_in_project.used} of{" "}
               {estimate.limits.cvs_in_project.limit}
-            </li>
-            <li>
-              AI tokens this period: {estimate.limits.tokens.used} of {estimate.limits.tokens.limit}
             </li>
           </ul>
           {estimate.blocked && (

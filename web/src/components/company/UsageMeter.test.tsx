@@ -12,7 +12,6 @@ const SUMMARY: PlanAndUsage = {
   period_start: "2030-01-15T00:00:00Z",
   period_end: "2030-02-15T00:00:00Z",
   cvs: { used: 3, limit: 10, left: 7, warning: null },
-  tokens: { used: 420, limit: 1000, left: 580, warning: null },
   estimated_cost: "0.012345",
   projects: { used: 0, limit: 3 },
   refresh_seconds: 3,
@@ -77,7 +76,7 @@ describe("the small meter", () => {
     ).toBe("3");
   });
 
-  it("opens a popup with plan, period, CVs, tokens, cost and projects", async () => {
+  it("opens a popup with plan, period, CVs, cost and projects", async () => {
     stubServer();
     render(<UsageMeter />);
     await userEvent.click(await screen.findByRole("button", { name: /CVs 3/ }));
@@ -86,7 +85,6 @@ describe("the small meter", () => {
     expect(text).toContain("Fake Plan (Active)");
     expect(text).toContain("15 Jan 2030 to 15 Feb 2030");
     expect(text).toContain("3 of 10, 7 left");
-    expect(text).toContain("420 of 1,000");
     expect(text).toContain("$0.012345");
     expect(text).toContain("0 of 3");
   });
@@ -122,18 +120,10 @@ describe("warnings", () => {
     expect(within(screen.getByRole("dialog")).getByText("CVs 80% used")).toBeTruthy();
   });
 
-  it("warns in words at 100 percent of tokens", async () => {
-    stubServer({ ...SUMMARY, tokens: { used: 1000, limit: 1000, left: 0, warning: 100 } });
-    render(<UsageMeter />);
-    await userEvent.click(await screen.findByRole("button", { name: /CVs/ }));
-    expect(within(screen.getByRole("dialog")).getByText("Tokens limit reached")).toBeTruthy();
-  });
-
   it("shows the worst warning beside the meter", async () => {
     stubServer({
       ...SUMMARY,
-      cvs: { used: 8, limit: 10, left: 2, warning: 80 },
-      tokens: { used: 1000, limit: 1000, left: 0, warning: 100 },
+      cvs: { used: 10, limit: 10, left: 0, warning: 100 },
     });
     render(<UsageMeter />);
     expect(await screen.findByText("Limit reached")).toBeTruthy();

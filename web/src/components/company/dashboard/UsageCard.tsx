@@ -55,12 +55,6 @@ function Rows({ summary }: { summary: PlanAndUsage }) {
         limit={summary.cvs.limit}
         warning={summary.cvs.warning}
       />
-      <Row
-        label="AI tokens"
-        used={summary.tokens.used}
-        limit={summary.tokens.limit}
-        warning={summary.tokens.warning}
-      />
       <Row label="Projects" used={summary.projects.used} limit={summary.projects.limit} />
     </ul>
   );

@@ -16,7 +16,7 @@ from .service import mark_handled, notify
 
 logger = logging.getLogger(__name__)
 
-USAGE_THINGS = {"cvs": "CV", "tokens": "AI"}
+USAGE_THINGS = {"cvs": "CV"}
 FULL = 100
 
 

@@ -27,7 +27,6 @@ class Plan(models.Model):
     max_projects = models.PositiveIntegerField(null=True)
     max_team_accounts = models.PositiveIntegerField(null=True)  # including the owner
     max_top_n = models.PositiveIntegerField(null=True)
-    monthly_ai_token_cap = models.PositiveBigIntegerField(null=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.HIDDEN)
     display_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)

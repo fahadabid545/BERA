@@ -59,9 +59,7 @@ class Org:
 
 @pytest.fixture
 def smallest_plan():
-    return make_plan(
-        name="Small", price_usd=10, max_top_n=7, monthly_ai_token_cap=123_456, max_team_accounts=3
-    )
+    return make_plan(name="Small", price_usd=10, max_top_n=7, max_team_accounts=3)
 
 
 def beta_email(admin, org, days=30):
@@ -307,8 +305,8 @@ class TestCodes:
 
 class TestLimits:
     def test_beta_limits_come_from_settings_and_the_smallest_paid_plan(self, admin, smallest_plan):
-        make_plan(name="Large", price_usd=500, max_top_n=50, monthly_ai_token_cap=9_999_999)
-        make_plan(name="Free", price_usd=0, max_top_n=1, monthly_ai_token_cap=1)
+        make_plan(name="Large", price_usd=500, max_top_n=50)
+        make_plan(name="Free", price_usd=0, max_top_n=1)
         org = Org()
         beta_email(admin, org)
         for name, expected in {
@@ -317,7 +315,6 @@ class TestLimits:
             limits.CVS_PER_PROJECT: 1000,
             limits.CVS_PER_MONTH: 1000,
             limits.MAX_TOP_N: 7,
-            limits.MONTHLY_AI_TOKEN_CAP: 123_456,
         }.items():
             assert limits.limit_for(org.id, name) == expected
         set_setting("beta.max_team_accounts", 2)

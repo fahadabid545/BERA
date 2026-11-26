@@ -55,7 +55,6 @@ def make_plan(cvs_per_month=100, cvs_per_project=50, name="Basic", price=10):
         max_projects=5,
         max_team_accounts=3,
         max_top_n=10,
-        monthly_ai_token_cap=10000,
     )
 
 

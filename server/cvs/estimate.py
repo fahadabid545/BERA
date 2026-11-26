@@ -20,7 +20,6 @@ from core.errors import AppError
 from plans.limits import (
     CVS_PER_MONTH,
     CVS_PER_PROJECT,
-    MONTHLY_AI_TOKEN_CAP,
     check_ai_allowed,
     limit_for,
     prompt_kind,
@@ -34,11 +33,7 @@ from .models import CvFile
 from .processing import kick
 
 AWAITING = CvFile.Status.AWAITING_CONFIRMATION
-OVER_CAP_CODE = "estimate_over_token_cap"
-OVER_CAP_MESSAGE = (
-    "These CVs are expected to use more AI than your plan has left this period. "
-    "Cancel some of them, or raise your limit."
-)
+BLOCKED_CODE = "estimate_ai_not_allowed"
 NOTHING_TO_CONFIRM_CODE = "nothing_to_confirm"
 NOTHING_TO_CONFIRM_MESSAGE = "There are no CVs waiting for confirmation."
 
@@ -78,22 +73,8 @@ def estimate(project, batch_id=None):
     )
     company_id = project.company_id
     current = usage.current_usage(company_id)
-    used_tokens = current["tokens_in"] + current["tokens_out"]
-    cap = limit_for(company_id, MONTHLY_AI_TOKEN_CAP)
-    # CVs already released (other batches, other people) have not used their tokens yet, but
-    # will: counting them stops several batches from each fitting under the cap alone.
-    in_flight = CvFile.objects.filter(
-        company_id=company_id,
-        status__in=(CvFile.Status.WAITING, CvFile.Status.READING, CvFile.Status.SCORING),
-    ).count()
-    after = (
-        used_tokens
-        + tokens_in
-        + tokens_out
-        + in_flight * sum((read_in, read_out, score_in, score_out))
-    )
     allowed = check_ai_allowed(company_id)
-    blocked = not allowed.allowed or after > cap
+    blocked = not allowed.allowed
     return {
         "approximate": True,
         "cvs": cvs,
@@ -108,19 +89,16 @@ def estimate(project, batch_id=None):
             "cvs_in_project": _limit(
                 company_id, CVS_PER_PROJECT, CvFile.objects.filter(project=project).count()
             ),
-            "tokens": {"used": used_tokens, "limit": cap, "after_estimate": after},
         },
         "blocked": blocked,
-        "message": (allowed.message if not allowed.allowed else OVER_CAP_MESSAGE)
-        if blocked
-        else "",
+        "message": allowed.message if blocked else "",
         "prompt": prompt_kind(company_id) if blocked else None,
     }
 
 
 def confirm(project, batch_id=None):
-    """Releases the held CVs to processing. Refused while the estimate passes the token cap.
-    Returns how many were released."""
+    """Releases the held CVs to processing. Refused while AI work is not allowed (an ended
+    subscription). Returns how many were released."""
     with transaction.atomic():
         Company.objects.select_for_update().get(pk=project.company_id)
         require_editable(project)
@@ -129,10 +107,10 @@ def confirm(project, batch_id=None):
             raise AppError(NOTHING_TO_CONFIRM_CODE, NOTHING_TO_CONFIRM_MESSAGE, status_code=409)
         if shown["blocked"]:
             raise AppError(
-                OVER_CAP_CODE,
+                BLOCKED_CODE,
                 shown["message"],
                 status_code=409,
-                details={"prompt": shown["prompt"], "limit": shown["limits"]["tokens"]["limit"]},
+                details={"prompt": shown["prompt"]},
             )
         released = _held(project, batch_id).update(
             status=CvFile.Status.WAITING, next_attempt_at=timezone.now()

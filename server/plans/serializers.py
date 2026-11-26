@@ -50,7 +50,6 @@ class PlanFieldsSerializer(StrictSerializer):
     max_projects = WholeNumber(allow_null=True)
     max_team_accounts = WholeNumber(allow_null=True)
     max_top_n = WholeNumber(allow_null=True)
-    monthly_ai_token_cap = WholeNumber(allow_null=True)
     status = serializers.ChoiceField(choices=Plan.Status.values)
     display_order = serializers.IntegerField(min_value=0, max_value=1_000_000)
 

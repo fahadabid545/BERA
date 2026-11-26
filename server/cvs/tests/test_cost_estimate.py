@@ -130,61 +130,25 @@ class TestTheEstimate:
 
 
 class TestAgainstThePlan:
-    def test_it_shows_the_plan_limits_and_the_token_cap(self, tenant):
+    def test_it_shows_the_plan_limits_of_cvs_only(self, tenant):
         hold(tenant, 2)
         limits = shown(tenant)["limits"]
-        assert limits["cvs_this_month"] == {"used": 2, "limit": 100}
-        assert limits["cvs_in_project"] == {"used": 2, "limit": 50}
-        assert limits["tokens"] == {"used": 0, "limit": 10_000_000, "after_estimate": 4700}
+        assert limits == {
+            "cvs_this_month": {"used": 2, "limit": 100},
+            "cvs_in_project": {"used": 2, "limit": 50},
+        }
 
-    def test_tokens_already_used_this_period_count_toward_the_cap(self, tenant):
-        hold(tenant)
-        usage.add_tokens(tenant.company.pk, 6000, 1000, 0)
-        tokens = shown(tenant)["limits"]["tokens"]
-        assert tokens["used"] == 7000 and tokens["after_estimate"] == 7000 + 2350
-
-    def test_inside_the_cap_it_is_not_blocked(self, tenant):
+    def test_an_allowed_company_is_not_blocked(self, tenant):
         hold(tenant)
         body = shown(tenant)
         assert (body["blocked"], body["message"], body["prompt"]) == (False, "", None)
 
-    def test_passing_the_cap_is_blocked_with_a_message_and_a_prompt(self, tenant):
-        hold(tenant, 2)
-        make_plan(name="Bigger", price_usd=99)  # a dearer plan exists, so the prompt is Upgrade
-        from plans.models import LimitOverride
-
-        LimitOverride.objects.create(
-            company_id=tenant.company.pk, name="monthly_ai_token_cap", value=3000
-        )
+    def test_a_large_hold_is_never_blocked_by_tokens(self, tenant, kicks):
+        hold(tenant, 3)
         body = shown(tenant)
-        assert body["blocked"] is True
-        assert "more AI than your plan has left" in body["message"]
-        assert body["prompt"] == "upgrade"
-
-    def test_cvs_already_released_count_toward_the_cap(self, tenant):
-        """Two batches must not both fit under the cap when together they would not."""
-        from plans.models import LimitOverride
-
-        tenant.cv(status="waiting")  # released earlier, nothing used yet: 2350 tokens to come
-        hold(tenant)  # 2350 more
-        LimitOverride.objects.create(
-            company_id=tenant.company.pk, name="monthly_ai_token_cap", value=4000
-        )
-        body = shown(tenant)
-        assert body["limits"]["tokens"]["after_estimate"] == 2350 * 2
-        assert body["blocked"] is True
-
-    def test_exactly_the_cap_is_allowed_and_one_token_more_is_not(self, tenant):
-        from plans.models import LimitOverride
-
-        hold(tenant)  # 2350 tokens
-        cap = LimitOverride.objects.create(
-            company_id=tenant.company.pk, name="monthly_ai_token_cap", value=2350
-        )
-        assert shown(tenant)["blocked"] is False
-        cap.value = 2349
-        cap.save()
-        assert shown(tenant)["blocked"] is True
+        assert body["blocked"] is False and "tokens" not in body["limits"]
+        assert tenant.confirm().status_code == 200
+        assert kicks  # the CVs were released to processing
 
     def test_an_ended_subscription_is_blocked_with_the_renewal_prompt(self, tenant):
         from plans.models import Subscription
@@ -217,21 +181,6 @@ class TestConfirming:
         hold(tenant, 1, batch=other)
         assert tenant.confirm(batch=one).json() == {"confirmed": 2}
         assert CvFile.objects.filter(status=HELD).count() == 1
-
-    def test_passing_the_token_cap_refuses_and_keeps_the_cvs_held(self, tenant, kicks):
-        from plans.models import LimitOverride
-
-        hold(tenant, 2)
-        LimitOverride.objects.create(
-            company_id=tenant.company.pk, name="monthly_ai_token_cap", value=3000
-        )
-        response = tenant.confirm()
-        assert response.status_code == 409
-        error = response.json()["error"]
-        assert error["code"] == "estimate_over_token_cap"
-        assert "more AI than your plan has left" in error["message"]
-        assert {row.status for row in CvFile.objects.all()} == {HELD}
-        assert kicks == []
 
     def test_confirming_twice_does_not_start_anything_twice(self, tenant, kicks):
         hold(tenant)

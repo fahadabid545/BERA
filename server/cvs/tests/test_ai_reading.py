@@ -78,7 +78,7 @@ def set_setting(key, value):
     clear_cache()
 
 
-def make_cv(cap=10000):
+def make_cv():
     company = make_company()
     now = timezone.now()
     plan = Plan.objects.create(
@@ -90,7 +90,6 @@ def make_cv(cap=10000):
         max_projects=5,
         max_team_accounts=3,
         max_top_n=10,
-        monthly_ai_token_cap=cap,
     )
     subs.activate(company.pk, plan, period_start=now, period_end=now + timedelta(days=30))
     owner = make_company_user(company)
@@ -236,12 +235,10 @@ class TestInvalidAnswers:
             profile_reading.read_profile(cv, CV_TEXT)
         assert not CvProfile.objects.exists()
 
-    def test_a_company_over_its_token_cap_is_not_read_and_the_reason_is_clear(self, ai):
-        capped = make_cv(cap=10)
-        usage.add_tokens(capped.company_id, 10, 0, 0)
-        with pytest.raises(PermanentFailure) as failure:
-            profile_reading.read_profile(capped, CV_TEXT)
-        assert str(failure.value) == profile_reading.AI_PAUSED_REASON and not ai.calls
+    def test_a_company_that_used_many_tokens_is_still_read(self, cv, ai):
+        usage.add_tokens(cv.company_id, 50_000_000, 0, 0)  # there is no token limit
+        ai.answers = [answer_with()]
+        assert profile_reading.read_profile(cv, CV_TEXT).content["skills"]
 
 
 class TestInventedFactsAreRemoved:

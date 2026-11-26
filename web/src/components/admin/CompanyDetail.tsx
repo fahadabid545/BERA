@@ -29,7 +29,6 @@ type Detail = {
   };
   usage: {
     cvs: Measure;
-    tokens: Measure;
     projects: Measure;
     estimated_cost?: string;
   };
@@ -161,8 +160,6 @@ export function CompanyDetail({ companyId }: { companyId: string }) {
         <dl>
           <dt>CVs</dt>
           <dd>{measureText(usage.cvs)}</dd>
-          <dt>AI tokens</dt>
-          <dd>{measureText(usage.tokens)}</dd>
           <dt>Projects</dt>
           <dd>{measureText(usage.projects)}</dd>
           {usage.estimated_cost !== undefined && (

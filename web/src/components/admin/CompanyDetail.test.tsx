@@ -35,7 +35,6 @@ const DETAIL = {
   },
   usage: {
     cvs: { used: 3, limit: 10 },
-    tokens: { used: 1200, limit: 5000 },
     projects: { used: 1, limit: 5 },
   },
   project_counts: { active: 1, archived: 2 },
@@ -96,7 +95,6 @@ describe("company detail", () => {
     expect(screen.getByText("Past due")).toBeTruthy();
     expect(screen.getByText("Fake Plan")).toBeTruthy();
     expect(screen.getByText("3 of 10")).toBeTruthy();
-    expect(screen.getByText("1,200 of 5,000")).toBeTruthy();
     expect(screen.getByText("1 active, 2 archived")).toBeTruthy();
   });
 

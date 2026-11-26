@@ -99,7 +99,7 @@ const superData = (over: Partial<AdminData> = {}): AdminData => ({
       { purpose: "playground", count: 0 },
     ],
     by_model: [{ model: "big-model", calls: 20, tokens: 5000, cost: 6.5 }],
-    tokens: { used: 5000, cap: 10_000, percent: 50, days: 30 },
+    tokens: { used: 5000, days: 30 },
     control: { paused: false, paused_by_admin: false, paused_automatically: false },
   },
   ...over,
@@ -285,12 +285,12 @@ describe("Usage", () => {
 });
 
 describe("AI", () => {
-  it("shows the token budget, the failure rate and the cost by model", async () => {
+  it("shows the tokens used, the failure rate and the cost by model", async () => {
     serve(superData());
     show("ai");
     expect(await screen.findByText("10% failed")).toBeTruthy();
     expect(screen.getByText("AI work running")).toBeTruthy();
-    expect(screen.getByText("50%")).toBeTruthy();
+    expect(screen.getByText("5,000")).toBeTruthy();
     expect(screen.getByText("$6.50")).toBeTruthy();
   });
 
@@ -302,7 +302,7 @@ describe("AI", () => {
         ...base.ai!,
         calls: { total: 0, failed: 0, failure_percent: null },
         by_model: [],
-        tokens: { used: 0, cap: 0, percent: null, days: 30 },
+        tokens: { used: 0, days: 30 },
         control: { paused: true, paused_by_admin: true, paused_automatically: false },
       },
     });

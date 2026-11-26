@@ -46,7 +46,7 @@ afterEach(() => {
 });
 
 describe("usage history", () => {
-  it("lists CVs, tokens and estimated cost for each period", async () => {
+  it("lists CVs and estimated cost for each period", async () => {
     serve(history());
     render(<UsageHistory />);
     const table = await screen.findByRole("region", { name: "Usage by period" });
@@ -55,7 +55,7 @@ describe("usage history", () => {
       within(row)
         .getAllByRole("cell")
         .map((cell) => cell.textContent),
-    ).toEqual(["3", "100", "42", "$0.85"]);
+    ).toEqual(["3", "$0.85"]);
   });
 
   it("lists the projects of the chosen period", async () => {

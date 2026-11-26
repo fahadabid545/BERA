@@ -27,7 +27,6 @@ def describe(plan):
         "max_projects": plan.max_projects,
         "max_team_accounts": plan.max_team_accounts,
         "max_top_n": plan.max_top_n,
-        "monthly_ai_token_cap": plan.monthly_ai_token_cap,
         "status": plan.status,
         "display_order": plan.display_order,
         "subscribers": subscriber_count(plan),

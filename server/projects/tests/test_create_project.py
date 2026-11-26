@@ -24,7 +24,6 @@ def make_plan(max_projects=5):
         max_projects=max_projects,
         max_team_accounts=3,
         max_top_n=10,
-        monthly_ai_token_cap=100000,
     )
 
 
@@ -214,7 +213,6 @@ class TestProjectLimit:
             max_projects=9,
             max_team_accounts=1,
             max_top_n=1,
-            monthly_ai_token_cap=1,
         )
         assert make_plan_higher
         _, client = sign_in(company)

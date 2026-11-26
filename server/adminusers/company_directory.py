@@ -166,7 +166,7 @@ def _subscription_and_usage(company_id, role):
         name: figures[name]
         for name in ("plan_name", "state", "renewal", "grace_ends_at", "period_start", "period_end")
     }
-    usage_figures = {name: figures[name] for name in ("cvs", "tokens", "projects")}
+    usage_figures = {name: figures[name] for name in ("cvs", "projects")}
     if role in roles_allowed("ai.view"):
         usage_figures["estimated_cost"] = figures["estimated_cost"]
     return subscription, usage_figures

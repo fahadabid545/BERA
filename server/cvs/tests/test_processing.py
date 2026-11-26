@@ -53,7 +53,6 @@ def make_plan(**changes):
             "max_projects": 5,
             "max_team_accounts": 3,
             "max_top_n": 10,
-            "monthly_ai_token_cap": 10_000_000,
             **changes,
         }
     )

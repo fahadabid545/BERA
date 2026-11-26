@@ -45,7 +45,6 @@ def plan_and_usage(company_id):
         trial_used = trials.cvs_used(subscription)
         if subscription.trial_cv_limit - trial_used < cv_limit - cvs_used:
             cv_limit, cvs_used = subscription.trial_cv_limit, trial_used
-    token_limit = limits.limit_for(company_id, limits.MONTHLY_AI_TOKEN_CAP)
     project_limit = limits.limit_for(company_id, limits.MAX_PROJECTS)
     return {
         "plan_name": access.plan.name if access.plan else None,
@@ -61,7 +60,6 @@ def plan_and_usage(company_id):
         "period_end": current["period_end"],
         # Scored plus waiting, exactly what the monthly limit check counts.
         "cvs": _measure(cvs_used, cv_limit),
-        "tokens": _measure(current["tokens_in"] + current["tokens_out"], token_limit),
         "estimated_cost": f"{current['estimated_cost']:.6f}",
         "projects": {"used": projects_in_use(company_id), "limit": project_limit},
         "refresh_seconds": get_setting("live_updates.max_delay_seconds"),

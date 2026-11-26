@@ -96,7 +96,6 @@ def ready(settings, monkeypatch, folder, machine):
             max_projects=5,
             max_team_accounts=3,
             max_top_n=10,
-            monthly_ai_token_cap=1_000_000,
         )
     monkeypatch.setattr(legal_documents, "TERMS", dict(TERMS))
     monkeypatch.setattr(legal_documents, "PRIVACY", dict(PRIVACY))

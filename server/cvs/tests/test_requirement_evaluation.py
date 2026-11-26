@@ -335,18 +335,6 @@ class TestOtherInvalidResults:
             evaluation.evaluate_candidate(candidate, CV_TEXT)
         assert not RequirementResult.objects.exists()
 
-    def test_a_company_over_its_token_cap_is_not_judged_and_the_reason_is_clear(self, ai):
-        cv = add_profile(make_cv())
-        from cvs.tests.test_ai_reading import make_cv as make_capped_cv
-
-        capped = add_profile(make_capped_cv(cap=10))
-        add_requirements(capped.project, "Python experience")
-        usage.add_tokens(capped.company_id, 10, 0, 0)
-        with pytest.raises(PermanentFailure) as failure:
-            evaluation.evaluate_candidate(candidates.create_candidate(capped), CV_TEXT)
-        assert str(failure.value) == evaluation.AI_PAUSED_REASON and not ai.calls
-        assert cv
-
 
 class TestNeedsRequirements:
     def test_a_project_with_none_fails_the_cv_with_a_clear_reason_and_asks_nothing(self, ai):
