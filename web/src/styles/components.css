@@ -1008,31 +1008,31 @@ a.ui-tab {
   }
 }
 
-/* ---------- Admin look: an ink sidebar, a green stripe and an ADMIN badge ---------- */
-.panel--admin {
+/* ---------- Ink sidebar (both panels); only the admin panel has the green stripe and badge ---------- */
+.panel-frame {
   --icon-cutout: var(--color-admin-active);
 }
-.panel--admin .panel-sidebar {
+.panel-frame .panel-sidebar {
   --color-focus: var(--color-admin-focus);
   border-right-color: var(--color-admin-hover);
   background: var(--color-admin-bg);
   color: var(--color-admin-text);
 }
-.panel--admin .panel-sidebar .site-brand,
-.panel--admin .panel-sidebar .ui-icon-item {
+.panel-frame .panel-sidebar .site-brand,
+.panel-frame .panel-sidebar .ui-icon-item {
   color: var(--color-admin-text);
 }
-.panel--admin .panel-sidebar .ui-icon-item:hover {
+.panel-frame .panel-sidebar .ui-icon-item:hover {
   background: var(--color-admin-hover);
 }
-.panel--admin .panel-sidebar .ui-icon-item[aria-current="page"],
-.panel--admin .panel-sidebar .ui-icon-item[data-active="true"] {
+.panel-frame .panel-sidebar .ui-icon-item[aria-current="page"],
+.panel-frame .panel-sidebar .ui-icon-item[data-active="true"] {
   background: var(--color-admin-active);
 }
-.panel--admin .panel-nav > li[data-separated="true"] {
+.panel-frame .panel-nav > li[data-separated="true"] {
   border-top-color: var(--color-admin-hover);
 }
-.panel--admin .panel-submenu {
+.panel-frame .panel-submenu {
   border-color: var(--color-admin-hover);
   background: transparent;
 }
@@ -1040,7 +1040,7 @@ a.ui-tab {
   box-shadow: inset 0 4px 0 var(--color-accent);
 }
 @media (min-width: 40rem) and (max-width: 63.99rem) {
-  .panel--admin .panel-submenu {
+  .panel-frame .panel-submenu {
     background: var(--color-admin-bg);
   }
 }
@@ -2052,32 +2052,33 @@ button.chart-mark.ui-card {
   cursor: pointer;
 }
 .quick-tile {
+  --tile-colour: var(--color-accent);
+  --tile-soft: var(--color-accent-soft);
   display: flex;
   align-items: flex-end;
   min-height: 6rem;
   padding: var(--space-4);
   border-radius: var(--radius);
+  border-left: 0.375rem solid var(--tile-colour);
+  background: var(--tile-soft);
+  color: var(--color-text);
   font-weight: 600;
   transition: box-shadow var(--transition);
 }
 .quick-link:hover .quick-tile {
   box-shadow: var(--shadow-raised);
 }
-.quick-tile--green {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-}
 .quick-tile--blue {
-  background: var(--color-data-blue);
-  color: var(--color-on-data-blue);
+  --tile-colour: var(--color-data-blue);
+  --tile-soft: var(--color-data-blue-soft);
 }
 .quick-tile--violet {
-  background: var(--color-data-violet);
-  color: var(--color-on-data-violet);
+  --tile-colour: var(--color-data-violet);
+  --tile-soft: var(--color-data-violet-soft);
 }
 .quick-tile--amber {
-  background: var(--color-data-amber);
-  color: var(--color-on-data-amber);
+  --tile-colour: var(--color-data-amber);
+  --tile-soft: var(--color-data-amber-soft);
 }
 .pending-list {
   display: flex;

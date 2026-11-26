@@ -256,7 +256,7 @@ describe("admin look", () => {
       expect(luminance(tokens["color-admin-bg"])).toBeLessThan(0.01);
     }
     expect(componentsCss).toMatch(
-      /\.panel--admin \.panel-sidebar\s*\{[^}]*background: var\(--color-admin-bg\)/,
+      /\.panel-frame \.panel-sidebar\s*\{[^}]*background: var\(--color-admin-bg\)/,
     );
     expect(componentsCss).toMatch(/\.panel--admin \.panel-topbar\s*\{[^}]*var\(--color-accent\)/);
     expect(componentsCss).toMatch(/\.ui-tag--admin\s*\{[^}]*background: var\(--color-text\)/);
@@ -264,7 +264,7 @@ describe("admin look", () => {
 
   it("keeps the focus ring visible on the ink sidebar", () => {
     expect(componentsCss).toMatch(
-      /\.panel--admin \.panel-sidebar\s*\{[^}]*--color-focus: var\(--color-admin-focus\)/,
+      /\.panel-frame \.panel-sidebar\s*\{[^}]*--color-focus: var\(--color-admin-focus\)/,
     );
   });
 });
@@ -275,7 +275,7 @@ describe("Advanced divider", () => {
       /\.panel-nav > li\[data-separated="true"\]\s*\{[^}]*border-top: 1px solid var\(--color-border\)/,
     );
     expect(componentsCss).toMatch(
-      /\.panel--admin \.panel-nav > li\[data-separated="true"\]\s*\{[^}]*var\(--color-admin-hover\)/,
+      /\.panel-frame \.panel-nav > li\[data-separated="true"\]\s*\{[^}]*var\(--color-admin-hover\)/,
     );
   });
 });

@@ -5,12 +5,14 @@ If a ticket cannot be done within these rules, stop, explain which rule conflict
 and why, and ask before proceeding. Never bend a rule silently.
 
 ## Workflow
+
 - Work on one ticket at a time. Briefly describe the approach before building.
 - Keep each change small and focused on the ticket. No unrelated refactors or
   drive-by changes; raise them as separate suggestions instead.
 - Ask instead of guessing when requirements are unclear or ambiguous.
 
 ## Code quality
+
 - Write clean, readable code. Prefer simple and explicit over clever.
 - Use meaningful, descriptive names for files, functions, variables, and types.
   Avoid abbreviations and generic names (`data`, `tmp`, `handle`, `util`).
@@ -20,9 +22,10 @@ and why, and ask before proceeding. Never bend a rule silently.
 - No hard-coded platform values (limits, durations, thresholds, scoring numbers).
   Add them to `server/platform_settings/definitions.py` and read them with
   `get_setting("group.name")`, at the moment of use.
-- Comment *why*, not *what*. Remove dead and commented-out code.
+- Comment _why_, not _what_. Remove dead and commented-out code.
 
 ## UI design
+
 - Use the building blocks in `web/src/components/ui` and the tokens in
   `web/src/styles/tokens.css`; never hard-code colours, fonts or sizes in pages.
 - Green is a fill or indicator only, never text. Status and errors are written in
@@ -51,11 +54,12 @@ and why, and ask before proceeding. Never bend a rule silently.
   navigation lives in `components/company/navigation.ts` and
   `components/admin/navigation.ts`. An item flagged `guarded` shows members the
   "You do not have access" page when they type its address. The admin panel must stay visibly different:
-  ink sidebar, green top stripe, solid ADMIN badge.
+  green top stripe, solid ADMIN badge (both panels share the ink sidebar).
 - Page content, header and footer share one column (`.site-container`,
   `--container-width`); never let page text sit outside it.
 
 ## Testing
+
 - Every feature ships with automated tests in the same change.
 - Tests must cover the happy path **and every edge case listed in the ticket**.
 - Bug fixes include a test that fails before the fix and passes after it.
@@ -64,6 +68,7 @@ and why, and ask before proceeding. Never bend a rule silently.
   the suite pass.
 
 ## Error reporting
+
 - Use one consistent error-reporting mechanism across the whole project: a
   single shared error type/helper, defined once and reused everywhere.
 - Every error carries a stable machine-readable `code`, a plain-language
@@ -81,6 +86,7 @@ and why, and ask before proceeding. Never bend a rule silently.
   file paths, secrets).
 
 ## Secrets and personal data
+
 - Never put secrets (API keys, passwords, tokens, private keys, connection
   strings) in code, tests, fixtures, docs, or commit history. Load them from
   environment variables or a secret manager; `.env` files are never committed.
@@ -91,6 +97,7 @@ and why, and ask before proceeding. Never bend a rule silently.
   (fake value) and the README in the same change; `scripts/scan_secrets.py` runs on every change.
 
 ## Before every push
+
 - Every ticket: run `python scripts/scan_secrets.py`, ruff, prettier and tsc, and the tests of
   the ticket and of the code it touches (server and, when the web app changed, web). Push only
   when all are clean. `git add` new files first: the secret scan only sees files git knows about.
@@ -99,7 +106,9 @@ and why, and ask before proceeding. Never bend a rule silently.
   of the 5 it was, and when the whole suite last ran.
 
 ## Definition of done
+
 A ticket is done only when:
+
 1. The change is limited to the ticket's scope.
 2. Tests for the feature and all listed edge cases exist and pass.
 3. Errors go through the shared error mechanism.
@@ -107,6 +116,7 @@ A ticket is done only when:
 5. The change is committed with a clear, descriptive message.
 
 ## Technology decisions (apply to all tickets)
+
 - Server: Python, Django + Django REST Framework. PostgreSQL database.
   Background jobs: Django-Q2 using PostgreSQL as the queue (no Redis for now).
 - UI: Next.js + TypeScript, one app with three areas: public website (`/`),
