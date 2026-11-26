@@ -14,7 +14,16 @@ function initialsOf(name: string): string {
 }
 
 /** `items` are links; "Log out" is added last and ends this browser's session. */
-export function UserMenu({ userName, items }: { userName: string; items: MenuItem[] }) {
+export function UserMenu({
+  userName,
+  items,
+  onLogOut = logOut,
+}: {
+  userName: string;
+  items: MenuItem[];
+  /** Replaces what "Log out" does (a company asks for feedback first). */
+  onLogOut?: () => void;
+}) {
   return (
     <Menu
       trigger={
@@ -23,7 +32,7 @@ export function UserMenu({ userName, items }: { userName: string; items: MenuIte
           <span className="visually-hidden">User menu</span>
         </button>
       }
-      items={[...items, { label: "Log out", onSelect: logOut }]}
+      items={[...items, { label: "Log out", onSelect: onLogOut }]}
     />
   );
 }

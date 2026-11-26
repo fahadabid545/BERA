@@ -10,8 +10,15 @@ const USAGE_URL = "/api/company/usage/";
 
 type Measure = { used: number; limit: number; left: number; warning: number | null };
 
+export type FreeAccessSummary = {
+  kind: "beta" | "permitted";
+  ends_at: string | null;
+  cvs_today?: { used: number; limit: number };
+};
+
 export type PlanAndUsage = {
   plan_name: string | null;
+  free_access: FreeAccessSummary | null;
   state: string;
   period_start: string;
   period_end: string;
@@ -100,6 +107,11 @@ export function UsageMeter() {
             CVs {number(summary.cvs.used)} / {number(summary.cvs.limit)}
           </span>
           <Bar measure={summary.cvs} label="CVs used this period" />
+          {summary.free_access?.kind === "beta" && summary.free_access.ends_at && (
+            <span className="usage-meter__tag">
+              <Tag variant="live">Beta until {formatDate(summary.free_access.ends_at)}</Tag>
+            </span>
+          )}
           {worst > 0 && (
             <span className="usage-meter__tag">
               <Tag variant={worst >= 100 ? "danger" : "warning"}>
@@ -116,6 +128,16 @@ export function UsageMeter() {
           {summary.plan_name ?? STATE_WORDS[summary.state]}
           {summary.plan_name && ` (${STATE_WORDS[summary.state] ?? summary.state})`}
         </dd>
+        {summary.free_access?.kind === "beta" && summary.free_access.ends_at && (
+          <>
+            <dt>Beta access ends</dt>
+            <dd>{formatDate(summary.free_access.ends_at)}</dd>
+            <dt>CVs today</dt>
+            <dd>
+              {summary.free_access.cvs_today?.used} of {summary.free_access.cvs_today?.limit}
+            </dd>
+          </>
+        )}
         <dt>This period</dt>
         <dd>
           {formatDate(summary.period_start)} to {formatDate(summary.period_end)}

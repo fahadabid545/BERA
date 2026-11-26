@@ -49,6 +49,13 @@
     "set_by": "our code"
   },
   {
+    "name": "bera-beta-feedback-day",
+    "storage": "localStorage",
+    "purpose": "Remembers the day a beta tester was last asked for feedback, so the form is offered once a day. Holds only a date, stays in the browser and is never sent to the server.",
+    "essential": true,
+    "set_by": "our code"
+  },
+  {
     "name": "Cloudflare security cookie",
     "storage": "cookie",
     "purpose": "Cloudflare may set its own security cookie when the site is behind it. Not set by our code.",

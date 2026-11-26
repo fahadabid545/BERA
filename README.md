@@ -3033,8 +3033,19 @@ role. The server part is described here; the admin tab is below.
 
 Only simulated: tests use fake addresses and a stand-in for email. The owner must decide the real
 beta limits and the end of the beta, create the smallest paid plan the beta limits borrow from, and
-read the two beta emails. Not built yet: the beta user's screens (code entry, end-date banner,
-feedback).
+read the two beta emails.
+
+### The beta user's side (company panel)
+
+- **Code:** the owner types the beta code in the billing page's "Have a code?" field; a popup shows
+  the days and CVs a day and starts the access only when confirmed. A code that cannot be used gets
+  the same one message as every other code.
+- **End date:** the usage meter in the top bar shows "Beta until <date>"; its popup also lists the
+  CVs used today against the daily limit.
+- **Feedback:** a beta owner is offered the feedback form the first time they visit each day
+  (remembered in the browser by date only, `bera-beta-feedback-day`, listed in `docs/cookies.json`),
+  and when they choose Log out ("Log out without feedback" skips it, closing the popup stays signed
+  in). A browser cannot show a form when a tab is closed, so closing the tab asks nothing.
 
 ### Admin Access tab (`/admin/access`, super admins only)
 

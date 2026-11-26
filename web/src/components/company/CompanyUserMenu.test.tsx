@@ -1,9 +1,11 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CompanyUserMenu } from "./CompanyUserMenu";
 
+const logOut = vi.fn();
+vi.mock("@/lib/logout", () => ({ logOut: () => logOut() }));
 const fetchMock = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => "/company/projects/example" }));
 
@@ -104,5 +106,90 @@ describe("Send feedback", () => {
     await user.type(within(dialog).getByLabelText("Message"), "Fake text");
     await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("beta feedback", () => {
+  const usage = (kind: string | null) => ({
+    free_access: kind ? { kind, ends_at: "2030-03-01T00:00:00Z" } : null,
+  });
+  const serve = (kind: string | null) =>
+    fetchMock.mockImplementation(async (path: string) => ({
+      ok: true,
+      status: path === "/api/company/usage/" ? 200 : 201,
+      json: async () => (path === "/api/company/usage/" ? usage(kind) : {}),
+    }));
+  const posts = () => fetchMock.mock.calls.filter((call) => call[1]?.method === "POST");
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    logOut.mockReset();
+  });
+
+  it("is offered to a beta tester on the first visit of the day, and only then", async () => {
+    serve("beta");
+    render(<CompanyUserMenu userName="Fake Person" role="owner" />);
+    expect(await screen.findByRole("dialog", { name: "Beta feedback" })).toBeTruthy();
+    cleanup();
+    render(<CompanyUserMenu userName="Fake Person" role="owner" />);
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThan(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("is not offered to a company that is not on beta, or to a member", async () => {
+    serve("permitted");
+    render(<CompanyUserMenu userName="Fake Person" role="owner" />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(screen.queryByRole("dialog")).toBeNull();
+    cleanup();
+    fetchMock.mockClear();
+    serve("beta");
+    render(<CompanyUserMenu userName="Fake Person" role="member" />);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("asks a beta tester for feedback before logging out, and logs out once it is sent", async () => {
+    window.localStorage.setItem("bera-beta-feedback-day", new Date().toISOString().slice(0, 10));
+    serve("beta");
+    const user = userEvent.setup();
+    render(<CompanyUserMenu userName="Fake Person" role="owner" />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await user.click(screen.getByRole("button", { name: "User menu" }));
+    await user.click(screen.getByRole("menuitem", { name: "Log out" }));
+    const dialog = await screen.findByRole("dialog", { name: "Before you leave" });
+    expect(logOut).not.toHaveBeenCalled();
+    await user.type(within(dialog).getByLabelText("Message"), "Works well");
+    await user.click(within(dialog).getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(logOut).toHaveBeenCalledTimes(1));
+    expect(posts()).toHaveLength(1);
+  });
+
+  it("logs out without feedback when asked to, and stays signed in when the popup is closed", async () => {
+    window.localStorage.setItem("bera-beta-feedback-day", new Date().toISOString().slice(0, 10));
+    serve("beta");
+    const user = userEvent.setup();
+    render(<CompanyUserMenu userName="Fake Person" role="owner" />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await user.click(screen.getByRole("button", { name: "User menu" }));
+    await user.click(screen.getByRole("menuitem", { name: "Log out" }));
+    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(logOut).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "User menu" }));
+    await user.click(screen.getByRole("menuitem", { name: "Log out" }));
+    await user.click(await screen.findByRole("button", { name: "Log out without feedback" }));
+    expect(logOut).toHaveBeenCalledTimes(1);
+    expect(posts()).toHaveLength(0);
+  });
+
+  it("logs a company that is not on beta out at once", async () => {
+    serve(null);
+    const user = userEvent.setup();
+    render(<CompanyUserMenu userName="Fake Person" role="owner" />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await user.click(screen.getByRole("button", { name: "User menu" }));
+    await user.click(screen.getByRole("menuitem", { name: "Log out" }));
+    expect(logOut).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

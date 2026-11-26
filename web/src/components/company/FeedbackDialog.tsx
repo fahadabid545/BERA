@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import { Dialog, Select, Textarea } from "@/components/ui";
+import { Button, Dialog, Select, Textarea } from "@/components/ui";
 import { postJson, type ApiError } from "@/lib/api";
 
 type Kind = "bug" | "idea" | "question";
@@ -17,9 +17,17 @@ const KINDS = Object.keys(KIND_WORDS) as Kind[];
 export function FeedbackDialog({
   open,
   onOpenChange,
+  title = "Send feedback",
+  onSent,
+  skip,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  title?: string;
+  /** What happens once it is sent; without it, a "Feedback sent" popup is shown. */
+  onSent?: () => void;
+  /** An extra way out (for example "Log out without feedback"); closing the popup is not it. */
+  skip?: { label: string; onSkip: () => void };
 }) {
   const pathname = usePathname();
   const [kind, setKind] = useState<Kind>("bug");
@@ -32,7 +40,8 @@ export function FeedbackDialog({
     const result = await postJson(URL, { kind, message, page: pathname });
     if (result.ok) {
       setMessage("");
-      setSent(true);
+      if (onSent) onSent();
+      else setSent(true);
       return;
     }
     setError(result.error);
@@ -46,9 +55,16 @@ export function FeedbackDialog({
       <Dialog
         open={open}
         onOpenChange={onOpenChange}
-        title="Send feedback"
+        title={title}
         confirmLabel="Send"
         onConfirm={() => void send()}
+        actions={
+          skip && (
+            <Button variant="secondary" onClick={skip.onSkip}>
+              {skip.label}
+            </Button>
+          )
+        }
       >
         <div className="page-stack">
           {alertText && (

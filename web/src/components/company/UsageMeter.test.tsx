@@ -7,6 +7,7 @@ import { UsageMeter, type PlanAndUsage } from "./UsageMeter";
 
 const SUMMARY: PlanAndUsage = {
   plan_name: "Fake Plan",
+  free_access: null,
   state: "active",
   period_start: "2030-01-15T00:00:00Z",
   period_end: "2030-02-15T00:00:00Z",
@@ -34,6 +35,36 @@ function stubServer(summary: PlanAndUsage | (() => PlanAndUsage) = SUMMARY, stat
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
+});
+
+describe("beta access", () => {
+  const BETA: PlanAndUsage = {
+    ...SUMMARY,
+    plan_name: null,
+    state: "granted_free",
+    free_access: {
+      kind: "beta",
+      ends_at: "2030-03-01T00:00:00Z",
+      cvs_today: { used: 2, limit: 5 },
+    },
+  };
+
+  it("shows the end date next to the meter and the CVs of today in the popup", async () => {
+    stubServer(BETA);
+    render(<UsageMeter />);
+    expect(await screen.findByText("Beta until 1 Mar 2030")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /CVs 3/ }));
+    const text = screen.getByRole("dialog", { name: "Plan and usage" }).textContent ?? "";
+    expect(text).toContain("Beta access ends1 Mar 2030");
+    expect(text).toContain("CVs today2 of 5");
+  });
+
+  it("shows no beta end date for a paying company or permitted access", async () => {
+    stubServer({ ...BETA, free_access: { kind: "permitted", ends_at: null } });
+    render(<UsageMeter />);
+    await screen.findByRole("button", { name: /CVs 3/ });
+    expect(screen.queryByText(/Beta until/)).toBeNull();
+  });
 });
 
 describe("the small meter", () => {

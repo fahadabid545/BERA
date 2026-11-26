@@ -23,7 +23,7 @@ export function CompanyTopBar({
         <span aria-hidden="true">+</span>
         <span className="company-new-label">New project</span>
       </ButtonLink>
-      <CompanyUserMenu userName={userName} />
+      <CompanyUserMenu userName={userName} role={role} />
     </>
   );
 }

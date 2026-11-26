@@ -7,9 +7,15 @@ import { postJson } from "@/lib/api";
 import { money } from "@/lib/money";
 
 const CHECK_URL = "/api/company/billing/code/";
-const REDEEM_URL = "/api/company/billing/trial/redeem/";
+const REDEEM_URLS = {
+  trial: "/api/company/billing/trial/redeem/",
+  beta: "/api/company/billing/beta/redeem/",
+};
 
-type Checked = { kind: "trial"; plan: string; days: number; cv_limit: number } | { kind: "coupon" };
+type Starting =
+  | { kind: "trial"; plan: string; days: number; cv_limit: number }
+  | { kind: "beta"; days: number; cvs_per_day: number };
+type Checked = Starting | { kind: "coupon" };
 type Preview = {
   currency: string;
   price: string;
@@ -19,8 +25,9 @@ type Preview = {
   months: number | null;
 };
 
-/** The "Have a code?" field of the billing page, for the owner. One field takes a trial code or a
- * discount code: a trial asks for a confirmation and starts at once, a discount code is kept and
+/** The "Have a code?" field of the billing page, for the owner. One field takes a trial code, a beta
+ * code or a discount code: a trial or beta access asks for a confirmation and starts at once, a
+ * discount code is kept and
  * used when a plan is bought. The server decides what a code is and never says why one fails. */
 export function CodeEntry({
   appliedCode,
@@ -33,9 +40,7 @@ export function CodeEntry({
 }) {
   const [typed, setTyped] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
-  const [trial, setTrial] = useState<{ code: string; info: Checked & { kind: "trial" } } | null>(
-    null,
-  );
+  const [trial, setTrial] = useState<{ code: string; info: Starting } | null>(null);
 
   async function apply() {
     const code = typed.trim();
@@ -43,7 +48,8 @@ export function CodeEntry({
     setProblem(null);
     const result = await postJson<Checked>(CHECK_URL, { code });
     if (!result.ok) return setProblem(result.error.message);
-    if (result.data.kind === "trial") setTrial({ code, info: result.data });
+    if (result.data.kind === "trial" || result.data.kind === "beta")
+      setTrial({ code, info: result.data });
     else {
       onApplied(code);
       setTyped("");
@@ -52,7 +58,7 @@ export function CodeEntry({
 
   async function startTrial() {
     if (!trial) return;
-    const result = await postJson(REDEEM_URL, { code: trial.code });
+    const result = await postJson(REDEEM_URLS[trial.info.kind], { code: trial.code });
     setTrial(null);
     if (!result.ok) return setProblem(result.error.message);
     setTyped("");
@@ -84,13 +90,15 @@ export function CodeEntry({
       <Dialog
         open={trial !== null}
         onOpenChange={(open) => !open && setTrial(null)}
-        title="Start free trial"
-        confirmLabel="Start trial"
+        title={trial?.info.kind === "beta" ? "Start beta access" : "Start free trial"}
+        confirmLabel={trial?.info.kind === "beta" ? "Start beta access" : "Start trial"}
         onConfirm={() => void startTrial()}
       >
         {trial && (
           <p>
-            {trial.info.plan} plan, {trial.info.days} days, up to {trial.info.cv_limit} CVs
+            {trial.info.kind === "beta"
+              ? `${trial.info.days} days, up to ${trial.info.cvs_per_day} CVs a day`
+              : `${trial.info.plan} plan, ${trial.info.days} days, up to ${trial.info.cv_limit} CVs`}
           </p>
         )}
       </Dialog>

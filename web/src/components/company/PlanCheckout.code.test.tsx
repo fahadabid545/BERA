@@ -173,6 +173,48 @@ describe("a discount code", () => {
   });
 });
 
+describe("a beta code", () => {
+  beforeEach(() => {
+    answers[CHECK] = { status: 200, body: { kind: "beta", days: 30, cvs_per_day: 5 } };
+    answers["/api/company/billing/beta/redeem/"] = {
+      status: 200,
+      body: { kind: "beta", ends_at: "2026-12-30T00:00:00Z" },
+    };
+  });
+
+  it("shows what the access is and starts it only when confirmed", async () => {
+    const user = userEvent.setup();
+    show();
+    await typeCode(user, "BETA-ABCD-EFGH-JKLM");
+    const dialog = await screen.findByRole("dialog", { name: "Start beta access" });
+    expect(within(dialog).getByText("30 days, up to 5 CVs a day")).toBeTruthy();
+    expect(sent.some((call) => call.path.includes("redeem"))).toBe(false);
+    await user.click(within(dialog).getByRole("button", { name: "Start beta access" }));
+    await waitFor(() =>
+      expect(sent.find((call) => call.path.includes("beta/redeem"))?.body).toEqual({
+        code: "BETA-ABCD-EFGH-JKLM",
+      }),
+    );
+  });
+
+  it("starts nothing when the popup is closed", async () => {
+    const user = userEvent.setup();
+    show();
+    await typeCode(user, "BETA-ABCD-EFGH-JKLM");
+    const dialog = await screen.findByRole("dialog", { name: "Start beta access" });
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(sent.some((call) => call.path.includes("redeem"))).toBe(false);
+  });
+
+  it("shows the one refusal message for a code that cannot be used", async () => {
+    const user = userEvent.setup();
+    answers[CHECK] = { status: 400, body: NOT_USABLE };
+    show();
+    await typeCode(user, "BETA-WRONG");
+    expect(await screen.findByText("This code cannot be used.")).toBeTruthy();
+  });
+});
+
 describe("a trial code", () => {
   beforeEach(() => {
     answers[CHECK] = {
