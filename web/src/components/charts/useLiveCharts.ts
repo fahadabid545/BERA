@@ -9,6 +9,7 @@ import { startLive } from "@/lib/live";
 export function useLiveCharts<T extends { refresh_seconds: number }>(path: string) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
+  const [round, setRound] = useState(0);
   useEffect(
     () =>
       startLive(
@@ -20,7 +21,8 @@ export function useLiveCharts<T extends { refresh_seconds: number }>(path: strin
           } else setError(result.error);
         },
       ),
-    [path],
+    // `round` restarts the live loop, which asks again at once.
+    [path, round],
   );
-  return { data, error };
+  return { data, error, reload: () => setRound((value) => value + 1) };
 }

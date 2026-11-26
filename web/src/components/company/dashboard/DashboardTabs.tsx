@@ -9,7 +9,6 @@ export const DASHBOARD_TABS = [
   { value: "projects", label: "Projects" },
   { value: "candidates", label: "Candidates" },
   { value: "usage", label: "Usage" },
-  { value: "activity", label: "Activity" },
 ] as const;
 
 const TAB_VALUES = DASHBOARD_TABS.map((tab) => tab.value);

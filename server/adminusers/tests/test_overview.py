@@ -84,7 +84,7 @@ class TestAccess:
     def test_the_answer_names_the_refresh_delay_and_the_periods(self, boss):
         body = board(boss)
         assert body["refresh_seconds"] == 3 and body["days"] == 30
-        assert body["choices"] == [1, 7, 30]
+        assert body["choices"] == [1, 7, 30, 90, 180]
 
     @pytest.mark.parametrize("days", ["0", "5", "x"])
     def test_other_periods_are_refused(self, boss, days):

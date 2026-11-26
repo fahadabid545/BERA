@@ -518,7 +518,7 @@ class ProjectCharts(CandidateDataView):
 
 
 class CompanyDashboard(CandidateDataView):
-    """The company dashboard's cards (`?days=` picks the period, `?project=` the top list)."""
+    """The company dashboard's numbers (`?days=` picks the period)."""
 
     queryset = Project.objects.all()
 
@@ -530,13 +530,7 @@ class CompanyDashboard(CandidateDataView):
 
     def get(self, request):
         self.get_queryset()  # checks the role and the company
-        return Response(
-            dashboard(
-                request.user.company_id,
-                request.query_params.get("days"),
-                request.query_params.get("project"),
-            )
-        )
+        return Response(dashboard(request.user.company_id, request.query_params.get("days")))
 
 
 class CompanyDashboardDetail(CandidateDataView):

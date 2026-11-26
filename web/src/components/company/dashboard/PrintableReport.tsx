@@ -11,12 +11,7 @@ import { periodWords } from "./types";
 type Report = {
   days: number;
   generated_on: string;
-  summary: {
-    metric: string;
-    current: number | null;
-    previous: number | null;
-    change: number | null;
-  }[];
+  summary: { metric: string; count: number }[];
   recommendations: { label: string; count: number }[];
   projects: {
     project: string;
@@ -97,13 +92,8 @@ export function PrintableReport() {
       </div>
       <Grid
         title="Summary"
-        columns={["Metric", "This period", "Previous period", "Change"]}
-        rows={report.summary.map((row) => [
-          row.metric,
-          show(row.current),
-          show(row.previous),
-          show(row.change),
-        ])}
+        columns={["Metric", "Count"]}
+        rows={report.summary.map((row) => [row.metric, show(row.count)])}
       />
       <Grid
         title="Recommendations"

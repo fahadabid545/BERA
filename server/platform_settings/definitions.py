@@ -412,13 +412,13 @@ SETTINGS = [
     SettingDefinition("charts.trend_days_choices", [7, 30, 90], list_of_whole_numbers(1, 365)),
     SettingDefinition("charts.trend_days_default", 7, whole_number(1, 365)),
     # The company dashboard (see cvs/dashboard.py).
-    SettingDefinition("dashboard.period_choices_days", [1, 7, 30], list_of_whole_numbers(1, 365)),
+    SettingDefinition(
+        "dashboard.period_choices_days", [1, 7, 30, 90, 180], list_of_whole_numbers(1, 365)
+    ),
     SettingDefinition("dashboard.period_default_days", 30, whole_number(1, 365)),
     SettingDefinition("dashboard.sparkline_days", 7, whole_number(2, 90)),
-    SettingDefinition("dashboard.top_candidates_count", 5, whole_number(1, 20)),
-    SettingDefinition("dashboard.activity_limit", 8, whole_number(1, 50)),
+    SettingDefinition("dashboard.top_candidates_count", 10, whole_number(1, 50)),
     SettingDefinition("dashboard.detail_limit", 20, whole_number(1, 200)),
-    SettingDefinition("dashboard.expiring_link_days", 3, whole_number(1, 90)),
     # The admin overview (see adminusers/overview.py).
     SettingDefinition("admin_dashboard.top_companies_count", 10, whole_number(1, 50)),
     SettingDefinition("admin_dashboard.recent_companies_count", 8, whole_number(1, 50)),

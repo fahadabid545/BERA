@@ -8,7 +8,7 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from cvs.models import Candidate, CandidateScore, CvFile, SharedReport, StageChange
+from cvs.models import Candidate, CandidateScore, CvFile, StageChange
 from cvs.tests.test_processing import Tenant, make_plan, set_setting
 from cvs.tests.test_ranked_list import add
 from projects.models import Project
@@ -66,7 +66,7 @@ def second_project(tenant, title="Second"):
 class TestPeriod:
     def test_the_default_and_the_choices_come_from_the_settings(self, tenant):
         body = board(tenant)
-        assert body["days"] == 30 and body["choices"] == [1, 7, 30]
+        assert body["days"] == 30 and body["choices"] == [1, 7, 30, 90, 180]
         set_setting("dashboard.period_choices_days", [2, 14])
         set_setting("dashboard.period_default_days", 14)
         body = board(tenant)
@@ -81,97 +81,60 @@ class TestPeriod:
     def test_the_answer_names_the_refresh_delay(self, tenant):
         assert board(tenant)["refresh_seconds"] == 3
 
+    @pytest.mark.parametrize("days", ["90", "180"])
+    def test_three_and_six_months_are_offered(self, tenant, days):
+        assert board(tenant, f"?days={days}")["days"] == int(days)
 
-class TestCards:
-    def test_an_empty_company_has_zeros_and_no_averages(self, tenant):
-        cards = board(tenant)["cards"]
-        assert cards["uploaded"]["value"] == 0 and cards["uploaded"]["change"] is None
-        assert cards["average_score"]["value"] is None
-        assert cards["average_score"]["series"] == [0] * 7
 
-    def test_this_period_against_the_one_before(self, tenant):
+class TestCounts:
+    def test_an_empty_company_has_only_zeros(self, tenant):
+        counts = board(tenant)["counts"]
+        assert counts == {
+            "projects": 1, "scored": 0, "shortlisted": 0, "interviewed": 0,
+            "on_hold": 0, "selected": 0, "rejected": 0,
+        }  # fmt: skip
+
+    def test_there_is_no_comparison_with_an_earlier_period(self, tenant):
+        body = board(tenant)
+        assert set(body) == {
+            "refresh_seconds", "days", "choices", "counts",
+            "recommendations", "projects", "screening", "top",
+        }  # fmt: skip
+
+    def test_the_scored_cvs_of_the_period_only(self, tenant):
         for days_ago in (0, 1, 3):
             stamp(add(tenant, f"new{days_ago}.pdf", 80, minutes=days_ago), days_ago)
         stamp(add(tenant, "old.pdf", 60, minutes=40), 9)
-        stamp(add(tenant, "ancient.pdf", 60, minutes=41), 80)
-        cards = board(tenant, "?days=7")["cards"]
-        assert (cards["uploaded"]["value"], cards["uploaded"]["previous"]) == (3, 1)
-        assert cards["uploaded"]["change"] == 200.0
-        assert (cards["scored"]["value"], cards["scored"]["previous"]) == (3, 1)
+        assert board(tenant, "?days=7")["counts"]["scored"] == 3
+        assert board(tenant, "?days=30")["counts"]["scored"] == 4
 
-    def test_the_sparkline_has_one_value_for_each_day_from_the_setting(self, tenant):
-        stamp(add(tenant, "today.pdf", 80), 0)
-        series = board(tenant)["cards"]["uploaded"]["series"]
-        assert len(series) == 7 and series[-1] == 1
-        set_setting("dashboard.sparkline_days", 3)
-        assert len(board(tenant)["cards"]["uploaded"]["series"]) == 3
+    def test_each_flag_counts_the_candidates_put_there_in_the_period(self, tenant):
+        names = ["shortlisted", "interviewed", "on_hold", "selected", "rejected"]
+        for index, stage in enumerate(names):
+            move(tenant, add(tenant, f"{stage}.pdf", 70, minutes=index), stage, days_ago=0)
+        late = add(tenant, "late.pdf", 70, minutes=9)
+        move(tenant, late, "shortlisted", days_ago=40)
+        counts = board(tenant, "?days=7")["counts"]
+        assert [counts[name] for name in names] == [1, 1, 1, 1, 1]
+        assert board(tenant, "?days=90")["counts"]["shortlisted"] == 2
 
-    def test_a_candidate_shortlisted_twice_counts_once_on_the_first_day(self, tenant):
+    def test_a_candidate_moved_on_is_counted_only_where_it_is_now(self, tenant):
         row = add(tenant, "a.pdf", 80)
-        move(tenant, row, "shortlisted", days_ago=2)
-        move(tenant, row, "interviewed", days_ago=1)
-        move(tenant, row, "shortlisted", days_ago=0)
-        cards = board(tenant, "?days=7")["cards"]
-        assert cards["shortlisted"]["value"] == 1
-        assert board(tenant, "?days=1")["cards"]["shortlisted"]["value"] == 0
+        move(tenant, row, "shortlisted", "interviewed", days_ago=1)
+        counts = board(tenant, "?days=7")["counts"]
+        assert (counts["shortlisted"], counts["interviewed"]) == (0, 1)
 
-    def test_the_average_score_and_its_change_in_points(self, tenant):
-        stamp(add(tenant, "a.pdf", 80, minutes=1), 0)
-        stamp(add(tenant, "b.pdf", 60, minutes=2), 1)
-        stamp(add(tenant, "c.pdf", 50, minutes=3), 9)
-        card = board(tenant, "?days=7")["cards"]["average_score"]
-        assert (card["value"], card["previous"], card["change"]) == (70.0, 50.0, 20.0)
-        assert card["series"][-1] == 80.0 and card["series"][-2] == 60.0
+    def test_the_projects_number_is_every_active_project_not_the_period(self, tenant):
+        second_project(tenant, "Second")
+        archived = second_project(tenant, "Old")
+        Project.objects.filter(pk=archived.project.pk).update(status="archived")
+        assert board(tenant, "?days=1")["counts"]["projects"] == 2
 
     def test_other_companies_are_not_counted(self, tenant):
         theirs = Tenant(make_plan())
-        add(theirs, "theirs.pdf", 99)
-        assert board(tenant)["cards"]["uploaded"]["value"] == 0
-
-
-class TestInsights:
-    def test_the_hiring_pace_is_the_upload_change(self, tenant):
-        stamp(add(tenant, "a.pdf", 50, minutes=1), 0)
-        stamp(add(tenant, "b.pdf", 50, minutes=2), 1)
-        stamp(add(tenant, "c.pdf", 50, minutes=3), 9)
-        pace = board(tenant, "?days=7")["insights"]["hiring_pace"]
-        assert (pace["current"], pace["previous"], pace["change"]) == (2, 1, 100.0)
-
-    def test_the_share_of_strong_matches_against_before(self, tenant):
-        rows = [add(tenant, f"n{i}.pdf", 80, minutes=i) for i in range(4)]
-        rows += [add(tenant, f"o{i}.pdf", 80, minutes=10 + i) for i in range(2)]
-        for row in rows:
-            stamp(row, 0 if rows.index(row) < 4 else 9)
-        CandidateScore.objects.filter(candidate__cv_file=rows[0]).update(label="strong_match")
-        CandidateScore.objects.filter(candidate__cv_file=rows[4]).update(label="strong_match")
-        CandidateScore.objects.filter(candidate__cv_file__in=rows[1:4] + rows[5:]).update(
-            label="possible"
-        )
-        quality = board(tenant, "?days=7")["insights"]["match_quality"]
-        assert (quality["share"], quality["previous_share"], quality["change"]) == (
-            25.0,
-            50.0,
-            -25.0,
-        )
-
-    def test_no_share_when_nothing_was_scored(self, tenant):
-        quality = board(tenant)["insights"]["match_quality"]
-        assert quality["share"] is None and quality["change"] is None
-
-    def test_the_median_hours_from_added_to_shortlisted(self, tenant):
-        for index, hours in enumerate((2, 4, 30)):
-            row = add(tenant, f"s{index}.pdf", 80, minutes=index)
-            added = timezone.now() - timedelta(hours=hours + 1)
-            Candidate.objects.filter(cv_file=row).update(created_at=added)
-            move(tenant, row, "shortlisted")
-            StageChange.objects.filter(candidate=row.candidate).update(
-                created_at=added + timedelta(hours=hours)
-            )
-        assert board(tenant, "?days=7")["insights"]["time_to_shortlist"]["hours"] == 4.0
-
-    def test_no_hours_when_nobody_was_shortlisted(self, tenant):
-        add(tenant, "a.pdf", 80)
-        assert board(tenant)["insights"]["time_to_shortlist"]["hours"] is None
+        move(theirs, add(theirs, "theirs.pdf", 99), "selected")
+        counts = board(tenant)["counts"]
+        assert counts["scored"] == 0 and counts["selected"] == 0
 
 
 class TestRecommendations:
@@ -212,106 +175,39 @@ class TestProjectsAndScreening:
 
 
 class TestTopCandidates:
-    def test_the_best_candidates_of_the_most_recent_project_with_scores(self, tenant):
-        for index, score in enumerate((60, 90, 75)):
-            add(tenant, f"c{index}.pdf", score, minutes=index, who="Jane Example")
+    def test_the_best_candidates_of_every_project_with_their_project_and_scores(self, tenant):
+        other = second_project(tenant, "Second")
+        add(tenant, "a.pdf", 60, who="Jane Example")
+        add(other, "b.pdf", 90, minutes=1, who="John Sample")
         top = board(tenant)["top"]
-        assert top["project_id"] == str(tenant.project.pk)
-        assert [c["score"] for c in top["candidates"]] == ["90.0", "75.0", "60.0"]
-        assert [c["rank"] for c in top["candidates"]] == [1, 2, 3]
+        assert [c["score"] for c in top] == ["90.0", "60.0"]
+        assert [c["rank"] for c in top] == [1, 2]
+        assert [c["project_title"] for c in top] == ["Second", "T"]
 
-    def test_names_are_initials_and_strengths_are_cut_short(self, tenant):
+    def test_names_are_initials_and_the_ats_score_is_shown(self, tenant):
         add(tenant, "a.pdf", 90, who="Jane Example")
-        CandidateScore.objects.update(strengths=["one", "two", "three"])
-        card = board(tenant)["top"]["candidates"][0]
-        assert card["name"] == "J. E." and card["strengths"] == ["one", "two"]
-        assert card["project_title"] == "T" and card["id"] and card["project_id"]
+        card = board(tenant)["top"][0]
+        assert card["name"] == "J. E." and card["id"] and card["project_id"]
+        assert "ats_score" in card
 
     def test_how_many_are_shown_comes_from_the_setting(self, tenant):
-        for index in range(7):
+        for index in range(12):
             add(tenant, f"c{index}.pdf", 50 + index, minutes=index)
-        assert len(board(tenant)["top"]["candidates"]) == 5
+        assert len(board(tenant)["top"]) == 10
         set_setting("dashboard.top_candidates_count", 2)
-        assert len(board(tenant)["top"]["candidates"]) == 2
+        assert len(board(tenant)["top"]) == 2
 
-    def test_another_project_can_be_chosen(self, tenant):
-        other = second_project(tenant)
-        add(tenant, "a.pdf", 90)
-        add(other, "b.pdf", 40, minutes=5)
-        top = board(tenant, f"?project={other.project.pk}")["top"]
-        assert top["project_id"] == str(other.project.pk)
-        assert [c["score"] for c in top["candidates"]] == ["40.0"]
-        assert {p["title"] for p in top["projects"]} == {"T", "Second"}
-
-    def test_the_compare_limits_come_from_the_settings(self, tenant):
-        assert board(tenant)["top"]["compare_limits"] == {"min": 2, "max": 4}
-        set_setting("comparison.max_candidates", 3)
-        assert board(tenant)["top"]["compare_limits"]["max"] == 3
-
-    def test_no_candidates_before_anything_is_scored(self, tenant):
-        top = board(tenant)["top"]
-        assert top["candidates"] == [] and top["project_id"] is None
-
-    def test_a_project_of_another_company_or_a_bad_id_is_not_found(self, tenant):
-        theirs = Tenant(make_plan())
-        for value in (theirs.project.pk, "not-an-id"):
-            response = tenant.client.get(f"/api/company/dashboard/?project={value}")
-            assert response.status_code == 404
+    def test_nobody_before_anything_is_scored(self, tenant):
+        assert board(tenant)["top"] == []
 
     def test_rejected_candidates_are_left_out(self, tenant):
         row = add(tenant, "a.pdf", 90)
         move(tenant, row, "rejected")
-        assert board(tenant)["top"]["candidates"] == []
+        assert board(tenant)["top"] == []
 
-
-class TestPendingAndActivity:
-    def test_counts_what_waits_for_the_person(self, tenant):
-        add(tenant, "a.pdf", status="awaiting_confirmation", minutes=1)
-        add(tenant, "b.pdf", status="awaiting_confirmation", minutes=2)
-        add(tenant, "c.pdf", status="failed", minutes=3)
-        add(tenant, "d.pdf", 80, minutes=4)
-        pending = board(tenant)["pending"]
-        assert pending["awaiting_confirmation"] == 2 and pending["failed"] == 1
-
-    def share(self, tenant, days, **fields):
-        return SharedReport.objects.create(
-            company=tenant.company, project=tenant.project, created_by=tenant.owner,
-            token_hash=f"hash-{days}-{len(fields)}-{id(fields)}", project_title="T",
-            entries=[], contacts="", hide_contact=True,
-            expires_at=timezone.now() + timedelta(days=days), **fields,
-        )  # fmt: skip
-
-    def test_links_that_end_soon_are_counted_not_revoked_or_ended_ones(self, tenant):
-        self.share(tenant, 2)
-        self.share(tenant, 30)
-        self.share(tenant, -1)
-        self.share(tenant, 1, revoked_at=timezone.now())
-        assert board(tenant)["pending"]["links_expiring"] == 1
-        set_setting("dashboard.expiring_link_days", 60)
-        assert board(tenant)["pending"]["links_expiring"] == 2
-
-    def test_the_newest_events_first_up_to_the_limit(self, tenant):
-        rows = [add(tenant, f"c{i}.pdf", 70, minutes=i) for i in range(3)]
-        for index, row in enumerate(rows):
-            stamp(row, 3 - index)
-        move(tenant, rows[0], "shortlisted", days_ago=0)
-        events = board(tenant)["activity"]
-        assert events[0]["kind"] == "moved" and events[0]["to_stage"] == "shortlisted"
-        assert {event["kind"] for event in events} == {"moved", "scored"}
-        times = [event["at"] for event in events]
-        assert times == sorted(times, reverse=True)
-        set_setting("dashboard.activity_limit", 2)
-        assert len(board(tenant)["activity"]) == 2
-
-    def test_a_shared_report_shows_without_a_name(self, tenant):
-        self.share(tenant, 5)
-        event = board(tenant)["activity"][0]
-        assert event["kind"] == "shared" and event["project_title"] == "T"
-        assert "name" not in event
-
-    def test_only_this_companys_events(self, tenant):
+    def test_other_companies_are_never_shown(self, tenant):
         add(Tenant(make_plan()), "theirs.pdf", 99)
-        assert board(tenant)["activity"] == []
+        assert board(tenant)["top"] == []
 
 
 class TestAccessAndCost:
@@ -367,28 +263,27 @@ class TestDetail:
         move(tenant, rows[1], "rejected")
         assert behind(tenant, "recommendation", "strong_match").json()["total"] == 1
 
-    def test_a_card_lists_what_the_period_counted(self, tenant):
+    def test_the_scored_number_lists_what_the_period_counted(self, tenant):
         stamp(add(tenant, "new.pdf", 80, minutes=1), 0)
         stamp(add(tenant, "old.pdf", 80, minutes=2), 40)
-        assert behind(tenant, "metric", "uploaded", "&days=7").json()["total"] == 1
         assert behind(tenant, "metric", "scored", "&days=7").json()["total"] == 1
-        assert behind(tenant, "metric", "scored", "&days=30").json()["total"] == 1
+        assert behind(tenant, "metric", "scored", "&days=90").json()["total"] == 2
 
-    def test_the_shortlisted_card_lists_those_shortlisted_in_the_period(self, tenant):
+    def test_a_flag_lists_its_candidates_with_the_stage_and_project(self, tenant):
         row = add(tenant, "a.pdf", 80)
-        move(tenant, row, "shortlisted", days_ago=0)
+        move(tenant, row, "on_hold", days_ago=0)
         late = add(tenant, "b.pdf", 70, minutes=1)
-        move(tenant, late, "shortlisted", days_ago=20)
-        assert behind(tenant, "metric", "shortlisted", "&days=7").json()["total"] == 1
-        assert behind(tenant, "insight", "time_to_shortlist", "&days=30").json()["total"] == 2
+        move(tenant, late, "on_hold", days_ago=20)
+        found = behind(tenant, "stage", "on_hold", "&days=7").json()
+        assert found["total"] == 1
+        item = found["items"][0]
+        assert item["stage"] == "on_hold" and item["project_id"] and item["id"]
+        assert behind(tenant, "stage", "on_hold", "&days=30").json()["total"] == 2
 
-    def test_the_strong_match_insight_lists_strong_matches_of_the_period(self, tenant):
-        add(tenant, "a.pdf", 80, minutes=1)
-        add(tenant, "b.pdf", 80, minutes=2)
-        CandidateScore.objects.filter(candidate__cv_file__original_name="b.pdf").update(
-            label="possible"
-        )
-        assert behind(tenant, "insight", "match_quality", "&days=7").json()["total"] == 1
+    def test_a_flag_never_lists_another_companys_candidates(self, tenant):
+        theirs = Tenant(make_plan())
+        move(theirs, add(theirs, "theirs.pdf", 99), "selected")
+        assert behind(tenant, "stage", "selected").json()["total"] == 0
 
     def test_project_groups_list_projects_with_their_counts(self, tenant):
         add(tenant, "a.pdf", 80)
@@ -402,16 +297,6 @@ class TestDetail:
     def test_screening_lists_every_active_project(self, tenant):
         second_project(tenant)
         assert behind(tenant, "screening", "all").json()["total"] == 2
-
-    def test_pending_cvs_and_links(self, tenant):
-        add(tenant, "a.pdf", status="awaiting_confirmation")
-        add(tenant, "b.pdf", status="failed", minutes=1)
-        assert behind(tenant, "pending", "awaiting_confirmation").json()["total"] == 1
-        failed = behind(tenant, "pending", "failed").json()["items"][0]
-        assert failed["type"] == "cv" and failed["status"] == "failed"
-        TestPendingAndActivity().share(tenant, 1)
-        links = behind(tenant, "pending", "links_expiring").json()
-        assert links["total"] == 1 and links["items"][0]["type"] == "report"
 
     def test_the_list_is_cut_at_the_setting_but_the_total_is_real(self, tenant):
         for index in range(5):
@@ -428,7 +313,7 @@ class TestDetail:
     @pytest.mark.parametrize(
         ("kind", "key"),
         [("nope", "x"), ("funnel", "nope"), ("grade", ""), ("recommendation", "nope"),
-         ("project_status", "nope"), ("pending", "nope"), ("metric", "nope"), ("", "")],
+         ("project_status", "nope"), ("stage", "new"), ("metric", "nope"), ("", "")],
     )  # fmt: skip
     def test_unknown_things_are_refused(self, tenant, kind, key):
         response = behind(tenant, kind, key)
@@ -436,7 +321,7 @@ class TestDetail:
         assert "kind" in response.json()["error"]["fields"]
 
     def test_the_period_is_checked(self, tenant):
-        assert behind(tenant, "metric", "uploaded", "&days=5").status_code == 400
+        assert behind(tenant, "metric", "scored", "&days=5").status_code == 400
 
     def test_a_project_can_narrow_the_funnel_and_grades(self, tenant):
         other = second_project(tenant)
@@ -466,9 +351,12 @@ class TestReport:
         )
         body = tenant.client.get("/api/company/dashboard/report/?days=7").json()
         assert body["days"] == 7
-        summary = {row["metric"]: row for row in body["summary"]}
-        assert summary["CVs uploaded"]["current"] == 2
-        assert summary["Average AI score"]["current"] == 70.0
+        summary = {row["metric"]: row["count"] for row in body["summary"]}
+        assert summary["CVs scored"] == 2 and summary["Projects"] == 1
+        assert list(summary) == [
+            "Projects", "CVs scored", "Shortlisted", "Interviewed",
+            "On hold", "Selected", "Rejected",
+        ]  # fmt: skip
         assert body["projects"] == [
             {"project": "T", "cvs": 2, "scored": 2, "strong_matches": 1, "average_score": 70.0}
         ]
@@ -481,6 +369,7 @@ class TestReport:
         text = response.content.decode()
         assert "Jane" not in text and "Example" not in text and "a.pdf" not in text
         rows = list(csv.reader(io.StringIO(text)))
+        assert ["Metric", "Count"] in rows
         assert ["Project", "CVs", "Scored", "Strong matches", "Average AI score"] in rows
         assert ["T", "1", "1", "1", "80.0"] in rows
 

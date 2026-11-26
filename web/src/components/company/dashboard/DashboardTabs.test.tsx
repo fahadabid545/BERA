@@ -31,14 +31,13 @@ const selectedTab = () =>
   screen.getAllByRole("tab").find((tab) => tab.getAttribute("aria-selected") === "true");
 
 describe("DashboardTabs", () => {
-  it("shows the five tabs with Overview chosen first", () => {
+  it("shows the four tabs with Overview chosen first", () => {
     render(<DashboardTabs />);
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
       "Overview",
       "Projects",
       "Candidates",
       "Usage",
-      "Activity",
     ]);
     expect(selectedTab()?.textContent).toBe("Overview");
   });

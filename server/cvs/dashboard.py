@@ -1,7 +1,7 @@
 """The company dashboard: one answer per card, all counted from stored data when asked (no AI).
 
-- `dashboard(...)`: the cards. Numbers for the chosen period sit next to the period before it
-  (same length), so every figure says whether it is more or less than before.
+- `dashboard(...)`: the overview numbers (projects, CVs scored, one number for each flag) for the
+  chosen period, plus the shares of recommendations and projects and the top candidates.
 - `detail(...)`: what is behind a card or a mark in a chart, as a short list the person can open
   from a popup (candidates, CVs, projects or report links, each with the ids the page links to).
 - `report(...)`: the same numbers as a plain table, for the CSV file and the printable page.
@@ -11,12 +11,10 @@ Candidate names are shown as initials, like everywhere else in the lists.
 
 import csv
 import io
-import statistics
 from datetime import timedelta
 from uuid import UUID
 
-from django.db.models import Avg, Count, Exists, Min, OuterRef, Q
-from django.db.models.functions import TruncDate
+from django.db.models import Avg, Count, Exists, OuterRef, Q
 from django.http import Http404
 from django.utils import timezone
 
@@ -25,14 +23,19 @@ from core.personal_data import mask_name
 from platform_settings.service import get_setting
 from projects.models import Project
 
-from .charts import GRADES, funnel, per_day, percent_change
-from .models import Candidate, CandidateScore, CvFile, SharedReport, StageChange
-from .top_list import top_scores
+from .charts import GRADES, funnel, percent_change
+from .models import Candidate, CandidateScore, CvFile, StageChange
 
 PERCENT = 100
 SECONDS_PER_HOUR = 3600
 LABELS = ("strong_match", "possible", "not_recommended")
-SHORTLISTED_STAGES = (Candidate.Stage.SHORTLISTED,)
+FLAG_STAGES = (
+    Candidate.Stage.SHORTLISTED,
+    Candidate.Stage.INTERVIEWED,
+    Candidate.Stage.ON_HOLD,
+    Candidate.Stage.SELECTED,
+    Candidate.Stage.REJECTED,
+)
 PROJECT_STATUSES = ("not_started", "in_progress", "ready")
 FUNNEL_STEPS = ("uploaded", "read", "scored", "shortlisted", "interviewed", "selected")
 STRENGTHS_SHOWN = 2
@@ -72,45 +75,6 @@ def _scores(company_id):
     return CandidateScore.objects.filter(company_id=company_id)
 
 
-def _shortlist_changes(company_id):
-    return StageChange.objects.filter(company_id=company_id, to_stage__in=SHORTLISTED_STAGES)
-
-
-def _shortlisted_ids(company_id, first, end):
-    """The candidates first moved to Shortlisted in the period (one moved there twice counts
-    once, on the first day)."""
-    firsts = _shortlist_changes(company_id).values("candidate").annotate(first=Min("created_at"))
-    return [row["candidate"] for row in firsts if first <= row["first"].date() < end]
-
-
-def _filled(values):
-    """A list of daily averages where an empty day repeats the day before, so a line is drawn
-    through quiet days instead of dropping to zero."""
-    known = next((value for value in values if value is not None), 0)
-    filled = []
-    for value in values:
-        known = known if value is None else value
-        filled.append(known)
-    return filled
-
-
-def _daily_average(company_id, first, days):
-    found = dict(
-        in_days(_scores(company_id), "created_at", first, first + timedelta(days=days))
-        .annotate(day=TruncDate("created_at"))
-        .values_list("day")
-        .annotate(mean=Avg("score"))
-    )
-    return _filled(
-        [
-            float(found[first + timedelta(days=offset)])
-            if first + timedelta(days=offset) in found
-            else None
-            for offset in range(days)
-        ]
-    )
-
-
 def card(current, previous, series, *, decimals=False):
     change = (
         None
@@ -120,102 +84,6 @@ def card(current, previous, series, *, decimals=False):
         else percent_change(current, previous)
     )
     return {"value": current, "previous": previous, "change": change, "series": series}
-
-
-def _average(queryset):
-    mean = queryset.aggregate(mean=Avg("score"))["mean"]
-    return None if mean is None else round(float(mean), 1)
-
-
-def _cards(company_id, start, before, end):
-    spark = get_setting("dashboard.sparkline_days")
-    spark_start = timezone.now().date() - timedelta(days=spark - 1)
-    uploads, scores = _uploads(company_id), _scores(company_id)
-    shortlist = _shortlist_changes(company_id)
-    shortlist_days = [
-        len(
-            {
-                row["candidate"]
-                for row in shortlist.filter(
-                    created_at__date=spark_start + timedelta(days=i)
-                ).values("candidate")
-            }
-        )
-        for i in range(spark)
-    ]
-    return {
-        "uploaded": card(
-            in_days(uploads, "created_at", start, end).count(),
-            in_days(uploads, "created_at", before, start).count(),
-            per_day(uploads, "created_at", spark_start, spark),
-        ),
-        "scored": card(
-            in_days(scores, "created_at", start, end).count(),
-            in_days(scores, "created_at", before, start).count(),
-            per_day(scores, "created_at", spark_start, spark),
-        ),
-        "shortlisted": card(
-            len(_shortlisted_ids(company_id, start, end)),
-            len(_shortlisted_ids(company_id, before, start)),
-            shortlist_days,
-        ),
-        "average_score": card(
-            _average(in_days(scores, "created_at", start, end)),
-            _average(in_days(scores, "created_at", before, start)),
-            _daily_average(company_id, spark_start, spark),
-            decimals=True,
-        ),
-    }
-
-
-def _strong_share(company_id, first, end):
-    scored = in_days(_scores(company_id), "created_at", first, end)
-    total = scored.count()
-    if not total:
-        return None
-    return round(scored.filter(label="strong_match").count() * PERCENT / total, 1)
-
-
-def _hours_to_shortlist(company_id, first, end):
-    """The median hours from a candidate being added to being shortlisted, for those
-    shortlisted in the period; None when nobody was."""
-    rows = (
-        _shortlist_changes(company_id)
-        .values("candidate", "candidate__created_at")
-        .annotate(first=Min("created_at"))
-    )
-    waits = [
-        (row["first"] - row["candidate__created_at"]).total_seconds() / SECONDS_PER_HOUR
-        for row in rows
-        if first <= row["first"].date() < end
-    ]
-    return round(statistics.median(waits), 1) if waits else None
-
-
-def _insights(company_id, start, before, end, cards):
-    uploaded = cards["uploaded"]
-    share, share_before = (
-        _strong_share(company_id, start, end),
-        _strong_share(company_id, before, start),
-    )
-    return {
-        "hiring_pace": {
-            "current": uploaded["value"],
-            "previous": uploaded["previous"],
-            "change": uploaded["change"],
-        },
-        "match_quality": {
-            "share": share,
-            "previous_share": share_before,
-            "change": None
-            if share is None or share_before is None
-            else round(share - share_before, 1),
-        },
-        "time_to_shortlist": {
-            "hours": _hours_to_shortlist(company_id, start, end),
-            "previous_hours": _hours_to_shortlist(company_id, before, start),
-        },
-    }
 
 
 def _recommendations(company_id):
@@ -259,22 +127,6 @@ def _screening(company_id):
     }
 
 
-def _pending(company_id):
-    cvs = _uploads(company_id)
-    now = timezone.now()
-    expiring = SharedReport.objects.filter(
-        company_id=company_id,
-        revoked_at__isnull=True,
-        expires_at__gt=now,
-        expires_at__lte=now + timedelta(days=get_setting("dashboard.expiring_link_days")),
-    )
-    return {
-        "awaiting_confirmation": cvs.filter(status=CvFile.Status.AWAITING_CONFIRMATION).count(),
-        "failed": cvs.filter(status=CvFile.Status.FAILED).count(),
-        "links_expiring": expiring.count(),
-    }
-
-
 def _candidate_item(candidate, score=None, project=None):
     score = score or getattr(candidate, "score", None)
     project = project or candidate.project
@@ -292,102 +144,65 @@ def _candidate_item(candidate, score=None, project=None):
     }
 
 
-def _top_candidates(company_id, raw_project):
-    projects = list(
-        Project.objects.filter(company_id=company_id, status=Project.Status.ACTIVE).order_by(
-            "-updated_at"
-        )
+def _top_candidates(company_id):
+    """The best scored candidates of the whole company (rejected ones left out), each with the
+    project they are in, their AI score and their ATS score."""
+    ranked = (
+        _candidates(company_id)
+        .filter(score__isnull=False)
+        .exclude(stage=Candidate.Stage.REJECTED)
+        .select_related("ats_score")
+        .order_by("-score__score", "pk")
     )
-    chosen = None
-    if raw_project:
-        try:
-            chosen = next((p for p in projects if p.pk == UUID(str(raw_project))), None)
-        except ValueError:
-            chosen = None
-        if chosen is None:
-            raise Http404
-    else:
-        scored = set(_scores(company_id).values_list("candidate__project_id", flat=True).distinct())
-        chosen = next((p for p in projects if p.pk in scored), None)
-    cards = []
-    for item in (
-        top_scores(chosen)[: get_setting("dashboard.top_candidates_count")] if chosen else []
-    ):
-        candidate = item.candidate
-        cards.append(
-            {
-                **_candidate_item(candidate, item, chosen),
-                "rank": len(cards) + 1,
-                "strengths": list(item.strengths)[:STRENGTHS_SHOWN],
-                "ats_score": getattr(getattr(candidate, "ats_score", None), "score", None),
-            }
+    return [
+        {
+            **_candidate_item(candidate),
+            "rank": rank,
+            "ats_score": getattr(getattr(candidate, "ats_score", None), "score", None),
+        }
+        for rank, candidate in enumerate(
+            ranked[: get_setting("dashboard.top_candidates_count")], start=1
         )
-    return {
-        "projects": [{"id": str(p.pk), "title": p.title} for p in projects],
-        "project_id": str(chosen.pk) if chosen else None,
-        "candidates": cards,
-        "compare_limits": {
-            "min": get_setting("comparison.min_candidates"),
-            "max": get_setting("comparison.max_candidates"),
-        },
+    ]
+
+
+def _flagged(company_id, stage, start, end):
+    """The candidates now at `stage` that were put there in the period."""
+    moved_in = StageChange.objects.filter(
+        candidate=OuterRef("pk"),
+        to_stage=stage,
+        created_at__date__gte=start,
+        created_at__date__lt=end,
+    )
+    return _candidates(company_id).filter(stage=stage).filter(Exists(moved_in))
+
+
+def _counts(company_id, start, end):
+    """The numbers of the overview: every project, the CVs scored in the period and the
+    candidates flagged in the period, one number for each flag."""
+    counts = {
+        "projects": Project.objects.filter(
+            company_id=company_id, status=Project.Status.ACTIVE
+        ).count(),
+        "scored": in_days(_scores(company_id), "created_at", start, end).count(),
     }
+    for stage in FLAG_STAGES:
+        counts[stage] = _flagged(company_id, stage, start, end).count()
+    return counts
 
 
-def _activity(company_id):
-    limit = get_setting("dashboard.activity_limit")
-    events = []
-    scored = _scores(company_id).select_related(
-        "candidate__contact", "candidate__project", "candidate__cv_file"
-    )
-    for item in scored.order_by("-created_at")[:limit]:
-        events.append(
-            {**_candidate_item(item.candidate, item), "kind": "scored", "at": item.created_at}
-        )
-    moved = StageChange.objects.filter(company_id=company_id).select_related(
-        "candidate__contact", "candidate__project", "candidate__cv_file", "candidate__score"
-    )
-    for change in moved.order_by("-created_at")[:limit]:
-        events.append(
-            {
-                **_candidate_item(change.candidate),
-                "kind": "moved",
-                "to_stage": change.to_stage,
-                "at": change.created_at,
-            }
-        )
-    shared = SharedReport.objects.filter(company_id=company_id).select_related("project")
-    for report_row in shared.order_by("-created_at")[:limit]:
-        events.append(
-            {
-                "type": "report",
-                "kind": "shared",
-                "id": str(report_row.pk),
-                "project_id": str(report_row.project_id),
-                "project_title": report_row.project_title,
-                "views": report_row.views,
-                "at": report_row.created_at,
-            }
-        )
-    events.sort(key=lambda event: event["at"], reverse=True)
-    return [{**event, "at": event["at"].isoformat()} for event in events[:limit]]
-
-
-def dashboard(company_id, raw_days, raw_project=None):
+def dashboard(company_id, raw_days):
     days = checked_period(raw_days)
-    start, before, end = windows(days)
-    cards = _cards(company_id, start, before, end)
+    start, _, end = windows(days)
     return {
         "refresh_seconds": get_setting("live_updates.max_delay_seconds"),
         "days": days,
         "choices": get_setting("dashboard.period_choices_days"),
-        "cards": cards,
-        "insights": _insights(company_id, start, before, end, cards),
+        "counts": _counts(company_id, start, end),
         "recommendations": _recommendations(company_id),
         "projects": _project_status_counts(company_id),
         "screening": _screening(company_id),
-        "top": _top_candidates(company_id, raw_project),
-        "pending": _pending(company_id),
-        "activity": _activity(company_id),
+        "top": _top_candidates(company_id),
     }
 
 
@@ -449,10 +264,6 @@ def _projects_items(projects):
     return [_project_item(project, **counts[project.pk]) for project in projects]
 
 
-def _shortlisted_candidates(company_id, first, end):
-    return _candidates(company_id).filter(pk__in=_shortlisted_ids(company_id, first, end))
-
-
 def _step_items(company_id, step, project=None):
     """Who is behind a funnel step: the CVs for the first step, the candidates after that."""
     if step == "uploaded":
@@ -480,57 +291,6 @@ def _items_of(rows):
     return [_cv_item(row) if isinstance(row, CvFile) else _candidate_item(row) for row in rows]
 
 
-def _metric_rows(company_id, key, start, end):
-    if key == "uploaded":
-        return (
-            in_days(_uploads(company_id), "created_at", start, end)
-            .select_related("project")
-            .order_by("-created_at")
-        )
-    if key == "scored":
-        return (
-            _candidates(company_id)
-            .filter(score__created_at__date__gte=start, score__created_at__date__lt=end)
-            .order_by("-score__score")
-        )
-    if key == "shortlisted":
-        return _shortlisted_candidates(company_id, start, end).order_by("-score__score")
-    if key == "average_score":
-        return _metric_rows(company_id, "scored", start, end)
-    return None
-
-
-def _pending_rows(company_id, key):
-    if key == "links_expiring":
-        now = timezone.now()
-        return SharedReport.objects.filter(
-            company_id=company_id,
-            revoked_at__isnull=True,
-            expires_at__gt=now,
-            expires_at__lte=now + timedelta(days=get_setting("dashboard.expiring_link_days")),
-        ).order_by("expires_at")
-    status = {
-        "awaiting_confirmation": CvFile.Status.AWAITING_CONFIRMATION,
-        "failed": CvFile.Status.FAILED,
-    }.get(key)
-    if status is None:
-        return None
-    return (
-        _uploads(company_id).filter(status=status).select_related("project").order_by("-created_at")
-    )
-
-
-def _report_item(row):
-    return {
-        "type": "report",
-        "id": str(row.pk),
-        "project_id": str(row.project_id),
-        "project_title": row.project_title,
-        "expires_at": row.expires_at.isoformat(),
-        "views": row.views,
-    }
-
-
 def _project_of(company_id, raw):
     """The company's project named by the request, None when none is named; a project of
     another company, or a bad id, is "not found"."""
@@ -543,22 +303,21 @@ def _project_of(company_id, raw):
 
 
 def detail(company_id, kind, key, raw_days, raw_project=None):
-    """{"total", "items"}: what is behind a card, an insight, a funnel step, a grade, a share of
-    the donut, a project group or a pending item. At most `dashboard.detail_limit` items."""
+    """{"total", "items"}: what is behind a card, a flag, a funnel step, a grade, a share of
+    the donut or a project group. At most `dashboard.detail_limit` items."""
     limit = get_setting("dashboard.detail_limit")
     days = checked_period(raw_days)
     start, _, end = windows(days)
     project = _project_of(company_id, raw_project)
     rows = None
-    if kind in ("metric", "insight"):
-        mapped = {
-            "hiring_pace": "uploaded",
-            "match_quality": "scored",
-            "time_to_shortlist": "shortlisted",
-        }
-        rows = _metric_rows(company_id, mapped.get(key, key), start, end)
-        if kind == "insight" and key == "match_quality" and rows is not None:
-            rows = rows.filter(score__label="strong_match")
+    if kind == "metric" and key == "scored":
+        rows = (
+            _candidates(company_id)
+            .filter(score__created_at__date__gte=start, score__created_at__date__lt=end)
+            .order_by("-score__score")
+        )
+    elif kind == "stage" and key in FLAG_STAGES:
+        rows = _flagged(company_id, key, start, end).order_by("-score__score", "-created_at")
     elif kind == "funnel" and key in FUNNEL_STEPS:
         rows = _step_items(company_id, key, project)
     elif kind == "grade" and key in GRADES:
@@ -580,10 +339,6 @@ def detail(company_id, kind, key, raw_days, raw_project=None):
             )
         )
         return {"total": len(projects), "items": _projects_items(projects[:limit])}
-    elif kind == "pending":
-        rows = _pending_rows(company_id, key)
-        if rows is not None and key == "links_expiring":
-            return {"total": rows.count(), "items": [_report_item(row) for row in rows[:limit]]}
     if rows is None:
         raise form_error({"kind": "Choose something that can be opened."})
     return {"total": rows.count(), "items": _items_of(rows[:limit])}
@@ -624,27 +379,26 @@ def _project_rows(company_id):
     ]
 
 
+SUMMARY_LABELS = {
+    "projects": "Projects",
+    "scored": "CVs scored",
+    "shortlisted": "Shortlisted",
+    "interviewed": "Interviewed",
+    "on_hold": "On hold",
+    "selected": "Selected",
+    "rejected": "Rejected",
+}
+
+
 def report(company_id, raw_days):
     days = checked_period(raw_days)
-    start, before, end = windows(days)
-    cards = _cards(company_id, start, before, end)
-    labels = {
-        "uploaded": "CVs uploaded",
-        "scored": "CVs scored",
-        "shortlisted": "Candidates shortlisted",
-        "average_score": "Average AI score",
-    }
+    start, _, end = windows(days)
+    counts = _counts(company_id, start, end)
     return {
         "days": days,
         "generated_on": timezone.now().date().isoformat(),
         "summary": [
-            {
-                "metric": labels[name],
-                "current": card["value"],
-                "previous": card["previous"],
-                "change": card["change"],
-            }
-            for name, card in cards.items()
+            {"metric": label, "count": counts[name]} for name, label in SUMMARY_LABELS.items()
         ],
         "recommendations": _recommendations(company_id)["parts"],
         "projects": _project_rows(company_id),
@@ -663,9 +417,9 @@ def report_csv(data):
         ["Report for the last", f"{data['days']} days", "Created", data["generated_on"]]
     )
     writer.writerow([])
-    writer.writerow(["Metric", "This period", "Previous period", "Change"])
+    writer.writerow(["Metric", "Count"])
     for row in data["summary"]:
-        writer.writerow([_safe(row[key]) for key in ("metric", "current", "previous", "change")])
+        writer.writerow([_safe(row["metric"]), row["count"]])
     writer.writerow([])
     writer.writerow(["Recommendation", "Candidates"])
     for part in data["recommendations"]:

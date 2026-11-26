@@ -32,7 +32,7 @@ describe("design sample page", () => {
     expect(screen.getByRole("switch", { name: "Dark mode" })).toBeTruthy();
     expect(screen.getByRole("tablist")).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "Sample pages" })).toBeTruthy();
-    expect(screen.getByRole("table")).toBeTruthy();
+    expect(screen.getAllByRole("table").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("combobox").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("checkbox").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("textbox", { name: "Project name" })).toBeTruthy();

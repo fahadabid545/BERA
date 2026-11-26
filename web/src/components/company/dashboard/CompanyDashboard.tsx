@@ -8,23 +8,23 @@ import { UsageCard } from "./UsageCard";
 import { CompanyCharts } from "@/components/charts/CompanyCharts";
 import { DetailDialog, type Detail } from "@/components/charts/DetailDialog";
 import { useLiveCharts } from "@/components/charts/useLiveCharts";
-import { Button, Card, SegmentedControl, Tabs } from "@/components/ui";
+import { Button, ButtonLink, Card, SegmentedControl, Tabs } from "@/components/ui";
 
-import { ActivityLog } from "../ActivityLog";
-import { ActivityFeed } from "./ActivityFeed";
 import { Donut } from "./Donut";
 import { ExportDialog } from "./ExportDialog";
 import { Gauge } from "./Gauge";
-import { InsightCard } from "./InsightCard";
-import { KpiCard } from "./KpiCard";
-import { PendingActions } from "./PendingActions";
-import { QuickActions } from "./QuickActions";
-import { TopCandidates } from "./TopCandidates";
-import { periodWords, type DashboardData } from "./types";
+import { CandidateListDialog, type CandidateList } from "./CandidateListDialog";
+import { CountCards } from "./CountCards";
+import { TopCandidatesTable } from "./TopCandidatesTable";
+import type { DashboardData } from "./types";
 
-const PERIOD_NAMES: Record<number, string> = { 1: "Today", 7: "This week", 30: "This month" };
-const HOURS_PER_DAY = 24;
-
+const PERIOD_NAMES: Record<number, string> = {
+  1: "Today",
+  7: "This week",
+  30: "This month",
+  90: "3 months",
+  180: "6 months",
+};
 const RECOMMENDATIONS = [
   { key: "strong_match", label: "Strong match", colour: "green" },
   { key: "possible", label: "Possible", colour: "blue" },
@@ -36,128 +36,7 @@ const PROJECT_GROUPS = [
   { key: "not_started", label: "Not started", colour: "grey" },
 ] as const;
 
-const hoursWords = (hours: number) =>
-  hours < HOURS_PER_DAY ? `${hours} h` : `${Math.round((hours / HOURS_PER_DAY) * 10) / 10} days`;
-const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
-const direction = (value: number | null, goodWhenUp = true) =>
-  value === null || value === 0 ? "neutral" : value > 0 === goodWhenUp ? "success" : "danger";
-
-function Insights({
-  data,
-  open,
-}: {
-  data: DashboardData;
-  open: (kind: string, key: string, title: string) => void;
-}) {
-  const { hiring_pace: pace, match_quality: quality, time_to_shortlist: wait } = data.insights;
-  const period = periodWords(data.days);
-  const waitChange =
-    wait.hours !== null && wait.previous_hours !== null
-      ? Math.round((wait.hours - wait.previous_hours) * 10) / 10
-      : null;
-  return (
-    <div className="dashboard__insights">
-      <InsightCard
-        title="Hiring pace"
-        headline={pace.change === null ? String(pace.current) : `${signed(pace.change)}%`}
-        tag={{
-          text:
-            pace.change === null
-              ? "No earlier period"
-              : pace.change === 0
-                ? "Same as before"
-                : pace.change > 0
-                  ? "More than before"
-                  : "Fewer than before",
-          variant: direction(pace.change),
-        }}
-        now={pace.current}
-        before={pace.previous}
-        unit=""
-        tipLines={[`${pace.current} CVs in ${period}`, `${pace.previous} in the period before`]}
-        onOpen={() => open("insight", "hiring_pace", `Hiring pace: CVs uploaded ${period}`)}
-      />
-      <InsightCard
-        title="Match quality"
-        headline={quality.share === null ? "No data" : `${quality.share}%`}
-        tag={{
-          text: quality.change === null ? "No earlier period" : `${signed(quality.change)} pts`,
-          variant: direction(quality.change),
-        }}
-        now={quality.share}
-        before={quality.previous_share}
-        unit="%"
-        tipLines={["Share of scored CVs that are a strong match", `Period: ${period}`]}
-        onOpen={() => open("insight", "match_quality", `Strong matches scored ${period}`)}
-      />
-      <InsightCard
-        title="Time to shortlist"
-        headline={wait.hours === null ? "No data" : hoursWords(wait.hours)}
-        tag={{
-          text:
-            waitChange === null
-              ? "No earlier period"
-              : waitChange === 0
-                ? "Same as before"
-                : `${waitChange < 0 ? "Faster" : "Slower"} by ${hoursWords(Math.abs(waitChange))}`,
-          variant: direction(waitChange, false),
-        }}
-        now={wait.hours}
-        before={wait.previous_hours}
-        unit=" h"
-        tipLines={["Median time from added to shortlisted", `Period: ${period}`]}
-        onOpen={() => open("insight", "time_to_shortlist", `Shortlisted ${period}`)}
-      />
-    </div>
-  );
-}
-
 type Open = (kind: string, key: string, title: string) => void;
-
-function OverviewSection({ data, open }: { data: DashboardData; open: Open }) {
-  const { cards, top, pending } = data;
-  const period = periodWords(data.days);
-  return (
-    <div className="dashboard__section">
-      <div className="dashboard__kpis">
-        <KpiCard
-          label="CVs uploaded"
-          card={cards.uploaded}
-          colour="blue"
-          period={period}
-          onOpen={() => open("metric", "uploaded", `CVs uploaded ${period}`)}
-        />
-        <KpiCard
-          label="CVs scored"
-          card={cards.scored}
-          colour="violet"
-          period={period}
-          onOpen={() => open("metric", "scored", `CVs scored ${period}`)}
-        />
-        <KpiCard
-          label="Shortlisted"
-          card={cards.shortlisted}
-          colour="teal"
-          period={period}
-          onOpen={() => open("metric", "shortlisted", `Shortlisted ${period}`)}
-        />
-        <KpiCard
-          label="Average AI score"
-          card={cards.average_score}
-          colour="amber"
-          unit=" pts"
-          period={period}
-          onOpen={() => open("metric", "average_score", `CVs scored ${period}`)}
-        />
-      </div>
-      <Insights data={data} open={open} />
-      <div className="dashboard__row dashboard__row--two">
-        <QuickActions projectId={top.project_id} days={data.days} />
-        <PendingActions pending={pending} onOpen={(key, label) => open("pending", key, label)} />
-      </div>
-    </div>
-  );
-}
 
 function ProjectsSection({ data, open }: { data: DashboardData; open: Open }) {
   const { projects, screening } = data;
@@ -200,18 +79,24 @@ function ProjectsSection({ data, open }: { data: DashboardData; open: Open }) {
 function CandidatesSection({
   data,
   open,
-  onProject,
   onDetail,
 }: {
   data: DashboardData;
   open: Open;
-  onProject: (id: string) => void;
   onDetail: (detail: Detail) => void;
 }) {
-  const { recommendations, top } = data;
+  const { recommendations } = data;
   return (
     <div className="dashboard__section">
-      <TopCandidates top={top} onProject={onProject} />
+      <Card className="ui-card">
+        <div className="chart-card__header">
+          <h2>Top candidates</h2>
+          <ButtonLink variant="secondary" href="/company/candidates">
+            View all
+          </ButtonLink>
+        </div>
+        <TopCandidatesTable candidates={data.top} />
+      </Card>
       <div className="dashboard__row">
         <Card className="ui-card">
           <div className="chart-card__header">
@@ -240,7 +125,7 @@ function CandidatesSection({
   );
 }
 
-const SECTIONS = ["overview", "projects", "candidates", "usage", "activity"] as const;
+const SECTIONS = ["overview", "projects", "candidates", "usage"] as const;
 export type DashboardSection = (typeof SECTIONS)[number];
 
 /** The company dashboard, one tab for each question: how the period went, how the projects
@@ -255,12 +140,11 @@ export function CompanyDashboard({
   onTab: (tab: string) => void;
 }) {
   const [days, setDays] = useState<number | null>(null);
-  const [project, setProject] = useState<string | null>(null);
+  const [list, setList] = useState<CandidateList | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
   const query = new URLSearchParams();
   if (days !== null) query.set("days", String(days));
-  if (project) query.set("project", project);
-  const { data, error } = useLiveCharts<DashboardData>(
+  const { data, error, reload } = useLiveCharts<DashboardData>(
     `/api/company/dashboard/${query.size ? `?${query}` : ""}`,
   );
   const open: Open = (kind, key, title) => setDetail({ kind, key, title });
@@ -273,6 +157,12 @@ export function CompanyDashboard({
   return (
     <div className="dashboard">
       <DetailDialog detail={detail} days={data?.days} onClose={() => setDetail(null)} />
+      <CandidateListDialog
+        list={list}
+        days={data?.days ?? 1}
+        onClose={() => setList(null)}
+        onChanged={reload}
+      />
       {data && (
         <div className="dashboard__header">
           <SegmentedControl
@@ -298,7 +188,16 @@ export function CompanyDashboard({
           {
             value: "overview",
             label: "Overview",
-            content: data ? <OverviewSection data={data} open={open} /> : unavailable,
+            content: data ? (
+              <CountCards
+                counts={data.counts}
+                onOpen={(key, title) =>
+                  setList({ kind: key === "scored" ? "metric" : "stage", key, title })
+                }
+              />
+            ) : (
+              unavailable
+            ),
           },
           {
             value: "projects",
@@ -309,12 +208,7 @@ export function CompanyDashboard({
             value: "candidates",
             label: "Candidates",
             content: data ? (
-              <CandidatesSection
-                data={data}
-                open={open}
-                onProject={setProject}
-                onDetail={setDetail}
-              />
+              <CandidatesSection data={data} open={open} onDetail={setDetail} />
             ) : (
               unavailable
             ),
@@ -327,16 +221,6 @@ export function CompanyDashboard({
                 <UsageCard />
                 <UsageHistory />
                 <CompanyCharts show={["trend"]} />
-              </div>
-            ),
-          },
-          {
-            value: "activity",
-            label: "Activity",
-            content: (
-              <div className="dashboard__section">
-                {data ? <ActivityFeed events={data.activity} /> : unavailable}
-                <ActivityLog />
               </div>
             ),
           },
