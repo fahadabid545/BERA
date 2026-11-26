@@ -294,6 +294,7 @@ EXPECTED_DEFAULTS = {
     "chatbot.max_document_characters": 100_000,
     "chatbot.max_documents": 20,
     "chatbot.max_total_size_mb": 20,
+    "ask.monthly_token_cap": 200_000,
     "ask.max_question_length": 500,
     "ask.max_answer_length": 2000,
     "ask.max_candidates": 100,

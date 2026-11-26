@@ -500,6 +500,7 @@ SETTINGS = [
     SettingDefinition("chatbot.max_document_characters", 100_000, whole_number(1000, 1_000_000)),
     SettingDefinition("chatbot.max_documents", 20, whole_number(1, 500)),
     SettingDefinition("chatbot.max_total_size_mb", 20, whole_number(1, 1000)),
+    SettingDefinition("ask.monthly_token_cap", 200_000, whole_number(1, 1_000_000_000)),
     SettingDefinition("ask.max_question_length", 500, whole_number(20, 5000)),
     SettingDefinition("ask.max_answer_length", 2000, whole_number(100, 20000)),
     SettingDefinition("ask.max_candidates", 100, whole_number(1, 1000)),

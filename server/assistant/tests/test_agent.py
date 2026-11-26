@@ -474,3 +474,52 @@ class TestChats:
         assert (
             APIClient().delete(f"{CHATS}00000000-0000-0000-0000-000000000000/").status_code == 401
         )
+
+
+class TestTheAgentAllowance:
+    """The agent has its own token allowance; nothing else is limited by tokens."""
+
+    def test_the_cap_is_200_000_tokens_by_default(self):
+        from platform_settings.service import get_setting
+
+        assert get_setting("ask.monthly_token_cap") == 200_000
+
+    def test_a_question_is_refused_once_the_period_tokens_reach_the_cap(self, tenant, provider):
+        set_setting("ask.monthly_token_cap", 200)  # one question uses 120 tokens
+        assert ask(tenant.client).status_code == 200
+        assert ask(tenant.client).status_code == 200  # 120 used: still under 200
+        sent = len(provider.sent)
+        refused = ask(tenant.client)
+        assert refused.status_code == 409
+        assert refused.json()["error"]["code"] == "agent_allowance_used"
+        assert len(provider.sent) == sent  # the AI was not asked
+
+    def test_another_company_is_not_affected(self, tenant, provider):
+        set_setting("ask.monthly_token_cap", 100)
+        ask(tenant.client)
+        assert ask(tenant.client).status_code == 409
+        other = Tenant(make_plan())
+        assert ask(other.client).status_code == 200
+
+    def test_a_new_period_starts_again(self, tenant, provider):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        set_setting("ask.monthly_token_cap", 100)
+        ask(tenant.client)
+        AiCall.objects.update(created_at=timezone.now() - timedelta(days=45))
+        assert ask(tenant.client).status_code == 200
+
+    def test_only_the_agents_calls_count(self, tenant, provider):
+        set_setting("ask.monthly_token_cap", 100)
+        AiCall.objects.create(
+            company=tenant.company,
+            purpose="scoring",
+            model="m",
+            tokens_in=500,
+            tokens_out=500,
+            duration_ms=1,
+            result="ok",
+        )
+        assert ask(tenant.client).status_code == 200

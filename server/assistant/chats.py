@@ -22,6 +22,7 @@ from plans.subscriptions import can_score
 from platform_settings.service import get_setting
 
 from . import agent, cards
+from .allowance import require_allowance
 from .models import AgentChat, AgentMessage
 from .tools import candidate_reference
 
@@ -43,6 +44,7 @@ def require_access(company_id):
             details={"prompt": prompt_kind(company_id)},
         )
     check_ai_allowed(company_id).raise_if_blocked()
+    require_allowance(company_id)
 
 
 def _known(candidate_ids):

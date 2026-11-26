@@ -3084,7 +3084,8 @@ usage meter, the Usage tab, the usage history or the company's admin page. `plan
 now only refuses work for an ended subscription. Wherever earlier sections of this README speak of
 the monthly token cap, they describe the old behaviour. Tokens are still counted for cost records,
 and the admin AI page shows the tokens used (no budget). The only token limit left is the company
-agent's own (see the agent section). A migration drops the plan column and any admin override.
+agent's own: `ask.monthly_token_cap` (200,000 tokens per company per billing period, counted from the
+agent's own AI calls only; a question past it is refused with `agent_allowance_used`). A migration drops the plan column and any admin override.
 
 ## Coupons and trials (BERA-188)
 
