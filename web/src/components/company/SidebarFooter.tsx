@@ -12,7 +12,11 @@ export function SidebarFooter() {
   return (
     <>
       <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
-      <button type="button" className="ui-icon-item" onClick={() => setFeedbackOpen(true)}>
+      <button
+        type="button"
+        className="ui-icon-item panel-group"
+        onClick={() => setFeedbackOpen(true)}
+      >
         <ToggleIcon name="feedback" />
         <span className="panel-label">Feedback</span>
       </button>

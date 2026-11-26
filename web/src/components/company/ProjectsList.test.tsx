@@ -52,6 +52,9 @@ describe("projects list", () => {
     expect(within(card).getByRole("link", { name: "View more" }).getAttribute("href")).toBe(
       `/company/projects/${ROW.id}`,
     );
+    expect(within(card).getByRole("link", { name: "Compare" }).getAttribute("href")).toBe(
+      `/company/projects/${ROW.id}/compare`,
+    );
   });
 
   it("says Full when a project holds as many CVs as it can", async () => {

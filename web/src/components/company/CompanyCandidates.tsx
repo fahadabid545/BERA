@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { Button, Input, Select, Table, Tabs, Tag, TextLink } from "@/components/ui";
+import { Button, ButtonLink, Input, Select, Table, Tabs, Tag, TextLink } from "@/components/ui";
 import { getJson, postJson, type ApiError } from "@/lib/api";
 import { useTabParam } from "@/lib/useTabParam";
 
@@ -227,6 +227,11 @@ export function CompanyCandidates() {
         <Button variant="secondary" onClick={() => change(() => setFilters(NO_FILTERS))}>
           Clear filters
         </Button>
+        {filters.project && (
+          <ButtonLink variant="secondary" href={`/company/projects/${filters.project}/compare`}>
+            Compare in this project
+          </ButtonLink>
+        )}
       </div>
       {error && (
         <p className="ui-error" role="alert">

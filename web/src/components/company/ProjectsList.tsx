@@ -76,9 +76,14 @@ function ProjectCard({ row }: { row: Row }) {
           />
         </span>
       )}
-      <ButtonLink variant="secondary" href={`${PROJECTS_HREF}/${row.id}`}>
-        View more
-      </ButtonLink>
+      <div className="project-card__actions">
+        <ButtonLink variant="secondary" href={`${PROJECTS_HREF}/${row.id}`}>
+          View more
+        </ButtonLink>
+        <ButtonLink variant="secondary" href={`${PROJECTS_HREF}/${row.id}/compare`}>
+          Compare
+        </ButtonLink>
+      </div>
     </Card>
   );
 }

@@ -110,7 +110,11 @@ describe("CompanyCandidates", () => {
         expect(last).toContain(part);
     });
     expect(screen.getByLabelText("AI score").textContent).toContain("90 and above");
+    expect(screen.getByRole("link", { name: "Compare in this project" }).getAttribute("href")).toBe(
+      "/company/projects/p1/compare",
+    );
     await user.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(screen.queryByRole("link", { name: "Compare in this project" })).toBeNull();
     await vi.waitFor(() => expect(asked().at(-1)).not.toContain("score_min"));
   });
 
