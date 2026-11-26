@@ -12,7 +12,6 @@ import {
   type Filters,
   type RequirementChoice,
 } from "./CandidateFilters";
-import { AskBera } from "./AskBera";
 import { CandidateList } from "./CandidateList";
 import { DownloadMenu } from "./DownloadMenu";
 import { packagePage, requestPackage } from "./downloads";
@@ -48,7 +47,6 @@ export function CandidateBrowser({ projectId }: { projectId: string }) {
   const matrixQuery = new URLSearchParams(filters).toString();
   return (
     <div className="page-stack">
-      <AskBera projectId={projectId} />
       <div className="page-actions">
         <CandidateFilters
           filters={filters}

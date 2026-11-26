@@ -2881,35 +2881,57 @@ can use Bera through an API. The owner makes the keys in the company panel: Adva
 Only simulated here: tested with the fake data of the test suite; no real client has used the API,
 and nothing about it is published yet (no documentation page for customers).
 
-## Ask Bera (BERA-186)
+## Company agent
 
-A prompt bar on a project's Candidates tab: a recruiter asks a question about that project's
-candidates in plain language (`POST /api/company/projects/<id>/ask/`).
+A talk bar at the top of every page of the company panel. Sending a question opens a full-screen
+window with the company's earlier chats on the left. It replaces the one-project prompt bar of
+BERA-186 (that bar, its route and its tests are gone). It is a different thing from the public
+website chat: this one reads only the signed-in company's own results.
 
-- **What the AI sees:** only structured results: a reference per candidate (C1, C2, by rank,
-  valid for one question), score, grade, label, stage, a verdict and confidence per requirement,
-  strengths and risks (they quote only the requirement wording), the requirements and counts. Never
-  a name, email, phone, address, file name, CV text or an evidence quote: CV text is written by
-  outsiders and could carry instructions aimed at the AI.
-- **Read only:** the AI gets no tools and its answer is plain text. The project and company come
-  from the signed-in session. A request such as "delete the weakest" does nothing and is refused.
-- **Fairness:** the prompt tells the AI to refuse ranking or filtering by age, gender, nationality,
-  religion, marital status and the like. It has no such data either.
-- **Answers:** candidates in an answer appear as initials linked to the candidate's page.
-- **Limits:** the same AI call function (pause switch, outage handling, token allowance, usage
-  counting) as scoring, with the project's scoring model and its own versioned prompt (kind
-  "Ask" on the admin Prompts page, current version in `ai.ask_prompt_version`). Calls have their
-  own purpose `ask`, so the admin cost views show them. Tokens count toward the company's tokens,
-  never toward the CV count. Per-person rate limit `rate_limits.ask_per_hour`; question and answer
-  lengths `ask.max_question_length` and `ask.max_answer_length`; `ask.max_candidates` best
-  candidates are sent.
-- **Privacy:** no question, answer or history is stored, and none is logged: only the tokens and
-  the purpose are recorded.
-- **Access:** anyone signed in to the company who can see the candidates, while the plan allows AI
-  work. Company-wide questions are not built.
+- **Read only, fixed functions:** the AI cannot touch the data. It may ask for one of four fixed
+  functions (`assistant/tools.py`: list projects, a project's summary, find candidates sorted by
+  score, ATS score or experience with a minimum score, stage and limit, one candidate's details),
+  the app runs it for the signed-in company and gives the result back, until the AI answers. There
+  is no function that changes, deletes, sends or exports anything, none takes a company, and a
+  request such as "delete the weakest" has nothing to run. No separate MCP server is built: the
+  same functions could be put behind one later.
+- **What the AI sees:** references (`c_1a2b3c4d`), scores, grade, label, ATS score, years of
+  experience, number of jobs, stage and requirement verdicts. Never a name, email, phone, address,
+  file name, CV text or an evidence quote (CV text is written by outsiders and could carry
+  instructions). After the answer, the app puts the real name, email, phone, experience, AI score,
+  ATS score, stage and project beside it, read live from the candidate's record, and shows the
+  reference in the text as the candidate's name linked to their page. A reference the AI was never
+  shown is removed from the answer.
+- **Strict answers:** the prompt (kind "Ask", version 2; version 1 stays in the history) says to
+  answer only from function results, say "Sorry, I do not have that information." when the data
+  has no answer, give no general knowledge, refuse changes, and refuse ranking or filtering by
+  protected traits. Up to `ask.max_suggestions` follow-up questions come back as buttons.
+- **Who and when:** everyone in the company who can see candidates. It works only while the
+  subscription or a free trial allows AI work (`plans.subscriptions.can_score`); otherwise the
+  person gets "Buy our service to continue. If you have already bought it, try refreshing the page,
+  or sign out and sign in again. If it still does not work, contact support." The token allowance,
+  the pause switch and outages behave as for scoring. Past chats can still be read without a plan.
+- **Chats:** saved on the server and shared by every person of the company (`AgentChat`,
+  `AgentMessage`): anyone can read them, continue them, start a new one or delete one (a
+  confirmation popup first). They are kept until deleted, and removed with the company. Question
+  and answer texts are encrypted in the database. A chat holds references and candidate ids, not
+  details, so a candidate who is deleted (or purged by the retention rules) disappears from every
+  chat and the text shows "A removed candidate". Typing a name into a question keeps that name in
+  the saved question until the chat is deleted.
+- **Incognito:** the "Incognito chat" button starts a chat that is kept nowhere: the browser sends
+  the earlier messages and the candidates shown with each question, and the server forgets them.
+- **Limits:** one AI call function, purpose `ask`, tokens count toward the company's tokens and not
+  the CV count. Platform settings: `rate_limits.ask_per_hour` (per person), `ask.max_question_length`,
+  `max_answer_length`, `max_output_tokens`, `max_steps` (function calls per question),
+  `max_candidates`, `default_rows`, `max_projects`, `max_suggestions`, `max_suggestion_length`,
+  `max_chat_title_length`, `max_history_messages` and `max_chats_listed`.
+- **Not logged:** no question, answer or function result is logged; the call record holds only ids,
+  the purpose and the tokens.
 
 Only simulated: tests use a stand-in AI. The owner must try real questions with the real AI key
-before launch and read the answers for quality.
+(does it pick the right function, does it say sorry when it should, do the suggestions help) and
+read the answers for quality, and decide whether the saved chats need wording in the privacy
+policy (they are personal data of the company's own staff and may name candidates).
 
 ## Chatbot settings and knowledge documents (BERA-187)
 

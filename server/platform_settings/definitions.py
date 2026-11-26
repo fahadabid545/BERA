@@ -470,8 +470,8 @@ SETTINGS = [
     # The prompt version numbers new projects pin (see ai/prompt_versions.py).
     SettingDefinition("ai.reading_prompt_version", 1, whole_number(1, 1_000_000)),
     SettingDefinition("ai.scoring_prompt_version", 1, whole_number(1, 1_000_000)),
-    # Ask Bera (see askbera/): the prompt version every question uses, and its limits.
-    SettingDefinition("ai.ask_prompt_version", 1, whole_number(1, 1_000_000)),
+    # The company agent (see assistant/): the prompt version every question uses, and its limits.
+    SettingDefinition("ai.ask_prompt_version", 2, whole_number(1, 1_000_000)),
     # Free trials (see plans/trials.py). The days and the CV limit of a trial have no default:
     # whoever starts one chooses them, within these bounds.
     SettingDefinition("discounts.max_months", 36, whole_number(1, 120)),
@@ -504,6 +504,14 @@ SETTINGS = [
     SettingDefinition("ask.max_answer_length", 2000, whole_number(100, 20000)),
     SettingDefinition("ask.max_candidates", 100, whole_number(1, 1000)),
     SettingDefinition("ask.max_output_tokens", 1500, whole_number(100, 32000)),
+    SettingDefinition("ask.max_projects", 50, whole_number(1, 1000)),
+    SettingDefinition("ask.default_rows", 10, whole_number(1, 1000)),
+    SettingDefinition("ask.max_steps", 5, whole_number(1, 20)),
+    SettingDefinition("ask.max_suggestions", 3, whole_number(0, 10)),
+    SettingDefinition("ask.max_suggestion_length", 120, whole_number(20, 500)),
+    SettingDefinition("ask.max_chat_title_length", 80, whole_number(20, 200)),
+    SettingDefinition("ask.max_history_messages", 10, whole_number(0, 100)),
+    SettingDefinition("ask.max_chats_listed", 100, whole_number(1, 1000)),
     SettingDefinition("rate_limits.ask_per_hour", 30, whole_number(1, 10000)),
     SettingDefinition("prompts.max_length", 20000, whole_number(100, 200000)),
     # AI calls (see ai/client.py) and the requirements the AI proposes. The prompt is a

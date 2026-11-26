@@ -256,12 +256,14 @@ a.ui-tab {
 .ui-overlay {
   position: fixed;
   inset: 0;
+  z-index: 70; /* above the chat windows, so a confirmation opened from one is not hidden */
   background: var(--color-overlay);
   backdrop-filter: blur(3px);
   animation: ui-fade-in var(--transition);
 }
 .ui-dialog {
   position: fixed;
+  z-index: 70;
   top: 50%;
   left: 50%;
   width: min(26rem, calc(100% - 2 * var(--space-4)));
@@ -834,6 +836,12 @@ a.ui-tab {
   flex: 1;
   padding: var(--space-5) var(--page-gutter);
 }
+.panel-below-topbar {
+  padding: var(--space-4) var(--page-gutter) 0;
+}
+.panel-below-topbar .chat-search {
+  margin: 0 auto;
+}
 .panel-menu-button,
 .panel-scrim {
   display: none;
@@ -1124,16 +1132,16 @@ a.ui-tab {
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-raised);
 }
-.public-chat__backdrop {
+.chat-window__backdrop {
   position: fixed;
   inset: 0;
   z-index: 60;
   display: flex;
   padding: var(--space-4);
   background: var(--color-overlay);
-  animation: public-chat-in var(--transition);
+  animation: chat-window-in var(--transition);
 }
-.public-chat {
+.chat-window {
   position: relative;
   display: grid;
   grid-template-columns: 16rem 1fr;
@@ -1147,7 +1155,7 @@ a.ui-tab {
   background: var(--color-bg);
   box-shadow: var(--shadow-raised);
 }
-.public-chat__sidebar {
+.chat-window__sidebar {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -1156,12 +1164,12 @@ a.ui-tab {
   border-right: 1px solid var(--color-border);
   background: var(--color-surface);
 }
-.public-chat__heading {
+.chat-window__heading {
   margin: 0;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
-.public-chat__list {
+.chat-window__list {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
@@ -1171,7 +1179,7 @@ a.ui-tab {
   overflow-y: auto;
   list-style: none;
 }
-.public-chat__item {
+.chat-window__item {
   width: 100%;
   padding: var(--space-2) var(--space-3);
   border: 0;
@@ -1185,33 +1193,55 @@ a.ui-tab {
   text-overflow: ellipsis;
   cursor: pointer;
 }
-.public-chat__item:hover {
+.chat-window__item:hover {
   background: var(--color-surface-muted);
 }
-.public-chat__item[aria-current="true"] {
+.chat-window__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.chat-window__row .chat-window__item {
+  flex: 1;
+  min-width: 0;
+}
+.chat-window__delete {
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: var(--text-xs) var(--font-body);
+  cursor: pointer;
+}
+.chat-window__delete:hover {
+  background: var(--color-surface);
+  color: var(--color-danger-text);
+}
+.chat-window__item[aria-current="true"] {
   background: var(--color-accent-soft);
   font-weight: 700;
 }
-.public-chat__main {
+.chat-window__main {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
 }
-.public-chat__bar {
+.chat-window__bar {
   display: flex;
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
 }
-.public-chat__bar > :last-child {
+.chat-window__bar > :last-child {
   margin-left: auto;
 }
-.public-chat__toggle {
+.chat-window__toggle {
   display: none;
 }
-.public-chat__messages {
+.chat-window__messages {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -1220,64 +1250,64 @@ a.ui-tab {
   padding: var(--space-5) var(--space-4);
   overflow-y: auto;
 }
-.public-chat__message {
+.chat-window__message {
   max-width: 85%;
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
-  animation: public-chat-in var(--transition);
+  animation: chat-window-in var(--transition);
 }
-.public-chat__message--user {
+.chat-window__message--user {
   align-self: flex-end;
   background: var(--color-surface-muted);
 }
-.public-chat__message p {
+.chat-window__message p {
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.public-chat__who {
+.chat-window__who {
   color: var(--color-text-muted);
   font-size: var(--text-xs);
   font-weight: 700;
 }
-.public-chat__status {
+.chat-window__status {
   margin: 0;
   color: var(--color-text-muted);
 }
-.public-chat__error {
+.chat-window__error {
   margin: 0;
   padding: var(--space-3);
   border-radius: var(--radius);
   background: var(--color-danger-bg);
   color: var(--color-danger-text);
 }
-.public-chat__form {
+.chat-window__form {
   display: flex;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4) var(--space-4);
   border-top: 1px solid var(--color-border);
 }
-.public-chat__form .ui-input {
+.chat-window__form .ui-input {
   flex: 1;
 }
-@keyframes public-chat-in {
+@keyframes chat-window-in {
   from {
     opacity: 0;
     transform: translateY(var(--space-2)) scale(0.99);
   }
 }
 @media (max-width: 48rem) {
-  .public-chat__backdrop {
+  .chat-window__backdrop {
     padding: 0;
   }
-  .public-chat {
+  .chat-window {
     grid-template-columns: 1fr;
     border: 0;
     border-radius: 0;
   }
-  .public-chat__sidebar {
+  .chat-window__sidebar {
     position: absolute;
     inset: 0 auto 0 0;
     z-index: 1;
@@ -1288,15 +1318,15 @@ a.ui-tab {
       transform var(--transition),
       visibility var(--transition);
   }
-  .public-chat__sidebar[data-open="true"] {
+  .chat-window__sidebar[data-open="true"] {
     transform: none;
     visibility: visible;
     box-shadow: var(--shadow-raised);
   }
-  .public-chat__toggle {
+  .chat-window__toggle {
     display: inline-flex;
   }
-  .public-chat__message {
+  .chat-window__message {
     max-width: 95%;
   }
 }
@@ -2678,4 +2708,37 @@ button.chart-mark.ui-card {
   min-height: 1.25rem;
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--color-data-green) var(--share), var(--color-surface-muted));
+}
+
+/* A candidate shown beside the company agent's answer. */
+.agent-card {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+.agent-card__name {
+  font-weight: 700;
+}
+.agent-card__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+.agent-card__facts dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+.agent-card__facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.agent-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }

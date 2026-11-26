@@ -65,6 +65,7 @@ KINDS_NAMED_IN_THE_TICKET = {
 # BillingDetails, Invoice: plans/tests/test_invoices.py (TestBillingDetails, TestDownloading).
 # AnnouncementDismissal: announcements/tests/test_announcements.py (TestDismissing).
 # Feedback: feedback/tests/test_feedback.py (no company route reads it; TestCompanyData).
+# AgentChat, AgentMessage: assistant/tests/test_agent.py (TestChats, another company's chat).
 # ApiKey, ApiIdempotency: apikeys/tests (TestListing, TestWhoMayManageKeys, test_api.py isolation).
 REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "ApiKey",
@@ -81,6 +82,8 @@ REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "AnnouncementDismissal",
     "UsagePeriod",
     "UsageCounter",
+    "AgentChat",
+    "AgentMessage",
     "CvUsage",
     "NotificationChoice",
     "NotificationSent",

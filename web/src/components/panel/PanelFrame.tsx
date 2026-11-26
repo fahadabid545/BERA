@@ -20,6 +20,7 @@ export function PanelFrame({
   items,
   blockedHrefs = [],
   topBar,
+  belowTopBar,
   children,
 }: {
   variant: "company" | "admin";
@@ -28,6 +29,8 @@ export function PanelFrame({
   items: SidebarItem[];
   blockedHrefs?: string[];
   topBar: ReactNode;
+  /** Shown on every page between the top bar and the page, e.g. the company agent's talk bar. */
+  belowTopBar?: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -59,6 +62,7 @@ export function PanelFrame({
           </Button>
           {topBar}
         </header>
+        {belowTopBar ? <div className="panel-below-topbar">{belowTopBar}</div> : null}
         <main className="panel-main">{isBlocked ? <NoAccess /> : children}</main>
       </div>
     </div>

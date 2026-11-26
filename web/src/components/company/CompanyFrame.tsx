@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 
 import { PanelFrame } from "@/components/panel/PanelFrame";
 
+import { AgentBar } from "./agent/AgentBar";
+import { AgentProvider } from "./agent/AgentProvider";
 import { CompanyTopBar } from "./CompanyTopBar";
 import { blockedCompanyHrefs, visibleNavigation, type CompanyRole } from "./navigation";
 
@@ -18,15 +20,18 @@ export function CompanyFrame({
   children: ReactNode;
 }) {
   return (
-    <PanelFrame
-      variant="company"
-      navigationLabel="Company"
-      homeHref="/company"
-      items={visibleNavigation(role)}
-      blockedHrefs={blockedCompanyHrefs(role)}
-      topBar={<CompanyTopBar companyName={companyName} userName={userName} role={role} />}
-    >
-      {children}
-    </PanelFrame>
+    <AgentProvider>
+      <PanelFrame
+        variant="company"
+        navigationLabel="Company"
+        homeHref="/company"
+        items={visibleNavigation(role)}
+        blockedHrefs={blockedCompanyHrefs(role)}
+        topBar={<CompanyTopBar companyName={companyName} userName={userName} role={role} />}
+        belowTopBar={<AgentBar />}
+      >
+        {children}
+      </PanelFrame>
+    </AgentProvider>
   );
 }
