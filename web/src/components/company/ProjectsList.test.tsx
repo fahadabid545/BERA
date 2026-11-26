@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,7 +9,10 @@ const fetchMock = vi.fn();
 const ROW = {
   id: "11111111-1111-1111-1111-111111111111",
   title: "Backend engineer",
+  created_by: "Fake Owner",
+  created_at: "2026-10-20T08:00:00Z",
   cv_count: 0,
+  cv_capacity: 50,
   best_score: null,
   status: "active",
   updated_at: "2026-11-02T10:00:00Z",
@@ -35,22 +38,34 @@ afterEach(() => {
 });
 
 describe("projects list", () => {
-  it("shows each project with its columns and a link to it", async () => {
-    answer(page([ROW]));
+  it("shows each project as a card with who made it, when and how full it is", async () => {
+    answer(page([{ ...ROW, cv_count: 12 }]));
     render(<ProjectsList />);
-    const link = await screen.findByRole("link", { name: "Backend engineer" });
-    expect(link.getAttribute("href")).toBe(`/company/projects/${ROW.id}`);
-    const cells = Array.from(link.closest("tr")!.querySelectorAll("td")).map((cell) =>
-      cell.textContent?.trim(),
+    const card = await screen.findByRole("region", { name: "Backend engineer" });
+    expect(within(card).getByRole("heading", { name: "Backend engineer" })).toBeTruthy();
+    expect(within(card).getByText("Fake Owner")).toBeTruthy();
+    expect(within(card).getByText("20 Oct 2026")).toBeTruthy();
+    expect(within(card).getByText("12 of 50")).toBeTruthy();
+    const meter = within(card).getByRole("meter", { name: "CVs in Backend engineer" });
+    expect(meter.getAttribute("aria-valuenow")).toBe("12");
+    expect(meter.getAttribute("aria-valuemax")).toBe("50");
+    expect(within(card).getByRole("link", { name: "View more" }).getAttribute("href")).toBe(
+      `/company/projects/${ROW.id}`,
     );
-    expect(cells.slice(1)).toEqual(["0", "None", "Active", "2 Nov 2026"]);
-    expect(screen.getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
-      "Title",
-      "CVs",
-      "Best score",
-      "Status",
-      "Last updated",
-    ]);
+  });
+
+  it("says Full when a project holds as many CVs as it can", async () => {
+    answer(page([{ ...ROW, cv_count: 50 }]));
+    render(<ProjectsList />);
+    expect(await screen.findByText("Full")).toBeTruthy();
+  });
+
+  it("shows only the count, with no meter, when the plan allows no CVs", async () => {
+    answer(page([{ ...ROW, cv_capacity: 0, cv_count: 3 }]));
+    render(<ProjectsList />);
+    const card = await screen.findByRole("region", { name: "Backend engineer" });
+    expect(within(card).queryByRole("meter")).toBeNull();
+    expect(within(card).getByText("3")).toBeTruthy();
   });
 
   it("asks for active projects, newest first, by default", async () => {
@@ -102,7 +117,7 @@ describe("projects list", () => {
     answer(page([{ ...ROW, best_score: 87.5, cv_count: 12 }]));
     render(<ProjectsList />);
     expect(await screen.findByText("87.5")).toBeTruthy();
-    expect(screen.getByText("12")).toBeTruthy();
+    expect(screen.getByText("12 of 50")).toBeTruthy();
   });
 
   it("paging: Previous is off on the first page and Next on the last", async () => {

@@ -2634,3 +2634,53 @@ button.chart-mark.ui-card {
   flex-wrap: wrap;
   align-items: flex-end;
 }
+
+/* ---------- Project cards ---------- */
+.project-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+}
+.project-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.project-card__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  overflow-wrap: anywhere;
+}
+.project-card__facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+}
+.project-card__facts dt {
+  color: var(--color-text-muted);
+}
+.project-card__facts dd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+.project-card__bar {
+  display: block;
+  width: 100%;
+}
+.project-card .ui-button {
+  margin-top: auto;
+  align-self: flex-start;
+}

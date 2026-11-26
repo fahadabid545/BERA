@@ -1,8 +1,9 @@
 """The company's projects as a page: search, filter, sort and paging."""
 
-from django.db.models import FloatField, IntegerField, Value
+from django.db.models import Count, F, Max
 from django.db.models.functions import Lower
 
+from plans.limits import CVS_PER_PROJECT, limit_for
 from platform_settings.service import get_setting
 
 from .models import Project
@@ -10,8 +11,8 @@ from .models import Project
 SORTS = {
     "updated": ("-updated_at", "-id"),
     "title": (Lower("title").asc(), "-updated_at", "-id"),
-    # Projects without a score sort last; the score comes with the Candidate record ticket.
-    "best_score": ("-best_score", "-updated_at", "-id"),
+    # Projects without a score sort last.
+    "best_score": (F("best_score").desc(nulls_last=True), "-updated_at", "-id"),
 }
 STATUS_FILTERS = ("active", "archived", "all")
 DEFAULT_SORT = "updated"
@@ -19,12 +20,12 @@ DEFAULT_STATUS = "active"
 
 
 def with_figures(projects):
-    """CV count and best score per project. Zero and empty until candidates exist: this is the
-    one place to change when they do."""
+    """CV count and best score per project. The count is every CV of the project, the same
+    number the per-project limit checks."""
     return projects.annotate(
-        cv_count=Value(0, output_field=IntegerField()),
-        best_score=Value(None, output_field=FloatField()),
-    )
+        cv_count=Count("cv_files", distinct=True),
+        best_score=Max("candidates__score__score"),
+    ).select_related("created_by")
 
 
 def list_projects(company_id, *, search="", status=DEFAULT_STATUS, sort=DEFAULT_SORT, page=1):
@@ -38,8 +39,9 @@ def list_projects(company_id, *, search="", status=DEFAULT_STATUS, sort=DEFAULT_
     size = get_setting("projects.page_size")
     total = projects.count()
     first = (page - 1) * size
+    capacity = limit_for(company_id, CVS_PER_PROJECT)
     return {
-        "results": [describe(project) for project in projects[first : first + size]],
+        "results": [describe(project, capacity) for project in projects[first : first + size]],
         "page": page,
         "page_size": size,
         "total": total,
@@ -47,12 +49,16 @@ def list_projects(company_id, *, search="", status=DEFAULT_STATUS, sort=DEFAULT_
     }
 
 
-def describe(project):
+def describe(project, capacity):
+    """One project card: who made it, when, and how many CVs it holds out of how many it can."""
     return {
         "id": str(project.id),
         "title": project.title,
+        "created_by": project.created_by.name,
+        "created_at": project.created_at.isoformat(),
         "cv_count": project.cv_count,
-        "best_score": project.best_score,
+        "cv_capacity": capacity,
+        "best_score": None if project.best_score is None else float(project.best_score),
         "status": project.status,
         "updated_at": project.updated_at.isoformat(),
     }

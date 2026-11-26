@@ -34,6 +34,32 @@ def make_project(company, person, title, *, status="active", age_days=0):
     return project
 
 
+def add_cv(company, person, project, name):
+    from cvs.models import CvFile
+
+    return CvFile.objects.create(
+        company=company, project=project, original_name=name, file_type="pdf", size_bytes=1,
+        storage_key=f"cvs/{company.pk}/{name}", content_hash=f"{company.pk}-{project.pk}-{name}",
+        uploaded_by=person, status="done",
+    )  # fmt: skip
+
+
+def add_scored(company, person, project, name, value):
+    from cvs.models import Candidate, CandidateScore, CvContact, CvProfile
+
+    row = add_cv(company, person, project, name)
+    profile = CvProfile.objects.create(
+        company=company, cv_file=row, content={}, model="m", prompt_version=1
+    )
+    contact = CvContact.objects.create(company=company, cv_file=row, name="Jane Example")
+    candidate = Candidate.objects.create(
+        company=company, project=project, cv_file=row, profile=profile, contact=contact
+    )
+    CandidateScore.objects.create(
+        company=company, candidate=candidate, score=value, grade="B", label="possible"
+    )
+
+
 @pytest.fixture
 def company():
     return make_company()
@@ -54,16 +80,67 @@ class TestRows:
         make_project(company, person, "Backend engineer")
         body = client.get(URL).json()
         row = body["results"][0]
-        assert set(row) == {"id", "title", "cv_count", "best_score", "status", "updated_at"}
+        assert set(row) == {
+            "id",
+            "title",
+            "created_by",
+            "created_at",
+            "cv_count",
+            "cv_capacity",
+            "best_score",
+            "status",
+            "updated_at",
+        }
         assert row["title"] == "Backend engineer"
         assert row["status"] == "active"
 
-    def test_cv_count_is_zero_and_best_score_empty_until_candidates_exist(self, company, owner):
+    def test_an_empty_project_has_no_cvs_and_no_best_score(self, company, owner):
         person, client = owner
         make_project(company, person, "A")
         row = client.get(URL).json()["results"][0]
         assert row["cv_count"] == 0
         assert row["best_score"] is None
+
+    def test_the_card_names_who_made_it_and_when(self, company, owner):
+        person, client = owner
+        project = make_project(company, person, "A")
+        row = client.get(URL).json()["results"][0]
+        assert row["created_by"] == person.name
+        assert row["created_at"] == project.created_at.isoformat()
+
+    def test_the_card_counts_its_cvs_against_what_the_plan_allows(self, company, owner):
+        from plans.models import LimitOverride
+
+        person, client = owner
+        project = make_project(company, person, "A")
+        make_project(company, person, "Other")
+        for index in range(3):
+            add_cv(company, person, project, f"cv{index}.pdf")
+        LimitOverride.objects.create(company=company, name="cvs_per_project", value=50)
+        rows = {row["title"]: row for row in client.get(URL).json()["results"]}
+        assert (rows["A"]["cv_count"], rows["A"]["cv_capacity"]) == (3, 50)
+        assert rows["Other"]["cv_count"] == 0
+
+    def test_a_company_with_no_plan_has_room_for_no_cvs(self, company, owner):
+        person, client = owner
+        make_project(company, person, "A")
+        assert client.get(URL).json()["results"][0]["cv_capacity"] == 0
+
+    def test_another_companys_cvs_are_not_counted(self, company, owner):
+        person, client = owner
+        project = make_project(company, person, "A")
+        stranger = make_company()
+        stranger_person = make_company_user(stranger)
+        add_cv(stranger, stranger_person, make_project(stranger, stranger_person, "Z"), "z.pdf")
+        assert client.get(URL).json()["results"][0]["cv_count"] == 0
+        assert project.cv_files.count() == 0
+
+    def test_the_best_score_is_the_highest_of_the_project(self, company, owner):
+        person, client = owner
+        project = make_project(company, person, "A")
+        for name, value in (("a.pdf", 61.5), ("b.pdf", 88.0)):
+            add_scored(company, person, project, name, value)
+        assert client.get(URL).json()["results"][0]["best_score"] == 88.0
 
     def test_an_empty_company_gets_an_empty_page(self, owner):
         _, client = owner
@@ -169,6 +246,13 @@ class TestSort:
 
     def test_best_score_with_no_scores_keeps_a_stable_order(self, owner):
         assert titles(owner[1].get(URL, {"sort": "best_score"})) == ["Apple", "cherry", "banana"]
+
+    def test_best_score_puts_the_highest_first_and_unscored_projects_last(self, company, owner):
+        person, client = owner
+        projects = {project.title: project for project in Project.objects.all()}
+        add_scored(company, person, projects["banana"], "a.pdf", 50)
+        add_scored(company, person, projects["cherry"], "b.pdf", 90)
+        assert titles(client.get(URL, {"sort": "best_score"})) == ["cherry", "banana", "Apple"]
 
     def test_an_unknown_sort_is_refused(self, owner):
         assert owner[1].get(URL, {"sort": "random"}).status_code == 400
