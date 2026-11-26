@@ -21,6 +21,7 @@ export function PanelFrame({
   blockedHrefs = [],
   topBar,
   belowTopBar,
+  sidebarFooter,
   children,
 }: {
   variant: "company" | "admin";
@@ -31,6 +32,8 @@ export function PanelFrame({
   topBar: ReactNode;
   /** Shown on every page between the top bar and the page, e.g. the company agent's talk bar. */
   belowTopBar?: ReactNode;
+  /** Shown at the bottom of the sidebar, e.g. Feedback and Support. */
+  sidebarFooter?: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -46,7 +49,13 @@ export function PanelFrame({
       data-menu-open={menuOpen}
       onKeyDown={(event) => event.key === "Escape" && setMenuOpen(false)}
     >
-      <PanelSidebar items={items} pathname={pathname} label={navigationLabel} homeHref={homeHref} />
+      <PanelSidebar
+        items={items}
+        pathname={pathname}
+        label={navigationLabel}
+        homeHref={homeHref}
+        footer={sidebarFooter}
+      />
       <div className="panel-scrim" onClick={() => setMenuOpen(false)} />
       <div className="panel-body">
         <header className="panel-topbar">

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { ToggleIcon } from "@/components/ui";
 
@@ -20,11 +20,14 @@ export function PanelSidebar({
   pathname,
   label,
   homeHref,
+  footer,
 }: {
   items: SidebarItem[];
   pathname: string;
   label: string;
   homeHref: string;
+  /** Items kept at the bottom of the sidebar, below the navigation. */
+  footer?: ReactNode;
 }) {
   // Sub-menus start closed, even on one of their own pages, and only a click opens them.
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -93,6 +96,7 @@ export function PanelSidebar({
           })}
         </ul>
       </nav>
+      {footer && <div className="panel-footer">{footer}</div>}
     </aside>
   );
 }

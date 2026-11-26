@@ -37,7 +37,6 @@ describe("sidebar items", () => {
       Dashboard: "/company",
       Projects: "/company/projects",
       Candidates: "/company/candidates",
-      Team: "/company/team",
       "Usage and Billing": "/company/billing",
     };
     for (const [name, href] of Object.entries(expected)) {
@@ -47,11 +46,31 @@ describe("sidebar items", () => {
     expect(within(sidebar()).getByRole("button", { name: "Advanced" })).toBeTruthy();
   });
 
-  it("hides Team, Usage and Billing, Settings and Advanced from members", () => {
+  it("keeps Feedback at the bottom of the sidebar for every role and opens its popup", async () => {
+    for (const role of ["owner", "member"] as const) {
+      const { unmount } = renderFrame(role);
+      const button = screen.getByRole("button", { name: "Feedback" });
+      expect(button.closest(".panel-footer")).toBeTruthy();
+      await userEvent.click(button);
+      expect(await screen.findByRole("dialog", { name: "Send feedback" })).toBeTruthy();
+      unmount();
+    }
+  });
+
+  it("puts Team inside Advanced, not in the main list", async () => {
+    renderFrame("owner");
+    expect(within(sidebar()).queryByRole("link", { name: "Team" })).toBeNull();
+    await userEvent.click(within(sidebar()).getByRole("button", { name: "Advanced" }));
+    expect(within(sidebar()).getByRole("link", { name: "Team" }).getAttribute("href")).toBe(
+      "/company/advanced/team",
+    );
+  });
+
+  it("hides Usage and Billing, Settings and Advanced from members", () => {
     renderFrame("member");
     expect(within(sidebar()).getByRole("link", { name: "Dashboard" })).toBeTruthy();
     expect(within(sidebar()).getByRole("link", { name: "Projects" })).toBeTruthy();
-    for (const name of ["Team", "Usage and Billing", "Settings", "Advanced"]) {
+    for (const name of ["Usage and Billing", "Settings", "Advanced"]) {
       expect(within(sidebar()).queryByRole("link", { name })).toBeNull();
       expect(within(sidebar()).queryByRole("button", { name })).toBeNull();
     }
@@ -216,7 +235,7 @@ describe("Advanced section", () => {
     },
   );
 
-  it.each(["/company/team", "/company/billing", "/company/settings/company"])(
+  it.each(["/company/advanced/team", "/company/billing", "/company/settings/company"])(
     "shows a member who types %s the no-access page",
     (address) => {
       pathname.current = address;
@@ -225,7 +244,7 @@ describe("Advanced section", () => {
     },
   );
 
-  it.each(["/company/team", "/company/billing", "/company/settings/company"])(
+  it.each(["/company/advanced/team", "/company/billing", "/company/settings/company"])(
     "shows an owner %s",
     (address) => {
       pathname.current = address;

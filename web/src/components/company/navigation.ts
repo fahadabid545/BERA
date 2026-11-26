@@ -9,7 +9,6 @@ export const NAVIGATION: readonly NavigationItem<CompanyRole>[] = [
   { label: "Dashboard", href: "/company", icon: "dashboard", roles: EVERYONE, exact: true },
   { label: "Projects", href: "/company/projects", icon: "projects", roles: EVERYONE },
   { label: "Candidates", href: "/company/candidates", icon: "candidates", roles: EVERYONE },
-  { label: "Team", href: "/company/team", icon: "team", roles: OWNER_ONLY, guarded: true },
   {
     label: "Usage and Billing",
     href: "/company/billing",
@@ -39,6 +38,7 @@ export const NAVIGATION: readonly NavigationItem<CompanyRole>[] = [
     separated: true,
     guarded: true,
     children: [
+      { label: "Team", href: "/company/advanced/team" },
       { label: "Scoring defaults", href: "/company/advanced/defaults" },
       { label: "Retention", href: "/company/advanced/retention" },
       { label: "Security", href: "/company/advanced/security" },

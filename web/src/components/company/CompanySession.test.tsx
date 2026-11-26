@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => pathname.current }));
 const navigateTo = vi.fn();
 vi.mock("@/lib/navigation", () => ({
   navigateTo: (address: string) => navigateTo(address),
-  currentAddress: () => "/company/team",
+  currentAddress: () => "/company/advanced/team",
 }));
 
 type Reply = { status?: number; body: unknown };
@@ -46,7 +46,7 @@ describe("company session", () => {
     stubMe(ME("owner"));
     render(<CompanySession>Page content</CompanySession>);
     expect(await screen.findByText("Fake Test Company")).toBeTruthy();
-    expect(sidebar().textContent).toContain("Team");
+    expect(sidebar().textContent).toContain("Candidates");
     expect(sidebar().textContent).toContain("Advanced");
     expect(screen.getByRole("main").textContent).toBe("Page content");
   });
@@ -56,7 +56,7 @@ describe("company session", () => {
     render(<CompanySession>Page content</CompanySession>);
     await screen.findByText("Fake Test Company");
     expect(sidebar().textContent).toContain("Projects");
-    for (const hidden of ["Team", "Usage and Billing", "Settings", "Advanced"]) {
+    for (const hidden of ["Usage and Billing", "Settings", "Advanced"]) {
       expect(sidebar().textContent).not.toContain(hidden);
     }
   });
@@ -73,7 +73,9 @@ describe("company session", () => {
       body: { error: { code: "not_signed_in", message: "You are not signed in." } },
     });
     render(<CompanySession>Page content</CompanySession>);
-    await waitFor(() => expect(navigateTo).toHaveBeenCalledWith("/login?next=%2Fcompany%2Fteam"));
+    await waitFor(() =>
+      expect(navigateTo).toHaveBeenCalledWith("/login?next=%2Fcompany%2Fadvanced%2Fteam"),
+    );
     expect(screen.queryByText("Page content")).toBeNull();
   });
 
@@ -93,16 +95,16 @@ describe("company session", () => {
     stubMe(() => ME(role));
     const { rerender } = render(<CompanySession>Page content</CompanySession>);
     await screen.findByText("Fake Test Company");
-    expect(sidebar().textContent).toContain("Team");
+    expect(sidebar().textContent).toContain("Advanced");
 
     role = "member";
     pathname.current = "/company/projects";
     rerender(<CompanySession>Page content</CompanySession>);
-    await waitFor(() => expect(sidebar().textContent).not.toContain("Team"));
+    await waitFor(() => expect(sidebar().textContent).not.toContain("Advanced"));
   });
 
   it("shows a member who was demoted on an owner page the no-access page", async () => {
-    pathname.current = "/company/team";
+    pathname.current = "/company/advanced/team";
     stubMe(ME("member"));
     render(<CompanySession>Page content</CompanySession>);
     expect(await screen.findByRole("heading", { name: "You do not have access" })).toBeTruthy();

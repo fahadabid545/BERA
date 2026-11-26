@@ -4,6 +4,7 @@ import { PanelFrame } from "@/components/panel/PanelFrame";
 
 import { AgentBar } from "./agent/AgentBar";
 import { AgentProvider } from "./agent/AgentProvider";
+import { SidebarFooter } from "./SidebarFooter";
 import { CompanyTopBar } from "./CompanyTopBar";
 import { blockedCompanyHrefs, visibleNavigation, type CompanyRole } from "./navigation";
 
@@ -29,6 +30,7 @@ export function CompanyFrame({
         blockedHrefs={blockedCompanyHrefs(role)}
         topBar={<CompanyTopBar companyName={companyName} userName={userName} role={role} />}
         belowTopBar={<AgentBar />}
+        sidebarFooter={<SidebarFooter />}
       >
         {children}
       </PanelFrame>

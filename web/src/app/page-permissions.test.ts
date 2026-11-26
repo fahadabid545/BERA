@@ -42,7 +42,7 @@ const COMPANY_PAGES: Record<string, readonly CompanyRole[]> = {
   "/company/downloads/[id]": ["owner", "member"],
   "/company/settings/profile": ["owner", "member"],
   "/company/settings/company": ["owner"],
-  "/company/team": ["owner"],
+  "/company/advanced/team": ["owner"],
   "/company/billing": ["owner"],
   "/company/billing/return": ["owner"],
   "/company/advanced/defaults": ["owner"],

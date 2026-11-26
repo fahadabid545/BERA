@@ -8,14 +8,13 @@ describe("visibleNavigation", () => {
       "Dashboard",
       "Projects",
       "Candidates",
-      "Team",
       "Usage and Billing",
       "Settings",
       "Advanced",
     ]);
   });
 
-  it("hides Team, Usage and Billing, Settings and Advanced from members", () => {
+  it("hides Usage and Billing, Settings and Advanced from members", () => {
     expect(visibleNavigation("member").map((item) => item.label)).toEqual([
       "Dashboard",
       "Projects",
@@ -28,9 +27,10 @@ describe("visibleNavigation", () => {
     expect(settings.children?.map((child) => child.label)).toEqual(["Profile", "Company"]);
   });
 
-  it("gives Advanced its five pages, with Retention and Scoring defaults moved there", () => {
+  it("gives Advanced its pages, with Team, Retention and Scoring defaults moved there", () => {
     const advanced = NAVIGATION.find((item) => item.label === "Advanced")!;
     expect(advanced.children).toEqual([
+      { label: "Team", href: "/company/advanced/team" },
       { label: "Scoring defaults", href: "/company/advanced/defaults" },
       { label: "Retention", href: "/company/advanced/retention" },
       { label: "Security", href: "/company/advanced/security" },
@@ -62,7 +62,6 @@ describe("visibleNavigation", () => {
 
   it("blocks every owner-only page for members, but not their Profile, and nothing for owners", () => {
     expect(blockedCompanyHrefs("member")).toEqual([
-      "/company/team",
       "/company/billing",
       "/company/settings/company",
       "/company/advanced",
