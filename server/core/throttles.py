@@ -87,6 +87,13 @@ class AskThrottle(RuleThrottle):
     subject = staticmethod(account_subject)
 
 
+class ChatbotThrottle(RuleThrottle):
+    """Per visitor address: every question to the public chatbot is a paid AI call."""
+
+    rule = rate_limits.CHATBOT
+    subject = staticmethod(address_subject)
+
+
 class PerEmailThrottle(RuleThrottle):
     """Per email, so one person's inbox cannot be flooded from many addresses."""
 

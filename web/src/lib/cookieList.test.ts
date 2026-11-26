@@ -29,7 +29,7 @@ describe("browser storage", () => {
   });
 
   it("only the known files use browser storage or write cookies", () => {
-    const allowed = ["lib/theme.ts", "lib/api.ts"];
+    const allowed = ["lib/theme.ts", "lib/api.ts", "lib/publicChat.ts"];
     const using = sourceFiles().filter((file) =>
       /localStorage|sessionStorage|indexedDB|document\.cookie/.test(readFileSync(file, "utf8")),
     );
@@ -37,6 +37,12 @@ describe("browser storage", () => {
       .map((file) => path.relative(SOURCE, file).split(path.sep).join("/"))
       .filter((file) => !allowed.includes(file));
     expect(unknown, `${unknown} uses browser storage.` + REMINDER).toEqual([]);
+  });
+
+  it("the public chat's storage key is on the list", () => {
+    const source = readFileSync(path.join(SOURCE, "lib", "publicChat.ts"), "utf8");
+    const key = /STORAGE_KEY\s*=\s*"([^"]+)"/.exec(source)?.[1];
+    expect(LIST.some((item) => item.storage === "localStorage" && item.name === key)).toBe(true);
   });
 
   it("never writes a cookie from page scripts", () => {

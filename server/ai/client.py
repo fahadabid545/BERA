@@ -115,8 +115,9 @@ def call_ai(
     moment of the call (see `costs.py`) and is stored with the tokens, so a later price change
     never alters it. A failed call is recorded too, then `AiUnavailable` is raised.
 
-    The AI playground is the one caller with no company (`company_id=None`, purpose playground):
-    its calls are recorded for the test budget and are counted for no company.
+    The AI playground and the public website chatbot are the only callers with no company
+    (`company_id=None`): their calls are recorded (for the test budget, and for the chatbot's
+    daily token cap) and are counted for no company.
     """
     ids = {
         "purpose": purpose,

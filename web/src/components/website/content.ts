@@ -145,3 +145,20 @@ export const FAQ = {
 
 /** Shown while a legal page has no text: the wording comes from the owner after legal review. */
 export const LEGAL_PREPARING = "This page is being prepared";
+
+/** The public chat's labels. The owner supplies any other wording. */
+export const CHAT = {
+  barLabel: "Ask a question",
+  askButton: "Ask",
+  launcher: "Chat",
+  windowLabel: "Chat",
+  newChat: "New chat",
+  chatsHeading: "Chats",
+  chatsToggle: "Chats",
+  message: "Message",
+  send: "Send",
+  close: "Close",
+  thinking: "Thinking",
+  you: "You",
+  assistant: "Assistant",
+} as const;

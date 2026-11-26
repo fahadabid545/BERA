@@ -42,6 +42,8 @@ CONTACT = Rule("contact", "rate_limits.contact_per_hour", 3600)
 FEEDBACK = Rule("feedback", "rate_limits.feedback_per_hour", 3600)
 CODE_ATTEMPTS = Rule("code_attempts", "rate_limits.code_attempts_per_hour", 3600)
 ASK = Rule("ask", "rate_limits.ask_per_hour", 3600)
+# Per visitor address; the allowance is set on the admin Chatbot page.
+CHATBOT = Rule("chatbot", "chatbot.visitor_questions_per_hour", 3600)
 API_KEY = Rule("api_key", "rate_limits.api_key_per_minute", 60)
 API_KEY_FAILURES = Rule("api_key_failures", "rate_limits.api_key_failures_per_minute", 60)
 OTHER_REQUESTS = Rule("other_requests", "rate_limits.other_requests_per_minute", 60)
@@ -158,6 +160,7 @@ ALL_RULES = (
     CONTACT,
     FEEDBACK,
     ASK,
+    CHATBOT,
     CODE_ATTEMPTS,
     API_KEY,
     API_KEY_FAILURES,

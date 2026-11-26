@@ -42,6 +42,13 @@
     "set_by": "our code"
   },
   {
+    "name": "public-chat-history",
+    "storage": "localStorage",
+    "purpose": "Keeps the visitor's chats on the public website chat for a few hours (default 2), so earlier chats can be reopened. Written only after the visitor sends a message. Stays in the browser and is never sent to the server as storage; only the chat being written is sent with each question.",
+    "essential": true,
+    "set_by": "our code"
+  },
+  {
     "name": "Cloudflare security cookie",
     "storage": "cookie",
     "purpose": "Cloudflare may set its own security cookie when the site is behind it. Not set by our code.",

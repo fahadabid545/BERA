@@ -76,12 +76,14 @@ class AiCall(CompanyOwnedModel):
         REQUIREMENT_EXTRACTION = "requirement_extraction"
         PLAYGROUND = "playground"
         ASK = "ask"
+        CHATBOT = "chatbot"
 
     class Result(models.TextChoices):
         OK = "ok"
         FAILED = "failed"
 
-    # No company only for the AI playground, whose calls count for no company (see constraints).
+    # No company only for the AI playground and the public website chatbot: their calls count for
+    # no company (see constraints).
     company = models.ForeignKey(
         "companies.Company", null=True, on_delete=models.PROTECT, related_name="+"
     )
@@ -113,13 +115,14 @@ class AiCall(CompanyOwnedModel):
                         "requirement_extraction",
                         "playground",
                         "ask",
+                        "chatbot",
                     ]
                 ),
                 name="aicall_purpose_is_known",
             ),
             models.CheckConstraint(
-                condition=Q(purpose="playground", company__isnull=True)
-                | (~Q(purpose="playground") & Q(company__isnull=False)),
+                condition=Q(purpose__in=["playground", "chatbot"], company__isnull=True)
+                | (~Q(purpose__in=["playground", "chatbot"]) & Q(company__isnull=False)),
                 name="aicall_company_only_when_not_playground",
             ),
             models.CheckConstraint(

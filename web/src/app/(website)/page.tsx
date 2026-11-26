@@ -1,4 +1,5 @@
 import { ButtonLink, Card } from "@/components/ui";
+import { ChatSearchBar } from "@/components/website/chat/ChatEntryPoints";
 import { HOME } from "@/components/website/content";
 import { ACCOUNT_LINKS, NAV_LINKS } from "@/components/website/links";
 import { pageMetadata } from "@/lib/seo";
@@ -14,6 +15,7 @@ export default function WebsiteHome() {
     <div className="page-stack">
       <h1>{HOME.heading}</h1>
       <p>{HOME.subheading}</p>
+      <ChatSearchBar />
       {HOME.sections.map((section) => (
         <Card key={section.title} aria-label={section.title}>
           <h2>{section.title}</h2>

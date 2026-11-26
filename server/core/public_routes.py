@@ -66,6 +66,21 @@ PUBLIC_ROUTES = [
         "with a thank-you, never with anything stored.",
     ),
     PublicRoute(
+        route="api/chatbot/status/",
+        category="website",
+        reason="The public website chat widget must know whether the chat is switched on before "
+        "it shows itself to a visitor with no account. It answers only whether the chat is on and "
+        "four limit numbers, and holds no personal or account data.",
+    ),
+    PublicRoute(
+        route="api/chatbot/ask/",
+        category="website",
+        reason="Anyone may ask the public website chatbot a general question before an account "
+        "exists. It answers only from the admin's public product documents, reads no company, "
+        "candidate or CV data, stores nothing the visitor wrote, is limited per visitor "
+        "address and by a daily token cap, and answers every failure with the same message.",
+    ),
+    PublicRoute(
         route="api/contact/form/",
         category="website",
         reason="The public contact page needs the privacy notice and the signed time the form "

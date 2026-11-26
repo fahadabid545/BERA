@@ -2914,8 +2914,7 @@ before launch and read the answers for quality.
 ## Chatbot settings and knowledge documents (BERA-187)
 
 Admin page `AI > Chatbot` (super admin only; support is refused by the server). It holds the
-settings and documents the later website chat widget will read; **no chat widget exists and nothing
-answers visitors yet**.
+settings and documents the public website chat reads (see "Public website chat" below).
 
 - **Settings:** an on/off switch (off by default; it cannot be switched on without a model), the
   model (from the models list, switched on only), the prompt version (kind "Chatbot" on the Prompts
@@ -2933,11 +2932,47 @@ answers visitors yet**.
   document; no reason is asked. Names and text never go into the audit log.
 - **No company data:** the feature has no link to any company, candidate, project or CV table (a
   test checks that its tables hold no relation), and no company data is ever put into it.
-- **For the widget ticket:** `chatbot.documents.knowledge_texts()` returns the (name, text) of the
+- **For the widget:** `chatbot.documents.knowledge_texts()` returns the (name, text) of the
   documents that are on.
 
 Only simulated: tests use generated PDF and Word files. The owner must upload the real product
 documents, check the extracted text reads well, choose a model, and review the prompt text.
+
+## Public website chat
+
+A visitor with no account can ask the website a general question. The home page has one search bar;
+sending a question opens a full-screen chat with the earlier chats on the left (behind a "Chats"
+button on a phone). Every other public page has a "Chat" button at the corner. Nothing shows while
+the chat is off (switch, model and limits are on `AI > Chatbot`, see above).
+
+- **Only public knowledge:** answers come from the admin's knowledge documents. For each question
+  the server sends the pieces of those documents that share words with it (or the opening pieces
+  when nothing matches), up to `chatbot.context_characters`, cut into `chatbot.chunk_characters`
+  pieces. The AI gets no tools and the call has no company. The chat modules (`chatbot/public_*.py`,
+  `knowledge.py`) import no company, project, CV, plan, usage or sign-in code, and a test checks it.
+- **Nothing is stored on the server:** the browser keeps the conversation and sends the last
+  `chatbot.max_history_messages` messages with each question; the server forgets them at once. The
+  call record holds only the purpose, the model and the token counts; questions and answers are
+  never logged or audited. Visitor text, earlier messages and the documents are sent as data, apart
+  from the prompt, and the prompt tells the AI not to follow instructions in them.
+- **History in the browser:** chats are kept in the browser's local storage (not cookies, which
+  are too small) for `chatbot.history_hours` after their last message (default 2), at most
+  `chatbot.max_saved_chats` (default 20). Other devices and browsers do not see them. If storage is
+  blocked the chat still works, it is just not kept.
+- **Limits and cost:** questions per visitor address per hour (`chatbot.visitor_questions_per_hour`),
+  longest question and answer, `chatbot.max_output_tokens`, and a daily token cap
+  (`chatbot.daily_token_cap`, counted from the chat's own call records for the day). The AI pause
+  switch and outages are respected. Every reason the chat cannot answer (off, over the cap, paused,
+  an outage) gives the same message, so a visitor learns nothing about spend or state. Its spend
+  belongs to no company, so it is not in Cost versus revenue.
+- **Public routes:** `api/chatbot/status/` (on or off, plus four limit numbers) and
+  `api/chatbot/ask/`, both listed with reasons in `core/public_routes.py`.
+
+Only simulated: tests use a stand-in for the AI. The owner must upload the real documents, choose a
+model, switch the chat on, and try it with the real AI (answer quality, refusals for questions the
+documents do not cover). Wording of the labels ("Ask a question", "Chat" and so on) is in
+`web/src/components/website/content.ts` for the owner to change. The company-data assistant for
+signed-in users is a separate, later ticket.
 
 ## Coupons and trials (BERA-188)
 
