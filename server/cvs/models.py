@@ -128,8 +128,9 @@ class Candidate(CompanyOwnedModel):
     class Stage(models.TextChoices):
         NEW = "new"
         SHORTLISTED = "shortlisted"
-        INTERVIEW = "interview"
-        APPROVED = "approved"
+        INTERVIEWED = "interviewed"
+        ON_HOLD = "on_hold"
+        SELECTED = "selected"
         REJECTED = "rejected"
 
     project = models.ForeignKey(

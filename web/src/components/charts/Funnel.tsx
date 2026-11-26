@@ -5,8 +5,8 @@ const LABELS: Record<string, string> = {
   read: "Read",
   scored: "Scored",
   shortlisted: "Shortlisted",
-  interview: "Interview",
-  approved: "Approved",
+  interviewed: "Interviewed",
+  selected: "Selected",
 };
 const PERCENT = 100;
 

@@ -285,15 +285,15 @@ describe("stage, history and notes", () => {
     const user = userEvent.setup();
     const button = screen.getByRole("button", { name: "Change stage" }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
-    await user.selectOptions(screen.getByLabelText("Stage"), "approved");
+    await user.selectOptions(screen.getByLabelText("Stage"), "selected");
     await user.click(button);
     const dialog = await screen.findByRole("dialog", { name: "Change stage" });
-    expect(dialog.textContent).toContain("Move this candidate to Approved?");
+    expect(dialog.textContent).toContain("Move this candidate to Selected?");
     expect(sent()).toHaveLength(0);
     await user.click(within(dialog).getByRole("button", { name: "Change stage" }));
     await waitFor(() => expect(sent()).toHaveLength(1));
     expect(sent()[0][0]).toBe("/api/company/projects/p1/candidates/stage/");
-    expect(JSON.parse(sent()[0][1].body)).toEqual({ candidate_ids: ["k1"], stage: "approved" });
+    expect(JSON.parse(sent()[0][1].body)).toEqual({ candidate_ids: ["k1"], stage: "selected" });
   });
 
   it("adds a note", async () => {

@@ -331,7 +331,7 @@ describe("ActivityFeed", () => {
             name: "",
             file_name: "b.pdf",
             score: null,
-            to_stage: "interview",
+            to_stage: "interviewed",
             at,
           },
           { kind: "shared", id: "r1", project_id: "p1", project_title: "Proj", views: 3, at },
@@ -343,7 +343,7 @@ describe("ActivityFeed", () => {
     );
     expect(screen.getByRole("link", { name: "b.pdf" })).toBeTruthy();
     expect(screen.getByText(/scored 90.0 in/)).toBeTruthy();
-    expect(screen.getByText(/moved to Interview in/)).toBeTruthy();
+    expect(screen.getByText(/moved to Interviewed in/)).toBeTruthy();
     expect(screen.getByText(/opened 3 times/)).toBeTruthy();
     expect(screen.getAllByText("Just now")).toHaveLength(3);
   });
@@ -380,7 +380,7 @@ describe("DetailDialog", () => {
         file_name: "a.pdf",
         score: "90.0",
         grade: "A",
-        stage: "interview",
+        stage: "interviewed",
       },
       {
         type: "cv",
@@ -480,8 +480,8 @@ const charts = {
     { step: "read", count: 8 },
     { step: "scored", count: 4 },
     { step: "shortlisted", count: 2 },
-    { step: "interview", count: 1 },
-    { step: "approved", count: 0 },
+    { step: "interviewed", count: 1 },
+    { step: "selected", count: 0 },
   ],
   distribution: ["A", "B", "C", "D", "E"].map((grade) => ({ grade, count: 1 })),
   trend: {

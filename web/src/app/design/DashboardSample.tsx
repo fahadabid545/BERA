@@ -85,7 +85,7 @@ export function DashboardSample() {
               file_name: "a.pdf",
               score: "94.5",
               grade: "A",
-              stage: "interview",
+              stage: "interviewed",
               rank: 1,
               strengths: ["Strong Django", "Led a team"],
               ats_score: 92,

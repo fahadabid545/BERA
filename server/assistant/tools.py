@@ -276,7 +276,7 @@ TOOLS = {
                 "project": "a project reference (optional)",
                 "sort_by": "score, ats or experience (optional, default score)",
                 "min_score": "0 to 100 (optional)",
-                "stage": "new, shortlisted, interview, approved or rejected (optional)",
+                "stage": "new, shortlisted, interviewed, on_hold, selected or rejected (optional)",
                 "limit": "how many to return (optional)",
             },
             find_candidates,

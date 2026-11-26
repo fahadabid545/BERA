@@ -109,7 +109,7 @@ class TestCards:
     def test_a_candidate_shortlisted_twice_counts_once_on_the_first_day(self, tenant):
         row = add(tenant, "a.pdf", 80)
         move(tenant, row, "shortlisted", days_ago=2)
-        move(tenant, row, "interview", days_ago=1)
+        move(tenant, row, "interviewed", days_ago=1)
         move(tenant, row, "shortlisted", days_ago=0)
         cards = board(tenant, "?days=7")["cards"]
         assert cards["shortlisted"]["value"] == 1
@@ -350,9 +350,9 @@ class TestDetail:
 
     def test_stage_steps_include_those_who_moved_on(self, tenant):
         row = add(tenant, "a.pdf", 80)
-        move(tenant, row, "shortlisted", "interview", "rejected")
-        assert behind(tenant, "funnel", "interview").json()["total"] == 1
-        assert behind(tenant, "funnel", "approved").json()["total"] == 0
+        move(tenant, row, "shortlisted", "interviewed", "rejected")
+        assert behind(tenant, "funnel", "interviewed").json()["total"] == 1
+        assert behind(tenant, "funnel", "selected").json()["total"] == 0
 
     def test_a_grade_lists_its_candidates_best_first(self, tenant):
         add(tenant, "a.pdf", 91, minutes=1)

@@ -16,8 +16,8 @@ const STEPS = [
   { step: "read", count: 8 },
   { step: "scored", count: 4 },
   { step: "shortlisted", count: 2 },
-  { step: "interview", count: 1 },
-  { step: "approved", count: 0 },
+  { step: "interviewed", count: 1 },
+  { step: "selected", count: 0 },
 ];
 
 describe("ChartMark", () => {
@@ -65,7 +65,7 @@ describe("chart details", () => {
     expect(tip.textContent).toContain("50% of Read");
     expect(tip.textContent).toContain("40% of all uploaded");
     await user.click(screen.getByRole("button", { name: /Interview/ }));
-    expect(open).toHaveBeenCalledWith("interview");
+    expect(open).toHaveBeenCalledWith("interviewed");
   });
 
   it("a funnel without a click handler is hover-only", () => {

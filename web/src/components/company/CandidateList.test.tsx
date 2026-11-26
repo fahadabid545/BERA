@@ -284,10 +284,10 @@ describe("changing the stage of several candidates", () => {
   }
 
   it("shows each stage by its name", async () => {
-    serve(page([row({ stage: "interview" })]));
+    serve(page([row({ stage: "interviewed" })]));
     render(<CandidateList projectId="p1" />);
     const table = await screen.findByRole("region", { name: "Candidates" });
-    expect(within(table).getByText("Interview")).toBeTruthy();
+    expect(within(table).getByText("Interviewed")).toBeTruthy();
   });
 
   it("cannot change anything until someone is selected", async () => {
@@ -301,17 +301,17 @@ describe("changing the stage of several candidates", () => {
     const user = await open();
     await user.click(screen.getByRole("checkbox", { name: "Select jane.pdf" }));
     await user.click(screen.getByRole("checkbox", { name: "Select omar.pdf" }));
-    await user.selectOptions(screen.getByLabelText("Move selected to"), "interview");
+    await user.selectOptions(screen.getByLabelText("Move selected to"), "interviewed");
     await user.click(screen.getByRole("button", { name: "Change stage" }));
     const dialog = await screen.findByRole("dialog", { name: "Change stage" });
-    expect(dialog.textContent).toContain("Move 2 candidates to Interview?");
+    expect(dialog.textContent).toContain("Move 2 candidates to Interviewed?");
     expect(posts()).toHaveLength(0);
     await user.click(within(dialog).getByRole("button", { name: "Change stage" }));
     await waitFor(() => expect(posts()).toHaveLength(1));
     expect(posts()[0][0]).toBe(`${BASE}stage/`);
     expect(JSON.parse(posts()[0][1].body)).toEqual({
       candidate_ids: ["k1", "k2"],
-      stage: "interview",
+      stage: "interviewed",
     });
   });
 

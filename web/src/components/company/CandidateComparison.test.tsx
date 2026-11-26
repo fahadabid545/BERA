@@ -37,7 +37,7 @@ const side = {
       id: "k1",
       file_name: "jane.pdf",
       name: "J. E.",
-      stage: "interview",
+      stage: "interviewed",
       score: "90.0",
       grade: "A",
       outdated: false,

@@ -1,4 +1,4 @@
-"""Moving candidates through hiring: New, Shortlisted, Interview, Approved, Rejected.
+"""Moving candidates through hiring: New, Shortlisted, Interviewed, On hold, Selected, Rejected.
 
 One change or many at once, all or nothing. Every change that really moves a candidate is stored
 with who and when (`StageChange`) and shown as the candidate's history; a candidate already at

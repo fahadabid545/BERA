@@ -108,8 +108,8 @@ export default function DesignSample() {
                 { step: "read", count: 36 },
                 { step: "scored", count: 30 },
                 { step: "shortlisted", count: 12 },
-                { step: "interview", count: 6 },
-                { step: "approved", count: 2 },
+                { step: "interviewed", count: 6 },
+                { step: "selected", count: 2 },
               ]}
             />
           </ChartCard>

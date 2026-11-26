@@ -2,8 +2,9 @@
 export const STAGES = [
   { value: "new", label: "New" },
   { value: "shortlisted", label: "Shortlisted" },
-  { value: "interview", label: "Interview" },
-  { value: "approved", label: "Approved" },
+  { value: "interviewed", label: "Interviewed" },
+  { value: "on_hold", label: "On hold" },
+  { value: "selected", label: "Selected" },
   { value: "rejected", label: "Rejected" },
 ];
 

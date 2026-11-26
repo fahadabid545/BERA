@@ -33,10 +33,10 @@ GRADES = [grade for grade, _ in GRADE_LIMITS] + [LOWEST_GRADE]
 REACHED = (
     (
         "shortlisted",
-        (Candidate.Stage.SHORTLISTED, Candidate.Stage.INTERVIEW, Candidate.Stage.APPROVED),
+        (Candidate.Stage.SHORTLISTED, Candidate.Stage.INTERVIEWED, Candidate.Stage.SELECTED),
     ),
-    ("interview", (Candidate.Stage.INTERVIEW, Candidate.Stage.APPROVED)),
-    ("approved", (Candidate.Stage.APPROVED,)),
+    ("interviewed", (Candidate.Stage.INTERVIEWED, Candidate.Stage.SELECTED)),
+    ("selected", (Candidate.Stage.SELECTED,)),
 )
 PERCENT = 100
 

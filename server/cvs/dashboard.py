@@ -34,7 +34,7 @@ SECONDS_PER_HOUR = 3600
 LABELS = ("strong_match", "possible", "not_recommended")
 SHORTLISTED_STAGES = (Candidate.Stage.SHORTLISTED,)
 PROJECT_STATUSES = ("not_started", "in_progress", "ready")
-FUNNEL_STEPS = ("uploaded", "read", "scored", "shortlisted", "interview", "approved")
+FUNNEL_STEPS = ("uploaded", "read", "scored", "shortlisted", "interviewed", "selected")
 STRENGTHS_SHOWN = 2
 # A CSV cell starting with one of these would be run as a formula by a spreadsheet.
 FORMULA_STARTS = ("=", "+", "-", "@", "\t", "\r")
@@ -466,11 +466,11 @@ def _step_items(company_id, step, project=None):
     stages = {
         "shortlisted": (
             Candidate.Stage.SHORTLISTED,
-            Candidate.Stage.INTERVIEW,
-            Candidate.Stage.APPROVED,
+            Candidate.Stage.INTERVIEWED,
+            Candidate.Stage.SELECTED,
         ),
-        "interview": (Candidate.Stage.INTERVIEW, Candidate.Stage.APPROVED),
-        "approved": (Candidate.Stage.APPROVED,),
+        "interviewed": (Candidate.Stage.INTERVIEWED, Candidate.Stage.SELECTED),
+        "selected": (Candidate.Stage.SELECTED,),
     }[step]
     reached = Exists(StageChange.objects.filter(candidate=OuterRef("pk"), to_stage__in=stages))
     return scored.filter(Q(stage__in=stages) | reached).order_by("-score__score")

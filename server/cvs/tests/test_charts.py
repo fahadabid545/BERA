@@ -45,7 +45,7 @@ class TestFunnel:
     def test_an_empty_project_has_zero_everywhere(self, tenant):
         body = charts(tenant).json()
         assert [item["step"] for item in body["funnel"]] == [
-            "uploaded", "read", "scored", "shortlisted", "interview", "approved",
+            "uploaded", "read", "scored", "shortlisted", "interviewed", "selected",
         ]  # fmt: skip
         assert set(counts(body).values()) == {0}
 
@@ -53,29 +53,29 @@ class TestFunnel:
         rows = [add(tenant, f"cv{n}.pdf", 50 + n, minutes=n) for n in range(4)]
         add(tenant, "reading.pdf", status="reading", minutes=9)
         add(tenant, "scoring.pdf", status="scoring", minutes=10)
-        move(tenant, rows[0], "shortlisted", "interview", "approved")
-        move(tenant, rows[1], "shortlisted", "interview")
+        move(tenant, rows[0], "shortlisted", "interviewed", "selected")
+        move(tenant, rows[1], "shortlisted", "interviewed")
         move(tenant, rows[2], "shortlisted")
         assert counts(charts(tenant).json()) == {
             "uploaded": 6, "read": 5, "scored": 4,
-            "shortlisted": 3, "interview": 2, "approved": 1,
+            "shortlisted": 3, "interviewed": 2, "selected": 1,
         }  # fmt: skip
 
     def test_a_candidate_rejected_later_still_counts_for_what_it_reached(self, tenant):
         row = add(tenant, "cv.pdf", 60)
-        move(tenant, row, "shortlisted", "interview", "rejected")
-        assert counts(charts(tenant).json())["interview"] == 1
+        move(tenant, row, "shortlisted", "interviewed", "rejected")
+        assert counts(charts(tenant).json())["interviewed"] == 1
 
     def test_skipping_a_stage_still_counts_the_earlier_ones(self, tenant):
         row = add(tenant, "cv.pdf", 60)
-        move(tenant, row, "approved")
+        move(tenant, row, "selected")
         found = counts(charts(tenant).json())
-        assert (found["shortlisted"], found["interview"], found["approved"]) == (1, 1, 1)
+        assert (found["shortlisted"], found["interviewed"], found["selected"]) == (1, 1, 1)
 
     def test_every_step_is_a_part_of_the_one_before(self, tenant):
         rows = [add(tenant, f"cv{n}.pdf", 50, minutes=n) for n in range(3)]
         add(tenant, "waiting.pdf", status="waiting", minutes=9)
-        move(tenant, rows[0], "approved")
+        move(tenant, rows[0], "selected")
         move(tenant, rows[1], "shortlisted", "rejected")
         values = [item["count"] for item in charts(tenant).json()["funnel"]]
         assert values == sorted(values, reverse=True)

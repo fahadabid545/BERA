@@ -17,8 +17,8 @@ const STEPS = [
   { step: "read", count: 8 },
   { step: "scored", count: 4 },
   { step: "shortlisted", count: 2 },
-  { step: "interview", count: 1 },
-  { step: "approved", count: 0 },
+  { step: "interviewed", count: 1 },
+  { step: "selected", count: 0 },
 ];
 
 describe("Funnel", () => {
@@ -30,8 +30,8 @@ describe("Funnel", () => {
       "Read8 · 80%",
       "Scored4 · 50%",
       "Shortlisted2 · 50%",
-      "Interview1 · 50%",
-      "Approved0 · 0%",
+      "Interviewed1 · 50%",
+      "Selected0 · 0%",
     ]);
   });
 

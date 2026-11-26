@@ -54,9 +54,9 @@ def trio(tenant):
 
 
 class TestStages:
-    def test_the_five_stages(self):
+    def test_the_six_stages(self):
         assert Candidate.Stage.values == [
-            "new", "shortlisted", "interview", "approved", "rejected",
+            "new", "shortlisted", "interviewed", "on_hold", "selected", "rejected",
         ]  # fmt: skip
 
     def test_one_candidate_moves(self, tenant, trio):
@@ -66,8 +66,8 @@ class TestStages:
         assert stage_of(trio[0]) == "shortlisted" and stage_of(trio[1]) == "new"
 
     def test_many_move_at_once(self, tenant, trio):
-        assert move(tenant, trio, "interview").json()["changed"] == 3
-        assert {stage_of(r) for r in trio} == {"interview"}
+        assert move(tenant, trio, "interviewed").json()["changed"] == 3
+        assert {stage_of(r) for r in trio} == {"interviewed"}
 
     def test_one_entry_of_history_for_each_change(self, tenant, trio):
         move(tenant, trio, "shortlisted")
@@ -77,27 +77,27 @@ class TestStages:
         assert entry.changed_by_id == tenant.owner.pk and entry.created_at
 
     def test_a_candidate_already_there_gets_no_entry(self, tenant, trio):
-        move(tenant, trio[:1], "approved")
-        response = move(tenant, trio, "approved")
+        move(tenant, trio[:1], "selected")
+        response = move(tenant, trio, "selected")
         assert response.json() == {"changed": 2, "unchanged": 1}
         assert StageChange.objects.filter(candidate=trio[0].candidate).count() == 1
 
     def test_the_same_candidate_twice_counts_once(self, tenant, trio):
         ids = [str(trio[0].candidate.pk)] * 2
         response = tenant.client.post(
-            stage_url(tenant), {"candidate_ids": ids, "stage": "interview"}, format="json"
+            stage_url(tenant), {"candidate_ids": ids, "stage": "interviewed"}, format="json"
         )
         assert response.json()["changed"] == 1
 
     def test_history_is_shown_newest_first_with_who_and_when(self, tenant, trio):
         move(tenant, trio[:1], "shortlisted")
-        move(tenant, trio[:1], "interview")
+        move(tenant, trio[:1], "interviewed")
         history = detail(tenant, trio[0])["history"]
         assert [(h["from_stage"], h["to_stage"]) for h in history] == [
-            ("shortlisted", "interview"), ("new", "shortlisted"),
+            ("shortlisted", "interviewed"), ("new", "shortlisted"),
         ]  # fmt: skip
         assert history[0]["by"] == tenant.owner.name and history[0]["at"]
-        assert detail(tenant, trio[0])["stage"] == "interview"
+        assert detail(tenant, trio[0])["stage"] == "interviewed"
 
     def test_history_names_each_person(self, tenant, trio):
         person, client = colleague(tenant)
@@ -120,7 +120,7 @@ class TestStages:
 
     def test_too_many_at_once_is_refused(self, tenant, trio):
         set_setting("candidates.bulk_max", 2)
-        assert move(tenant, trio, "interview").status_code == 400
+        assert move(tenant, trio, "interviewed").status_code == 400
         assert stage_of(trio[0]) == "new"
 
     def test_another_companys_candidate_makes_it_all_not_found_and_changes_nothing(
@@ -143,7 +143,7 @@ class TestStages:
         link = f"/api/company/projects/{second.pk}/candidates/stage/"
         response = tenant.client.post(
             link,
-            {"candidate_ids": [str(trio[0].candidate.pk)], "stage": "interview"},
+            {"candidate_ids": [str(trio[0].candidate.pk)], "stage": "interviewed"},
             format="json",
         )
         assert response.status_code == 404
@@ -157,7 +157,7 @@ class TestStages:
     def test_signed_out_and_staff_are_refused(self, tenant, trio):
         from ai.tests.test_model_settings import admin_client
 
-        body = {"candidate_ids": [str(trio[0].candidate.pk)], "stage": "interview"}
+        body = {"candidate_ids": [str(trio[0].candidate.pk)], "stage": "interviewed"}
         assert APIClient().post(stage_url(tenant), body, format="json").status_code == 401
         boss, _ = admin_client("super")
         assert boss.post(stage_url(tenant), body, format="json").status_code in (401, 403)
@@ -169,10 +169,10 @@ class TestStages:
 
     def test_the_query_count_does_not_grow_with_the_candidates(self, tenant, trio):
         with CaptureQueriesContext(connection) as few:
-            move(tenant, trio[:1], "interview")
+            move(tenant, trio[:1], "interviewed")
         more = [add(tenant, f"x{n}.pdf", 40, minutes=20 + n) for n in range(15)]
         with CaptureQueriesContext(connection) as many:
-            move(tenant, more, "interview")
+            move(tenant, more, "interviewed")
         assert len(many) == len(few)
 
 
@@ -200,7 +200,7 @@ class TestRejectedAreHidden:
         assert "wait.pdf" in names(tenant)
 
     def test_other_stages_stay_in_the_default_list(self, tenant, trio):
-        move(tenant, trio, "approved")
+        move(tenant, trio, "selected")
         assert len(names(tenant)) == 3
 
 
@@ -280,3 +280,28 @@ class TestNotes:
 
 def test_removing_a_person_is_not_needed_for_history(tenant):
     assert CompanyUser._meta.get_field("name")
+
+
+class TestStageNames:
+    def test_on_hold_can_be_set_and_is_listed_last_but_two(self, tenant, trio):
+        assert move(tenant, trio[:1], "on_hold").json()["changed"] == 1
+        assert stage_of(trio[0]) == "on_hold"
+
+    def test_the_old_stage_names_are_renamed_in_candidates_and_history(self, trio):
+        import importlib
+
+        from django.apps import apps
+
+        migration = importlib.import_module("cvs.migrations.0027_stage_names")
+        Candidate.objects.update(stage="approved")
+        StageChange.objects.create(
+            company_id=trio[0].company_id,
+            candidate=trio[0].candidate,
+            from_stage="interview",
+            to_stage="approved",
+            changed_by=trio[0].uploaded_by,
+        )
+        migration.rename_stages(apps, None)
+        assert set(Candidate.objects.values_list("stage", flat=True)) == {"selected"}
+        change = StageChange.objects.get()
+        assert (change.from_stage, change.to_stage) == ("interviewed", "selected")

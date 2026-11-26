@@ -1941,7 +1941,7 @@ page `/company/projects/<project>/candidates/<candidate>`).
 
 Tracking each candidate through hiring (`cvs/stages.py`, `cvs/notes.py`).
 
-- **Stages:** New, Shortlisted, Interview, Approved, Rejected. `POST /api/company/projects/<project>/candidates/stage/`
+- **Stages:** New, Shortlisted, Interviewed, On hold, Selected, Rejected. `POST /api/company/projects/<project>/candidates/stage/`
   with `candidate_ids` and `stage` moves one candidate or many, all or nothing: a candidate that is not
   in this project and company makes the whole request "not found" and changes nothing. At most
   `candidates.bulk_max` at once. A candidate already at the stage is left alone and has no entry.
@@ -2037,7 +2037,7 @@ Code: `server/cvs/charts.py`, `web/src/components/charts/`; every chart is on th
 
 | Question | Chart | Notes |
 | --- | --- | --- |
-| How far do CVs get? | Funnel | Uploaded, read, scored, shortlisted, interview, approved. The last three count scored candidates that ever reached the stage (from the stage history), so each step is a part of the one before. |
+| How far do CVs get? | Funnel | Uploaded, read, scored, shortlisted, interviewed, selected. The last three count scored candidates that ever reached the stage (from the stage history), so each step is a part of the one before. |
 | How are scores spread? | Score distribution | A column for each grade A to E, counts written above. |
 | Who is at the top? | Ranking (project) | The Top-N list, at most `charts.ranking_max_bars` (10) bars, names as initials. |
 | How well are requirements met? | Requirement coverage (project) | Met, partly met, missing, not judged for each requirement; a verdict for older wording counts as not judged. |
