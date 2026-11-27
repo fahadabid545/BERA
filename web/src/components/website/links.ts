@@ -18,3 +18,11 @@ export const FOOTER_LINKS = [
   { label: "Privacy", href: "/privacy" },
   { label: "Contact", href: "/contact" },
 ] as const;
+
+/** The footer columns. The header's links are reused so the two never drift apart. */
+const link = (label: string) => NAV_LINKS.find((entry) => entry.label === label)!;
+export const FOOTER_GROUPS = [
+  { title: "Product", links: [link("Features"), link("How it works"), link("Pricing")] },
+  { title: "Company", links: [link("FAQ"), link("Contact"), ACCOUNT_LINKS.logIn] },
+  { title: "Legal", links: FOOTER_LINKS.filter((entry) => entry.label !== "Contact") },
+] as const;

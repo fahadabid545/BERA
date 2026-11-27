@@ -284,6 +284,21 @@ export default function DesignSample() {
         </div>
       </section>
 
+      <section className="sample-section" aria-labelledby="sample-website">
+        <h2 id="sample-website">Website skin</h2>
+        <div className="site-skin sample-skin">
+          <div className="page-actions">
+            <Button>Get started</Button>
+            <Button variant="secondary">See pricing</Button>
+            <Button disabled>Disabled</Button>
+          </div>
+          <Input label="Website sample field" placeholder="you@company.com" />
+          <Card aria-label="Website sample card">
+            <h3>Sticker card</h3>
+          </Card>
+        </div>
+      </section>
+
       <section className="sample-section" aria-labelledby="sample-tabs">
         <h2 id="sample-tabs">Tabs and popup</h2>
         <Tabs

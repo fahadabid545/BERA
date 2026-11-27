@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", async (original) => ({
@@ -24,6 +24,7 @@ describe("design sample page", () => {
       "Announcement banner",
       "Cards, tags and tooltips",
       "Table",
+      "Website skin",
       "Tabs and popup",
     ]) {
       expect(screen.getByRole("heading", { name: heading })).toBeTruthy();
@@ -39,6 +40,14 @@ describe("design sample page", () => {
     for (const word of ["Strong match", "Missing must-have", "Not recommended", "Live"]) {
       expect(screen.getAllByText(word).length).toBeGreaterThan(0);
     }
+  });
+
+  it("shows the website skin's buttons, field and card inside the skin", () => {
+    render(<DesignSample />);
+    const skin = document.querySelector(".site-skin") as HTMLElement;
+    expect(within(skin).getByRole("button", { name: "Get started" })).toBeTruthy();
+    expect(within(skin).getByRole("textbox", { name: "Website sample field" })).toBeTruthy();
+    expect(within(skin).getByLabelText("Website sample card")).toBeTruthy();
   });
 
   it("is hidden in production builds", () => {

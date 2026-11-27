@@ -11,6 +11,7 @@ import { themeInitScript } from "@/lib/theme";
 import "@/styles/tokens.css";
 import "@/styles/base.css";
 import "@/styles/components.css";
+import "@/styles/website.css";
 
 export const metadata = { title: "BERA" };
 

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -90,7 +90,42 @@ describe("header", () => {
   });
 });
 
+describe("header while scrolling", () => {
+  it("gets its rule only after the page has scrolled", () => {
+    renderFrame();
+    const header = screen.getByRole("banner");
+    expect(header.getAttribute("data-scrolled")).toBe("false");
+
+    act(() => {
+      window.scrollY = 120;
+      fireEvent.scroll(window);
+    });
+    expect(header.getAttribute("data-scrolled")).toBe("true");
+
+    act(() => {
+      window.scrollY = 0;
+      fireEvent.scroll(window);
+    });
+    expect(header.getAttribute("data-scrolled")).toBe("false");
+  });
+});
+
 describe("footer", () => {
+  it("groups its links under Product, Company and Legal", () => {
+    renderFrame();
+    const footer = screen.getByRole("contentinfo");
+    const groups: Record<string, string[]> = {
+      Product: ["Features", "How it works", "Pricing"],
+      Company: ["FAQ", "Contact", "Log in"],
+      Legal: ["Terms", "Privacy"],
+    };
+    for (const [title, names] of Object.entries(groups)) {
+      const heading = within(footer).getByRole("heading", { name: title });
+      const links = within(heading.parentElement as HTMLElement).getAllByRole("link");
+      expect(links.map((link) => link.textContent)).toEqual(names);
+    }
+  });
+
   it("shows Terms, Privacy, Contact, the Avennex line and the current year", () => {
     renderFrame();
     const footer = screen.getByRole("contentinfo");
@@ -108,6 +143,15 @@ describe("footer", () => {
 });
 
 describe("frame", () => {
+  it("wears the website skin around the header, page and footer", () => {
+    renderFrame();
+    const skin = document.querySelector(".site-skin") as HTMLElement;
+    expect(skin).toBeTruthy();
+    for (const role of ["banner", "main", "contentinfo"] as const) {
+      expect(skin.contains(screen.getByRole(role))).toBe(true);
+    }
+  });
+
   it("keeps the page content in the same column as the header and footer", () => {
     renderFrame();
     expect(screen.getByRole("main").querySelector(".site-container")).toBeTruthy();

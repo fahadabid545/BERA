@@ -1,0 +1,204 @@
+/* The public website's "Bold Sticker" look. Everything here is scoped to .site-skin, so the
+   company and admin panels are untouched. Colours come from tokens.css. */
+
+.site-skin {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  /* Full-width bands use a 100vw bleed; this stops the scrollbar width causing sideways scroll. */
+  overflow-x: clip;
+}
+
+/* ---------- Buttons: thick ink border, coloured offset shadow, pressed state ---------- */
+.site-skin .ui-button {
+  border-color: var(--color-text);
+  border-radius: var(--radius-control);
+  font-weight: 700;
+  transition:
+    transform 250ms var(--ease-site),
+    box-shadow 250ms var(--ease-site);
+}
+.site-skin .ui-button--secondary {
+  box-shadow: 4px 4px 0 var(--color-shade-soft);
+}
+.site-skin .ui-button--primary {
+  background: var(--color-accent);
+  border-color: var(--color-text);
+  box-shadow: 4px 4px 0 var(--color-shade);
+}
+.site-skin .ui-button--danger {
+  box-shadow: 4px 4px 0 var(--color-shade-soft);
+}
+.site-skin .ui-button:not(:disabled):hover {
+  filter: none;
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--color-shade-soft);
+}
+.site-skin .ui-button--primary:not(:disabled):hover {
+  box-shadow: 7px 7px 0 var(--color-shade);
+}
+.site-skin .ui-button--danger:not(:disabled):hover {
+  border-color: var(--color-danger);
+}
+.site-skin .ui-button:not(:disabled):active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 transparent;
+}
+.site-skin .ui-button:disabled {
+  box-shadow: none;
+  transform: none;
+}
+
+/* ---------- Cards and fields ---------- */
+.site-skin .ui-card {
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-card);
+  transition:
+    transform 350ms var(--ease-site),
+    box-shadow 350ms var(--ease-site);
+}
+.site-skin .ui-card:hover {
+  transform: translate(-3px, -3px) rotate(-0.4deg);
+  box-shadow: var(--shadow-raised);
+}
+.site-skin .ui-input,
+.site-skin .ui-select select {
+  border-radius: var(--radius-control);
+  box-shadow: 3px 3px 0 var(--color-shade-soft);
+  transition:
+    transform 200ms var(--ease-site),
+    box-shadow 200ms var(--ease-site);
+}
+.site-skin .ui-input:focus,
+.site-skin .ui-select select:focus {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--color-accent);
+}
+
+/* ---------- Header: sticky, blurred, ruled once the page has scrolled ---------- */
+.site-skin .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 2px solid transparent;
+  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+  backdrop-filter: blur(14px);
+  transition: border-color 300ms var(--ease-site);
+}
+.site-skin .site-header[data-scrolled="true"] {
+  border-bottom-color: var(--color-text);
+}
+.site-skin .site-brand {
+  gap: var(--space-2);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.site-brand__mark {
+  width: 1.625rem;
+  height: 1.625rem;
+  border: 2px solid var(--color-text);
+  border-radius: 0.5rem;
+  background: var(--color-accent);
+  box-shadow: 2px 2px 0 var(--color-text);
+  transform: rotate(-8deg);
+  transition: transform 300ms var(--ease-site);
+}
+.site-brand:hover .site-brand__mark {
+  transform: rotate(8deg) scale(1.1);
+}
+.site-skin .site-nav .ui-icon-item:hover {
+  background: var(--color-accent-soft);
+}
+.site-skin .site-nav .ui-icon-item[aria-current="page"] {
+  font-weight: 800;
+}
+.site-skin .site-nav[data-open="true"] {
+  border-bottom: 2px solid var(--color-text);
+  background: var(--color-bg);
+}
+
+/* ---------- Footer: ink band with a large wordmark ---------- */
+.site-skin .site-footer {
+  padding: var(--space-7) var(--page-gutter) var(--space-6);
+  border-top: 3px solid var(--color-text);
+  background: var(--color-text);
+  color: var(--color-on-ink);
+}
+.site-footer__inner {
+  display: grid;
+  gap: var(--space-6);
+  max-width: var(--container-width);
+  margin: 0 auto;
+}
+.site-footer__word {
+  margin: 0;
+  font: 800 clamp(4rem, 12vw, 9rem) / 0.85 var(--font-heading);
+  letter-spacing: -0.05em;
+  transition: color 400ms var(--ease-site);
+}
+.site-footer__word:hover {
+  color: var(--color-accent);
+}
+.site-footer__groups {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+.site-footer__title {
+  margin: 0 0 var(--space-3);
+  color: var(--color-on-ink-muted);
+  font: 700 var(--text-xs) var(--font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.site-footer__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.site-footer__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  color: var(--color-on-ink);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 200ms var(--ease-site);
+}
+.site-footer__link:hover {
+  transform: translateX(6px);
+}
+.site-footer__link:focus-visible,
+.site-footer .site-brand:focus-visible {
+  outline-color: var(--color-accent);
+}
+.site-footer__base {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-text-muted);
+  color: var(--color-on-ink-muted);
+}
+@media (min-width: 56rem) {
+  .site-footer__inner {
+    grid-template-columns: 1.4fr 2fr;
+    align-items: start;
+  }
+  .site-footer__base {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The /design sample shows the skin on the page's own surface. */
+.sample-skin {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-card);
+}

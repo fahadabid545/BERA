@@ -11,17 +11,28 @@ import { ACCOUNT_LINKS, NAV_LINKS } from "./links";
 export function SiteHeader() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   // Close the phone menu after the visitor picks a page.
   useEffect(() => setMenuOpen(false), [pathname]);
 
+  // The header gets its rule only once the page has moved under it.
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 8);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
+
   return (
     <header
       className="site-header"
+      data-scrolled={scrolled}
       onKeyDown={(event) => event.key === "Escape" && setMenuOpen(false)}
     >
       <div className="site-header__inner">
         <Link href="/" className="site-brand">
+          <span className="site-brand__mark" aria-hidden="true" />
           Bera
         </Link>
         <Button

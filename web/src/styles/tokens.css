@@ -53,6 +53,11 @@
   --color-data-amber-soft: #fff0c8;
   --color-data-coral-soft: #ffe6df;
   --color-data-teal-soft: #d9f4ef;
+  --color-tint-lime: #d8f5b8;
+  --color-tint-lilac: #e3dcff;
+  --color-tint-peach: #ffe0c2;
+  --color-tint-sky: #cfe8ff;
+  --color-tint-pink: #ffd9e6;
   --shadow-raised: 0 10px 28px rgb(13 16 12 / 0.16), 0 2px 6px rgb(13 16 12 / 0.1);
   --shadow: 0 1px 2px rgb(13 16 12 / 0.08), 0 4px 12px rgb(13 16 12 / 0.06);
 }
@@ -107,6 +112,11 @@
   --color-data-amber-soft: #2e2406;
   --color-data-coral-soft: #2b1613;
   --color-data-teal-soft: #10302b;
+  --color-tint-lime: #1f3a14;
+  --color-tint-lilac: #251f3d;
+  --color-tint-peach: #3a2a14;
+  --color-tint-sky: #14283a;
+  --color-tint-pink: #3a1c28;
   --shadow-raised: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 12px 32px rgb(0 0 0 / 0.7);
 }
 
@@ -139,4 +149,48 @@
   --sidebar-rail-width: 4.75rem;
   --topbar-height: 4rem;
   --transition: 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* The public website's own look ("Bold Sticker"). It is light only, so the whole subtree
+   re-declares every colour with the light values, whatever theme the visitor chose elsewhere.
+   Green stays a fill or indicator; the offset shadows are a deep green or grey, never plain black. */
+.site-skin {
+  color-scheme: light;
+  --color-bg: #f3f4ec;
+  --color-surface: #ffffff;
+  --color-surface-muted: #ebeee0;
+  --color-text: #0b0e0b;
+  --color-text-muted: #3d433b;
+  --color-border: #0b0e0b;
+  --color-control-border: #0b0e0b;
+  --color-accent: #5bd62a;
+  --color-on-accent: #0b0e0b;
+  --color-accent-soft: #dff5cf;
+  --color-checked-border: #0b0e0b;
+  --color-focus: #0b0e0b;
+  --color-danger: #b3261e;
+  --color-on-danger: #ffffff;
+  --color-danger-bg: #fde7e4;
+  --color-danger-text: #8c1d18;
+  --color-warning-bg: #fff0c2;
+  --color-warning-text: #5c3d00;
+  --color-success-bg: #e3f6d9;
+  --color-success-text: #1e4d0b;
+  --color-tooltip-bg: #0b0e0b;
+  --color-tooltip-text: #f3f4ec;
+  --color-overlay: rgb(11 14 11 / 0.5);
+  --color-tint-lime: #d8f5b8;
+  --color-tint-lilac: #e3dcff;
+  --color-tint-peach: #ffe0c2;
+  --color-tint-sky: #cfe8ff;
+  --color-tint-pink: #ffd9e6;
+  --color-on-ink: #f3f4ec;
+  --color-on-ink-muted: #aab59c;
+  --color-shade: #1f5f0c;
+  --color-shade-soft: #aab59c;
+  --shadow: 6px 6px 0 var(--color-text);
+  --shadow-raised: 9px 9px 0 var(--color-text);
+  --radius-card: 1.375rem;
+  --radius-control: 0.75rem;
+  --ease-site: cubic-bezier(0.2, 0.7, 0.2, 1);
 }

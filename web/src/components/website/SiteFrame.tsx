@@ -9,14 +9,16 @@ import { SiteHeader } from "./SiteHeader";
 export function SiteFrame({ children }: { children: ReactNode }) {
   return (
     <ChatProvider>
-      <div className="site-frame">
-        <SiteHeader />
-        <main className="site-main">
-          <div className="site-container">{children}</div>
-        </main>
-        <SiteFooter />
+      <div className="site-skin">
+        <div className="site-frame">
+          <SiteHeader />
+          <main className="site-main">
+            <div className="site-container">{children}</div>
+          </main>
+          <SiteFooter />
+        </div>
+        <ChatLauncher />
       </div>
-      <ChatLauncher />
     </ChatProvider>
   );
 }

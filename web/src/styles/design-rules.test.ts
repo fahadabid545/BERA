@@ -6,6 +6,7 @@ const read = (name: string) => readFileSync(join(__dirname, name), "utf8");
 const tokensCss = read("tokens.css");
 const baseCss = read("base.css");
 const componentsCss = read("components.css");
+const websiteCss = read("website.css");
 
 function tokensOf(selectorPattern: RegExp): Record<string, string> {
   const block = tokensCss.match(selectorPattern)?.[1] ?? "";
@@ -58,6 +59,13 @@ const TEXT_PAIRS = [
   ["color-admin-text", "color-admin-active"],
 ] as const;
 
+// The pastel card tints: ink text and muted text must stay readable on every one.
+const TINTS = ["lime", "lilac", "peach", "sky", "pink"] as const;
+const TINT_PAIRS = TINTS.flatMap((name): [string, string][] => [
+  ["color-text", `color-tint-${name}`],
+  ["color-text-muted", `color-tint-${name}`],
+]);
+
 const DATA_TEXT_PAIRS = DATA_COLOURS.flatMap((name): [string, string][] => [
   [`color-on-data-${name}`, `color-data-${name}`],
   ["color-text", `color-data-${name}-soft`],
@@ -84,7 +92,7 @@ describe.each(Object.entries(MODES))("%s mode colours", (_mode, tokens) => {
     expect(tokens["color-on-accent"]).toBe("#0d100c");
   });
 
-  it.each([...TEXT_PAIRS, ...DATA_TEXT_PAIRS])(
+  it.each([...TEXT_PAIRS, ...DATA_TEXT_PAIRS, ...TINT_PAIRS])(
     "text %s on %s is readable (4.5:1)",
     (foreground, background) => {
       expect(contrast(tokens[foreground], tokens[background])).toBeGreaterThanOrEqual(4.5);
@@ -173,7 +181,10 @@ describe("highlight styles and icon transitions", () => {
       /\.site-container\s*\{[^}]*max-width:\s*var\(--container-width\)/,
     );
     expect(componentsCss).toMatch(
-      /\.site-header__inner,\s*\.site-footer__inner\s*\{[^}]*max-width:\s*var\(--container-width\)/,
+      /\.site-header__inner\s*\{[^}]*max-width:\s*var\(--container-width\)/,
+    );
+    expect(websiteCss).toMatch(
+      /\.site-footer__inner\s*\{[^}]*max-width:\s*var\(--container-width\)/,
     );
   });
 });
@@ -277,5 +288,50 @@ describe("Advanced divider", () => {
     expect(componentsCss).toMatch(
       /\.panel-frame \.panel-nav > li\[data-separated="true"\]\s*\{[^}]*var\(--color-admin-hover\)/,
     );
+  });
+});
+
+// The public website is light only, so its subtree re-declares the light colours.
+describe("website skin", () => {
+  const skin = tokensOf(/\.site-skin\s*\{([^}]*)\}/);
+
+  it("uses the brand green", () => {
+    expect(skin["color-accent"]).toBe("#5bd62a");
+  });
+
+  it("re-declares every light colour, so a dark theme can never leak into it", () => {
+    for (const name of Object.keys(MODES.light)) {
+      if (
+        name.startsWith("color-") &&
+        !name.startsWith("color-data-") &&
+        !name.startsWith("color-on-data-")
+      ) {
+        const exempt = ["color-qr-background", "color-hatch", "color-admin-"].some((prefix) =>
+          name.startsWith(prefix),
+        );
+        if (!exempt) expect(skin[name], name).toBeDefined();
+      }
+    }
+  });
+
+  it.each([
+    ...TEXT_PAIRS.filter(([, background]) => !background.startsWith("color-admin")),
+    ...TINT_PAIRS,
+    ["color-on-ink", "color-text"],
+    ["color-on-ink-muted", "color-text"],
+  ] as [string, string][])("text %s on %s is readable (4.5:1)", (foreground, background) => {
+    expect(contrast(skin[foreground], skin[background])).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each(CONTROL_PAIRS.filter(([, background]) => !background.startsWith("color-admin")))(
+    "%s against %s is clearly visible (3:1)",
+    (foreground, background) => {
+      expect(contrast(skin[foreground], skin[background])).toBeGreaterThanOrEqual(3);
+    },
+  );
+
+  it("draws its offset shadows in a deep green or grey, never plain black", () => {
+    expect(skin["color-shade"]).not.toBe(skin["color-text"]);
+    expect(skin["color-shade-soft"]).not.toBe(skin["color-text"]);
   });
 });
