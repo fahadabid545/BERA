@@ -2,15 +2,10 @@ import { ButtonLink } from "@/components/ui";
 import { ChatSearchBar } from "@/components/website/chat/ChatEntryPoints";
 import { HOME } from "@/components/website/content";
 import { HeroScreening } from "@/components/website/home/HeroScreening";
-import {
-  FeaturesSection,
-  MarkedHeading,
-  RoleStrip,
-  StepsSection,
-} from "@/components/website/home/HomeSections";
+import { FeaturesSection, RoleStrip, StepsSection } from "@/components/website/home/HomeSections";
 import { RotatingWord } from "@/components/website/home/RotatingWord";
 import { ACCOUNT_LINKS, NAV_LINKS } from "@/components/website/links";
-import { Reveal } from "@/components/website/Reveal";
+import { ClosingBand } from "@/components/website/SceneTiles";
 import { pageMetadata } from "@/lib/seo";
 
 const PRICING_LINK = NAV_LINKS.find((link) => link.label === "Pricing")!;
@@ -20,13 +15,23 @@ export async function generateMetadata() {
   return pageMetadata("home");
 }
 
+const HOME_ACTIONS = [
+  { label: "Get started", href: ACCOUNT_LINKS.signUp.href },
+  { label: "See pricing", href: PRICING_LINK.href, secondary: true },
+];
+
 function HomeActions() {
   return (
     <div className="page-actions">
-      <ButtonLink href={ACCOUNT_LINKS.signUp.href}>Get started</ButtonLink>
-      <ButtonLink href={PRICING_LINK.href} variant="secondary">
-        See pricing
-      </ButtonLink>
+      {HOME_ACTIONS.map((action) => (
+        <ButtonLink
+          key={action.label}
+          href={action.href}
+          variant={action.secondary ? "secondary" : "primary"}
+        >
+          {action.label}
+        </ButtonLink>
+      ))}
     </div>
   );
 }
@@ -50,19 +55,12 @@ export default function WebsiteHome() {
       </div>
       <StepsSection />
       <FeaturesSection />
-      <Reveal as="section" className="home-closing" aria-labelledby="home-closing">
-        <MarkedHeading id="home-closing" heading={HOME.closing} />
-        <HomeActions />
-        {CLOSING_CHIPS.map((chip, position) => (
-          <span
-            key={chip}
-            className={`home-closing__chip home-closing__chip--${position + 1}`}
-            aria-hidden="true"
-          >
-            {chip}
-          </span>
-        ))}
-      </Reveal>
+      <ClosingBand
+        id="home-closing"
+        heading={HOME.closing}
+        actions={HOME_ACTIONS}
+        chips={CLOSING_CHIPS}
+      />
     </>
   );
 }

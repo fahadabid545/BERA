@@ -19,6 +19,8 @@ import {
   Tooltip,
 } from "@/components/ui";
 
+import { ScoreScene } from "@/components/website/Scenes";
+import { ClosingBand, SceneTile } from "@/components/website/SceneTiles";
 import { RotatingWord } from "@/components/website/home/RotatingWord";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { Coverage } from "@/components/charts/Coverage";
@@ -297,6 +299,13 @@ export default function DesignSample() {
           <h3>
             Shortlist the right people <RotatingWord words={["faster", "fairer", "smarter"]} />
           </h3>
+          <SceneTile title="Illustrated card" tint="sky" badge={1} Scene={ScoreScene} />
+          <ClosingBand
+            id="sample-closing"
+            heading={{ plain: "Ready to ", marked: "decide better?" }}
+            actions={[{ label: "Get started", href: "/signup" }]}
+            chips={["Shortlisted", "On hold"]}
+          />
           <div className="page-actions">
             {(["lime", "lilac", "peach", "sky", "pink"] as const).map((tint) => (
               <Card key={tint} data-tint={tint} aria-label={`Website sample card ${tint}`}>

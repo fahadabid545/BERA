@@ -50,7 +50,7 @@ describe("website home page", () => {
 
   it("gives every card an illustration that assistive technology skips", () => {
     const { container } = render(<WebsiteHome />);
-    const scenes = container.querySelectorAll(".home-tile__scene");
+    const scenes = container.querySelectorAll(".scene-tile__scene");
     expect(scenes).toHaveLength(9);
     for (const scene of scenes) expect(scene.getAttribute("aria-hidden")).toBe("true");
   });
@@ -64,7 +64,7 @@ describe("website home page", () => {
 
   it("marks one phrase of each section heading, as a highlight and not as green text", () => {
     const { container } = render(<WebsiteHome />);
-    const marked = [...container.querySelectorAll(".home-heading .marker")].map(
+    const marked = [...container.querySelectorAll(".section-heading .marker")].map(
       (item) => item.textContent,
     );
     expect(marked).toEqual(["one afternoon", "first pass", "decide better?"]);

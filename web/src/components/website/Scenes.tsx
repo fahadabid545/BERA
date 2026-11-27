@@ -1,7 +1,7 @@
 /* Small illustrated scenes for the home page's step and feature cards. They are decoration:
    made-up people and numbers, drawn with markup and CSS, and hidden from assistive technology. */
 
-import { RESULT_WORD, type RequirementResult } from "./demo";
+import { RESULT_WORD, type RequirementResult } from "./home/demo";
 
 function Result({ name, result }: { name: string; result: RequirementResult }) {
   return (
@@ -209,6 +209,92 @@ export function RetentionScene() {
           {label}
         </span>
       ))}
+    </div>
+  );
+}
+
+export function ProjectScene() {
+  return (
+    <div className="scene scene--project">
+      <div className="scene__person">
+        <span className="scene__badge">Sales Manager</span>
+        <span className="scene__tag">Open</span>
+      </div>
+      <div className="scene__group">
+        <b>Must have</b>
+        <div className="scene__chips">
+          <span>B2B sales</span>
+          <span>CRM tools</span>
+        </div>
+      </div>
+      <div className="scene__group">
+        <b>Nice to have</b>
+        <div className="scene__chips">
+          <span>Team leadership</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function UsageScene() {
+  return (
+    <div className="scene scene--usage">
+      <div className="scene__meter">
+        <span>CVs used</span>
+        <i />
+      </div>
+      <div className="scene__meter scene__meter--soft">
+        <span>Plan limit</span>
+        <i />
+      </div>
+    </div>
+  );
+}
+
+export function ControlScene() {
+  return (
+    <div className="scene scene--control">
+      <div className="scene__person">
+        <b>Recommended: Strong match</b>
+      </div>
+      <div className="scene__buttons">
+        <span>Reject</span>
+        <span className="scene__press">Shortlist</span>
+      </div>
+      <i className="scene__pointer" />
+    </div>
+  );
+}
+
+export function HighlightScene() {
+  return (
+    <div className="scene scene--highlight">
+      <div className="scene__sheet">
+        <span />
+        <span data-highlight />
+        <span />
+        <span data-highlight data-late />
+        <span />
+        <div className="scene__chips">
+          <span>Python · 5 years</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ShieldScene() {
+  return (
+    <div className="scene scene--shield">
+      <svg viewBox="0 0 76 88" fill="none">
+        <path d="M38 4l30 11v26c0 20-13 35-30 43C21 76 8 61 8 41V15z" />
+        <rect x="26" y="38" width="24" height="20" rx="4" />
+        <path d="M30 38v-6a8 8 0 0116 0v6" />
+      </svg>
+      <div className="scene__chips">
+        <span>Deleted automatically</span>
+      </div>
     </div>
   );
 }

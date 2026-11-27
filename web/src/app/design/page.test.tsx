@@ -51,6 +51,8 @@ describe("design sample page", () => {
       expect(within(skin).getByLabelText(`Website sample card ${tint}`)).toBeTruthy();
     }
     expect(within(skin).getByText("faster, fairer, smarter")).toBeTruthy();
+    expect(within(skin).getByRole("heading", { name: "Illustrated card" })).toBeTruthy();
+    expect(within(skin).getByRole("heading", { name: "Ready to decide better?" })).toBeTruthy();
   });
 
   it("is hidden in production builds", () => {
