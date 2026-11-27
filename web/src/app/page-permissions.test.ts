@@ -31,6 +31,8 @@ const COMPANY_PAGES: Record<string, readonly CompanyRole[]> = {
   "/company": ["owner", "member"],
   "/company/dashboard/print": ["owner", "member"],
   "/company/candidates": ["owner", "member"],
+  "/company/support": ["owner", "member"],
+  "/company/support/[ticket]": ["owner", "member"],
   "/company/projects": ["owner", "member"],
   "/company/projects/new": ["owner", "member"],
   "/company/projects/[project]": ["owner", "member"],

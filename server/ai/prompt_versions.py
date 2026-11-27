@@ -19,15 +19,16 @@ from projects.models import Project
 from .models import PromptCounter, PromptVersion
 
 READING, SCORING = PromptVersion.READING, PromptVersion.SCORING
-ASK, CHATBOT = PromptVersion.ASK, PromptVersion.CHATBOT
-KINDS = (READING, SCORING, ASK, CHATBOT)
+ASK, CHATBOT, SUPPORT = PromptVersion.ASK, PromptVersion.CHATBOT, PromptVersion.SUPPORT
+KINDS = (READING, SCORING, ASK, CHATBOT, SUPPORT)
 CURRENT_SETTING = {
     READING: "ai.reading_prompt_version",
     SCORING: "ai.scoring_prompt_version",
     ASK: "ai.ask_prompt_version",
     CHATBOT: "ai.chatbot_prompt_version",
+    SUPPORT: "ai.support_prompt_version",
 }
-# The Ask and chatbot prompts are not pinned by projects: they use the current version.
+# The Ask, chatbot and support prompts are not pinned by projects: they use the current version.
 PROJECT_FIELD = {READING: "reading_prompt_version", SCORING: "scoring_prompt_version"}
 PINNED_KINDS = tuple(PROJECT_FIELD)
 

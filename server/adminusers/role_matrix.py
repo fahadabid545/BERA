@@ -24,6 +24,7 @@ ROLES_ALLOWED = {
     "team_member.block": BOTH,  # block or unblock
     "data_request.handle": BOTH,
     "feedback.handle": BOTH,
+    "support.handle": BOTH,
     "announcement.read": BOTH,
     # Pages only super admins may open (hidden from support, and refused if typed in).
     "plan.view": SUPER_ONLY,

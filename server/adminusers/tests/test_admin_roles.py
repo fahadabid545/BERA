@@ -22,6 +22,7 @@ SUPPORT_MAY = [
     "team_member.block",
     "data_request.handle",
     "feedback.handle",
+    "support.handle",
     "announcement.read",
 ]
 SUPPORT_MAY_NOT = [

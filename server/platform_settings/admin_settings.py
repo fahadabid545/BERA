@@ -28,6 +28,7 @@ MANAGED_ELSEWHERE = frozenset(
         "ai.scoring_prompt_version",
         "ai.ask_prompt_version",
         "ai.chatbot_prompt_version",
+        "ai.support_prompt_version",
         "chatbot.enabled",
         "chatbot.model",
         "chatbot.visitor_questions_per_hour",

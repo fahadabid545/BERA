@@ -35,7 +35,14 @@ class PromptVersion(models.Model):
     SCORING = "scoring"
     ASK = "ask"
     CHATBOT = "chatbot"
-    KINDS = [(READING, "Reading"), (SCORING, "Scoring"), (ASK, "Ask"), (CHATBOT, "Chatbot")]
+    SUPPORT = "support"
+    KINDS = [
+        (READING, "Reading"),
+        (SCORING, "Scoring"),
+        (ASK, "Ask"),
+        (CHATBOT, "Chatbot"),
+        (SUPPORT, "Support"),
+    ]
 
     kind = models.CharField(max_length=20, choices=KINDS)
     number = models.PositiveIntegerField()
@@ -47,7 +54,7 @@ class PromptVersion(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["kind", "number"], name="one_prompt_per_number"),
             models.CheckConstraint(
-                condition=Q(kind__in=["reading", "scoring", "ask", "chatbot"]),
+                condition=Q(kind__in=["reading", "scoring", "ask", "chatbot", "support"]),
                 name="prompt_kind_is_known",
             ),
         ]
@@ -77,6 +84,7 @@ class AiCall(CompanyOwnedModel):
         PLAYGROUND = "playground"
         ASK = "ask"
         CHATBOT = "chatbot"
+        SUPPORT = "support"
 
     class Result(models.TextChoices):
         OK = "ok"
@@ -116,6 +124,7 @@ class AiCall(CompanyOwnedModel):
                         "playground",
                         "ask",
                         "chatbot",
+                        "support",
                     ]
                 ),
                 name="aicall_purpose_is_known",

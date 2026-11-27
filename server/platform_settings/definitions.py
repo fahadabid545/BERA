@@ -474,6 +474,8 @@ SETTINGS = [
     SettingDefinition("ai.scoring_prompt_version", 1, whole_number(1, 1_000_000)),
     # The company agent (see assistant/): the prompt version every question uses, and its limits.
     SettingDefinition("ai.ask_prompt_version", 2, whole_number(1, 1_000_000)),
+    # The support agent (see support/): the prompt version every support chat uses.
+    SettingDefinition("ai.support_prompt_version", 1, whole_number(1, 1_000_000)),
     # Free trials (see plans/trials.py). The days and the CV limit of a trial have no default:
     # whoever starts one chooses them, within these bounds.
     SettingDefinition("discounts.max_months", 36, whole_number(1, 120)),
@@ -527,6 +529,17 @@ SETTINGS = [
     SettingDefinition("ask.max_history_messages", 10, whole_number(0, 100)),
     SettingDefinition("ask.max_chats_listed", 100, whole_number(1, 1000)),
     SettingDefinition("rate_limits.ask_per_hour", 30, whole_number(1, 10000)),
+    SettingDefinition("rate_limits.support_per_hour", 30, whole_number(1, 10000)),
+    # The support agent and tickets (see support/).
+    SettingDefinition("support.max_message_length", 2000, whole_number(20, 10000)),
+    SettingDefinition("support.max_user_messages_per_chat", 12, whole_number(1, 100)),
+    SettingDefinition("support.history_messages", 10, whole_number(0, 100)),
+    SettingDefinition("support.max_output_tokens", 800, whole_number(100, 32000)),
+    SettingDefinition("support.max_field_length", 1500, whole_number(50, 10000)),
+    SettingDefinition("support.max_title_length", 120, whole_number(10, 200)),
+    SettingDefinition("support.max_reply_length", 2000, whole_number(20, 10000)),
+    SettingDefinition("support.ticket_list_limit", 100, whole_number(1, 1000)),
+    SettingDefinition("support.admin_list_limit", 100, whole_number(1, 1000)),
     SettingDefinition("prompts.max_length", 20000, whole_number(100, 200000)),
     # AI calls (see ai/client.py) and the requirements the AI proposes. The prompt is a
     # stand-in until Prompt versions exist.

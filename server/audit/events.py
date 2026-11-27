@@ -125,6 +125,7 @@ KINDS = _kinds(
     EventKind("admin.data_request_created"),
     EventKind("admin.data_request_status_changed"),
     EventKind("admin.feedback_status_changed"),
+    EventKind("admin.support_ticket_status_changed"),
     EventKind("admin.chatbot_settings_changed"),
     EventKind("admin.chatbot_document_added"),
     EventKind("admin.chatbot_document_replaced"),

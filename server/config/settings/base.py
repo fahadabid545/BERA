@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "contact",
     "datarequests",
     "feedback",
+    "support",
     "projects",
     "ai",
     "cvs",

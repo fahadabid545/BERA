@@ -87,6 +87,13 @@ class AskThrottle(RuleThrottle):
     subject = staticmethod(account_subject)
 
 
+class SupportThrottle(RuleThrottle):
+    """Per signed-in person: each message to the support agent is a paid AI call."""
+
+    rule = rate_limits.SUPPORT
+    subject = staticmethod(account_subject)
+
+
 class ChatbotThrottle(RuleThrottle):
     """Per visitor address: every question to the public chatbot is a paid AI call."""
 

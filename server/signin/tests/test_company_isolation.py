@@ -66,12 +66,18 @@ KINDS_NAMED_IN_THE_TICKET = {
 # AnnouncementDismissal: announcements/tests/test_announcements.py (TestDismissing).
 # Feedback: feedback/tests/test_feedback.py (no company route reads it; TestCompanyData).
 # AgentChat, AgentMessage: assistant/tests/test_agent.py (TestChats, another company's chat).
+# SupportTicket, TicketMessage, SupportChat, SupportChatMessage: support/tests/test_support.py
+#   (TestTheTicketsOfAPerson, another persons chat, another companys ticket).
 # FreeAccess: freeaccess/tests/test_free_access.py (TestThreeSidesStayApart, kept apart).
 # ApiKey, ApiIdempotency: apikeys/tests (TestListing, TestWhoMayManageKeys, test_api.py isolation).
 REAL_MODELS_WITH_ISOLATION_TESTS: set[str] = {
     "ApiKey",
     "ApiIdempotency",
     "Feedback",
+    "SupportTicket",
+    "TicketMessage",
+    "SupportChat",
+    "SupportChatMessage",
     "Invitation",
     "ActivityEntry",
     "Subscription",

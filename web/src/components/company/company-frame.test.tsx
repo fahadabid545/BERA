@@ -57,6 +57,16 @@ describe("sidebar items", () => {
     }
   });
 
+  it("keeps a Support link next to Feedback, for every role", () => {
+    for (const role of ["owner", "member"] as const) {
+      const { unmount } = renderFrame(role);
+      const link = screen.getByRole("link", { name: "Support" });
+      expect(link.getAttribute("href")).toBe("/company/support");
+      expect(link.closest(".panel-footer")).toBeTruthy();
+      unmount();
+    }
+  });
+
   it("puts Team inside Advanced, not in the main list", async () => {
     renderFrame("owner");
     expect(within(sidebar()).queryByRole("link", { name: "Team" })).toBeNull();
