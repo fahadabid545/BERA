@@ -348,6 +348,7 @@ class TestAi:
             "playground": 0,
             "ask": 0,
             "chatbot": 0,
+            "support": 0,
         }
         assert ai["by_model"][0]["model"] == "big" and ai["by_model"][0]["cost"] == 6.0
         assert ai["by_model"][0]["calls"] == 2
