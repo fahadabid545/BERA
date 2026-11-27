@@ -64,6 +64,7 @@ const ADMIN_PAGES: Record<string, readonly AdminRole[]> = {
   "/admin/operations/announcements": ["super", "support"],
   "/admin/operations/data-requests": ["super", "support"],
   "/admin/operations/feedback": ["super", "support"],
+  "/admin/operations/support": ["super", "support"],
   "/admin/operations/payments": ["super"],
   "/admin/operations/cost-versus-revenue": ["super"],
   "/admin/operations/discount-codes": ["super"],

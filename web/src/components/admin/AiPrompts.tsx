@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, Dialog, Input, Select, Table, Tabs, Tag, Textarea } from "@/components/ui";
 import { deleteJson, getJson, postJson, putJson, type ApiError, type ApiResult } from "@/lib/api";
 
-type Kind = "reading" | "scoring" | "ask" | "chatbot";
+type Kind = "reading" | "scoring" | "ask" | "chatbot" | "support";
 type Version = {
   kind: Kind;
   number: number;
@@ -27,6 +27,7 @@ const KINDS: { value: Kind; label: string }[] = [
   { value: "scoring", label: "Scoring" },
   { value: "ask", label: "Ask" },
   { value: "chatbot", label: "Chatbot" },
+  { value: "support", label: "Support" },
 ];
 const PINNED_KINDS: Kind[] = ["reading", "scoring"]; // only these are pinned by projects
 const BASE = "/api/admin/ai/prompts/";

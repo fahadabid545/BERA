@@ -124,6 +124,13 @@ class TestTheAgent:
         chat = SupportChat.objects.get()
         assert chat.ticket_id == ticket.pk
 
+    def test_the_answer_carries_the_ticket_in_full_for_the_popup(self, owner, provider):
+        provider.replies = [HANDOVER]
+        ticket = say(owner, "x problem").json()["ticket"]
+        assert ticket["number"] == 1 and ticket["status"] == "open"
+        assert ticket["what_happened"] == "The upload button does nothing."
+        assert ticket["steps"] and ticket["expected"] and ticket["summary"]
+
     def test_the_reply_after_a_handover_is_the_agents_own_sentence(self, owner, provider):
         provider.replies = [HANDOVER]
         assert say(owner, "x problem").json()["reply"] == "I have told the support team."

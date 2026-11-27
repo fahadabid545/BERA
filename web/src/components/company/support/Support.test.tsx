@@ -84,9 +84,7 @@ describe("SupportChat", () => {
   });
 
   it("shows a popup with the requested ticket when the agent hands the problem over", async () => {
-    fetchMock.mockResolvedValue(
-      json({ chat_id: "c1", reply: "I told the team.", ticket: summary }),
-    );
+    fetchMock.mockResolvedValue(json({ chat_id: "c1", reply: "I told the team.", ticket: detail }));
     const user = userEvent.setup();
     render(<SupportChat />);
     await write(user, "Cannot upload");
@@ -94,6 +92,8 @@ describe("SupportChat", () => {
     expect(within(dialog).getByText("SUP-7")).toBeTruthy();
     expect(within(dialog).getByText("Cannot upload a CV")).toBeTruthy();
     expect(within(dialog).getByText("Open")).toBeTruthy();
+    expect(within(dialog).getByText("The upload button does nothing.")).toBeTruthy();
+    expect(within(dialog).getByText("Steps to repeat it")).toBeTruthy();
     expect(
       within(dialog).getByRole("link", { name: "View ticket SUP-7" }).getAttribute("href"),
     ).toBe("/company/support/t1");

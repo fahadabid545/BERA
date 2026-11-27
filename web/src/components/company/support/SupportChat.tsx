@@ -7,10 +7,10 @@ import { Button, Dialog, Textarea } from "@/components/ui";
 import { postJson, type ApiError } from "@/lib/api";
 
 import { TicketFacts } from "./TicketFacts";
-import { ticketNumber, type TicketSummary } from "./words";
+import { ticketNumber, type TicketDetail } from "./words";
 
 type Line = { role: "user" | "assistant"; text: string };
-type Reply = { chat_id: string; reply: string; ticket: TicketSummary | null };
+type Reply = { chat_id: string; reply: string; ticket: TicketDetail | null };
 
 const MESSAGE_LIMIT = 10_000;
 
@@ -22,7 +22,7 @@ export function SupportChat() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
-  const [ticket, setTicket] = useState<TicketSummary | null>(null);
+  const [ticket, setTicket] = useState<TicketDetail | null>(null);
   const [closed, setClosed] = useState(false);
 
   async function send(event: FormEvent) {

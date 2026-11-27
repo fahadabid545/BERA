@@ -1143,7 +1143,7 @@ pricing route (which needs the visitor's country) come with later tickets.
 
 - **Fields:** name, short description, USD price per month, optional PKR price, CVs per month, CVs
   per project, maximum projects, maximum team accounts (including the owner), maximum top-N,
-  monthly AI token cap, status (active, hidden, archived) and display order. Plans are monthly; no
+  status (active, hidden, archived) and display order (there is no AI token cap on a plan). Plans are monthly; no
   rollover. Limits are positive whole numbers; prices are positive with two decimals.
 - **Starting plans** (data migration, hidden): Starter 250 CVs / 3,000 PKR, Growth 500 CVs /
   5,000 PKR, Scale 7,000 PKR. The USD prices, the Scale CV count and the other limits are set by the
@@ -1281,8 +1281,8 @@ Model settings, Prompt versions and AI usage tracking extend this function; do n
 company; archived projects are refused) asks the AI for must-have and nice-to-have requirements
 using the project's pinned model and the stand-in prompt `ai.requirement_extraction_prompt`
 (Prompt versions will supply prompts by the pinned version). Nothing is saved: the Requirement
-editor lets the person edit and confirm. Before the call `check_ai_allowed` applies the monthly
-token cap (409 with the Upgrade prompt).
+editor lets the person edit and confirm. Before the call `check_ai_allowed` checks that the plan, trial or free
+access allows AI work (409 with the Upgrade prompt).
 
 - The answer is untrusted: entries with an unknown kind, no text, more than
   `requirements.max_length` (120) characters or repeating another are dropped, and at most
@@ -1556,7 +1556,7 @@ period by the Usage counting functions.
 - An answer that is not valid JSON of the expected shape, or has no skills and no job titles,
   is asked for once more (`ai.invalid_answer_retries`). After that the CV fails with a clear
   reason and is not counted. An unavailable AI is retried by Background processing; a company
-  over its monthly token cap fails with a reason and can be retried later.
+  whose plan does not allow AI work fails with a reason and can be retried later.
 - Every fact is checked against the CV text (`cvs/profile_checks.py`): skills, titles, degrees,
   institutions, certifications and languages that are not found are removed, and so is a date
   whose year is not in the CV. Years of experience are counted from the checked job dates (the
@@ -1697,8 +1697,8 @@ reads saved results (`RequirementResult`, one per candidate and requirement).
   confidence. A met or partly met verdict with no quote is Missing, and a missing verdict keeps no
   quote.
 - An answer that cannot be used at all is asked for once more, then the CV fails with a reason
-  (and can be retried). A project with no requirements, or a company over its token cap, fails the
-  CV with a clear reason too.
+  (and can be retried). A project with no requirements, or a company whose plan does not allow AI work,
+  fails the CV with a clear reason too.
 - Results are reused: a retry or re-scoring judges only requirements with no result or whose text
   was edited, so unchanged ones cost no tokens. Results are removed with their candidate,
   requirement or project.
@@ -1824,14 +1824,14 @@ An upload no longer starts processing by itself. The accepted CVs are held (stat
 confirmation", `cvs/estimate.py`) until the person has seen the estimate and confirmed it.
 
 - `GET /api/company/projects/<project>/cvs/estimate/` (optionally `?batch=`) returns the number of
-  held CVs, the approximate tokens and cost, and where that leaves the plan: CVs this month, CVs in
-  the project and the monthly AI token cap. It is always marked approximate.
+  held CVs, the approximate tokens and cost, and where that leaves the plan: CVs this month and CVs in
+  the project. It is always marked approximate.
 - The figures are averages from platform settings (`estimate.*`: CV text, prompts, output per
   requirement, characters per token), priced with the project's reading and scoring models. The
   real use is only known after processing.
 - `POST` to the same address confirms: the held CVs become Waiting and the workers are woken.
-  If the estimate would pass the token cap (or the subscription has ended) it is refused with a
-  message (409, `estimate_over_token_cap`) and an Upgrade or Renewal prompt; the CVs stay held.
+  If the subscription has ended (or the plan does not allow AI work) it is refused with a
+  message and an Upgrade or Renewal prompt; the CVs stay held.
 - Cancelling is the existing "cancel" action, which now also covers held CVs and gives their
   allowance back. Held CVs still count against the month's and the project's CV limits.
 - The project page opens the estimate in a popup after an upload ("Process CVs" or "Discard CVs")
@@ -1850,8 +1850,8 @@ How scored candidates are brought up to date when a project changes (`cvs/rescor
   already counted is never counted again, and the re-scoring does not use the plan's CV limits.
 - **Before saving**, the requirement editor shows how many CVs will run, how many requirements,
   and the approximate cost (`409 rescoring_needed`); the person confirms. A change that would pass
-  the monthly AI token cap is refused with a message and an Upgrade or Renewal prompt
-  (`rescoring_over_token_cap`) and nothing is saved.
+  the monthly CV limit is refused with a message and an Upgrade or Renewal prompt
+  and nothing is saved.
 - **Outdated:** from the moment of the change until the candidate is judged again its score is
   marked Outdated (`outdated` in the candidate's recommendation). If the AI fails for a CV, that CV
   fails with a reason and a Retry button, its old score stays and stays Outdated, and the other CVs
@@ -2059,41 +2059,99 @@ Code: `server/cvs/charts.py`, `web/src/components/charts/`; every chart is on th
 
 ## Company dashboard
 
-The company dashboard (Overview tab) answers one question per card, all counted from stored data
-when asked (no AI) and refreshed by the live-updates routine. Numbers for the chosen period (today,
-this week, this month) sit next to the period before it.
+The company dashboard has four tabs (Overview, Projects, Candidates, Usage), all counted from stored
+data when asked (no AI) and refreshed by the live-updates routine. The period is today, this week,
+this month, 3 months or 6 months (`dashboard.period_choices_days`). Nothing is compared with an
+earlier period.
 
-| Card                                                    | Question                                                      | Opens                                     |
-| ------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------- |
-| CVs uploaded, CVs scored, Shortlisted, Average AI score | More or less than before?                                     | The CVs or candidates counted             |
-| Hiring pace, Match quality, Time to shortlist           | Better or worse than before?                                  | The same lists                            |
-| CVs by recommendation, Projects overview (donuts)       | How are they split?                                           | Who is in each part                       |
-| Screening progress (gauge)                              | How much is scored?                                           | Projects with their counts                |
-| Top candidates                                          | Who is best? Pick two to four to compare                      | The candidate, the comparison page        |
-| Quick actions                                           | What is done most often?                                      | Upload, new project, share report, export |
-| Pending actions                                         | What waits for me?                                            | The CVs or links waiting                  |
-| Funnel, Score distribution, Trend                       | Where do CVs drop out, how do scores spread, how is the pace? | Steps and grades as lists                 |
-| Live activity                                           | What just happened?                                           | The candidate or project                  |
+- **Overview:** one card for each figure, holding only its name and a clickable number: Projects
+  (opens the projects page), CVs scored, Shortlisted, Interviewed, On hold, Selected and Rejected.
+  A flag number counts the candidates now at that flag that were put there in the period. It opens a
+  popup with a row for each candidate (name, project, AI score, flag). The flag can be changed in the
+  row, and the whole row opens the candidate (CV, scores, everything).
+- **Projects:** how the projects stand (donut), screening progress (gauge), the projects that need
+  attention (failed CVs, close to the CV limit of a project `dashboard.capacity_warning_percent`,
+  CVs uploaded but none scored), a row for each project (CVs held of the most it can hold, scored,
+  best score, shortlisted, interviewed, selected), the CVs added each day, and the average AI and
+  ATS score of each project.
+- **Candidates:** the top ten candidates of the whole company (`dashboard.top_candidates_count`) with
+  their project, AI score and ATS score; the split by recommendation and by flag; the requirements
+  missed most (`dashboard.missed_requirements_count`); the funnel and the score distribution.
+- **Usage:** the plan's limits (CVs and projects only: there is no AI token limit for companies), the
+  history by period and the trend.
 
-Every card and every mark of a chart shows its details on hover or keyboard focus. Where it makes
-sense it also opens a popup with the list behind it; every name in that list is a link to the page
-where it can be worked on. The project charts open the same popups, narrowed to their project.
+Every mark of a chart shows its details on hover or focus and opens a popup with the list behind it;
+every name is a link to the page where it can be worked on.
 
-- `GET /api/company/dashboard/?days=&project=`: the cards. `days` is one of
-  `dashboard.period_choices_days`; `project` picks the top candidates (default: the most recent
-  project with scores).
-- `GET /api/company/dashboard/detail/?kind=&key=&days=&project=`: what is behind a card or mark
-  (`metric`, `insight`, `funnel`, `grade`, `recommendation`, `project_status`, `screening`,
-  `pending`), at most `dashboard.detail_limit` items with the real total.
+- `GET /api/company/dashboard/?days=`: the numbers of all tabs.
+- `GET /api/company/dashboard/detail/?kind=&key=&days=&project=`: what is behind a number or mark
+  (`metric` scored, `stage` for a flag in the period, `flag` for everyone now at a flag, `funnel`,
+  `grade`, `recommendation`, `project_status`, `screening`), at most `dashboard.detail_limit` items
+  with the real total.
 - `GET /api/company/dashboard/report/?days=`: the numbers as JSON for the printable page
   (`/company/dashboard/print`), or `&as=csv` for the file. The report holds projects and counts,
   never candidate names, and the CSV guards cells that look like formulas.
-- Platform settings: `dashboard.period_choices_days`, `dashboard.period_default_days`,
-  `dashboard.sparkline_days`, `dashboard.top_candidates_count`, `dashboard.activity_limit`,
-  `dashboard.detail_limit`, `dashboard.expiring_link_days`.
 - Candidate names are shown as initials, like in the lists.
 - The data colours (green, blue, violet, amber, coral, teal, grey) are tokens in `tokens.css`; the
-  light and dark pairs are checked in `design-rules.test.ts`. Dark mode keeps the original cards.
+  light and dark pairs are checked in `design-rules.test.ts`.
+
+### Candidate flags
+
+A candidate is flagged New, Shortlisted, Interviewed, On hold, Selected or Rejected (per project,
+`POST /api/company/projects/<id>/candidates/stage/`).
+
+### Candidates page
+
+`/company/candidates` (sidebar) lists the candidates of every project, with a tab for each flag
+(and All) showing its count. Filters: search, project, AI score and ATS score (`>90`, `>80`, `>70`,
+`>60`, `>50`), what is missing (a must-have, a nice-to-have or nothing), grade, recommendation and
+sort. The flag can be changed in the row. `GET /api/company/candidates/?flag=&project=&score_min=&
+ats_min=&missing=&grade=&label=&q=&sort=&page=`; the tab counts follow every filter except the flag.
+
+### Projects page
+
+Each project is a card: name, who made it, the date, CVs held of the most the plan lets it hold (a
+bar, and "Full" when it is full), the best score, "View more" and "Compare". The numbers are real
+(`cv_count`, `cv_capacity`, `best_score`).
+
+### Sidebar and the agent bar
+
+Team is under Advanced. Feedback and Support sit at the bottom of the sidebar. The talk bar shows a
+different suggested question every few seconds while it is empty.
+
+### Token limit (agent only)
+
+Companies are bound by projects and CVs only: AI tokens are counted for cost but never limit a
+company. The one token limit left is the company agent's: `ask.monthly_token_cap` (200,000 tokens a
+company a month, counted from the agent's own calls).
+
+## Support (BERA-189)
+
+- **Company panel:** "Support" at the bottom of the sidebar (every role). Two tabs: **Ask support**
+  (describe the problem to the support agent) and **My tickets** (status of each ticket).
+  `POST /api/company/support/chat/`.
+- **The agent** answers from the public product documents (the same ones as the website chatbot), asks
+  a short question when the problem is unclear, and when it cannot solve it hands the problem to the
+  team as a ticket in a fixed shape: title, category (bug, billing, how to, account, other), summary,
+  what happened, what was expected, steps. A popup shows the requested ticket. When the AI cannot
+  answer (paused, unavailable, an unusable answer) or the chat passes
+  `support.max_user_messages_per_chat` messages, the team gets the conversation as it is, so a person
+  can always reach support. The agent reads no company data and does nothing. Its instructions are the
+  prompt kind "support" (admin AI, Prompts); calls are recorded with the purpose "support".
+- **Tickets:** statuses are Open, Working on it, Waiting for your reply, Completed and Closed. A
+  person sees their own tickets, an owner sees all of the company's. A person can answer the team
+  (`POST /api/company/support/tickets/<id>/`); a closed ticket takes no answer.
+- **Admin panel:** Operations, Support (both admin roles, action `support.handle`). Tickets in hand
+  are listed (filter by status and category); an admin reads one, writes to the person (the ticket
+  then waits for their reply) and sets the status. `GET /api/admin/support/tickets/`,
+  `GET|PATCH /api/admin/support/tickets/<id>/`. A change of status is a line in the conversation and
+  an audit event (`admin.support_ticket_status_changed`: ticket number and statuses only).
+- **Data:** everything the person wrote is stored encrypted and removed with the company; it is never
+  written to a log, an audit entry or an email.
+- Platform settings: `rate_limits.support_per_hour`, `support.max_message_length`,
+  `support.max_user_messages_per_chat`, `support.history_messages`, `support.max_output_tokens`,
+  `support.max_field_length`, `support.max_title_length`, `support.max_reply_length`,
+  `support.ticket_list_limit`, `support.admin_list_limit`, `ai.support_prompt_version`.
 
 ## Comparing candidates, part two
 
@@ -2686,7 +2744,7 @@ Fixed:
 - **File store timeouts.** Calls to R2 stop waiting after `storage.timeout_seconds` (20) and are
   then retried by the storage service's own waits.
 - **Estimate and parallel batches.** The cost estimate now counts the CVs already released and not
-  yet processed, so two batches cannot each fit under the token cap when together they do not.
+  yet processed, so two batches cannot each fit under the CV limit when together they do not.
 - **Cancelled CVs.** Cancelling a batch now removes the stored files (nothing is left behind) and
   frees their fingerprints, so the same file can be sent again; it used to be refused as "already
   in the project" although the CV was gone from the list.
@@ -2698,8 +2756,8 @@ decided with the company row locked and are idempotent (two uploads at once neve
 count a CV twice, a re-run or retry never counts again, a failed CV is never counted); a worker can
 only change a CV it holds the claim of; at most `Q_CLUSTER_WORKERS` CVs run at once; AI calls and PDF
 reading have timeouts; retries wait and stop at `processing.max_attempts`; stuck CVs are found by
-the once-a-minute sweep; the AI kill switch and the token cap stop new AI calls at once for every
-batch (a CV claimed after the cap is reached fails with its reason and can be retried); batch cancel
+the once-a-minute sweep; the AI kill switch stops new AI calls at once for every
+batch (a CV claimed after the switch is pulled fails with its reason and can be retried); batch cancel
 works per upload; the queue is the database, so a worker restart loses nothing; the ranked list,
 filters, comparison, dashboards and reports are paged or aggregated in the database, with
 constant-query-count tests; the live updates ask no faster than `live_updates.max_delay_seconds`,
@@ -2721,7 +2779,7 @@ Left as a risk, to measure on the real server (see "Volume test (postponed)"):
   sizes in `deploy/bera_deploy.py` that is about 12 per environment against PostgreSQL's default
   of 100. Re-count if workers are added.
 - Two people of one company can ask for estimates and confirm at the same moment; the lock makes
-  each answer correct for that moment, but the token cap is a limit checked per CV, so it can be
+  each answer correct for that moment, but the CV limit is checked per CV, so it can be
   passed by what is already running.
 
 ## Volume test (postponed)

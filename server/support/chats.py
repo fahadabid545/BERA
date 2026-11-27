@@ -92,5 +92,5 @@ def send(user, text, chat_id=None):
     return {
         "chat_id": str(chat.pk),
         "reply": reply,
-        "ticket": tickets.summary_of(ticket) if ticket else None,
+        "ticket": tickets.detail_of(ticket) if ticket else None,
     }
