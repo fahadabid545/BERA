@@ -12,6 +12,7 @@ import "@/styles/tokens.css";
 import "@/styles/base.css";
 import "@/styles/components.css";
 import "@/styles/website.css";
+import "@/styles/website-home.css";
 
 export const metadata = { title: "BERA" };
 

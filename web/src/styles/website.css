@@ -202,3 +202,6 @@
   border: 2px solid var(--color-text);
   border-radius: var(--radius-card);
 }
+.sample-skin [data-tint] {
+  background: var(--tint);
+}

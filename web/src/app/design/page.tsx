@@ -19,6 +19,7 @@ import {
   Tooltip,
 } from "@/components/ui";
 
+import { RotatingWord } from "@/components/website/home/RotatingWord";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { Coverage } from "@/components/charts/Coverage";
 import { Funnel } from "@/components/charts/Funnel";
@@ -293,9 +294,18 @@ export default function DesignSample() {
             <Button disabled>Disabled</Button>
           </div>
           <Input label="Website sample field" placeholder="you@company.com" />
-          <Card aria-label="Website sample card">
-            <h3>Sticker card</h3>
-          </Card>
+          <h3>
+            Shortlist the right people <RotatingWord words={["faster", "fairer", "smarter"]} />
+          </h3>
+          <div className="page-actions">
+            {(["lime", "lilac", "peach", "sky", "pink"] as const).map((tint) => (
+              <Card key={tint} data-tint={tint} aria-label={`Website sample card ${tint}`}>
+                <h3>
+                  <span className="marker">Tinted card</span>
+                </h3>
+              </Card>
+            ))}
+          </div>
         </div>
       </section>
 

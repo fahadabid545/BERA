@@ -1,23 +1,39 @@
-/** The approved website wording, word for word. Change it only when the owner approves new text. */
+/** The approved website wording. The home page is headings and buttons only (owner decision); other pages keep their approved text word for word. */
 
 export const HOME = {
-  heading: "Bera",
-  subheading:
-    "Upload CVs in bulk. Bera scores each one against your job requirements and ranks the best candidates.",
-  sections: [
-    {
-      title: "What Bera is",
-      text: "Bera helps hiring teams get through a pile of CVs without the usual stress. You create a project for a job, upload the CVs, and Bera shows who fits best.",
-    },
-    {
-      title: "Who it helps",
-      text: "Recruiters, HR teams, small businesses and growing companies. Anyone who reads many applications for one role and wants a clear, fair first pass.",
-    },
-    {
-      title: "You stay in charge",
-      text: "Bera supports your decision and does not make it. The final call always stays with the recruiter.",
-    },
+  eyebrow: "CV screening",
+  heading: "Shortlist the right people",
+  rotatingWords: ["faster", "fairer", "smarter"],
+  roles: [
+    "Sales",
+    "Nursing",
+    "Finance",
+    "Design",
+    "Teaching",
+    "Logistics",
+    "Engineering",
+    "Retail",
+    "Hospitality",
+    "Operations",
   ],
+  steps: {
+    kicker: "How it works",
+    heading: { plain: "Three steps, ", marked: "one afternoon" },
+    items: ["Upload CVs", "Bera scores each one", "You make the call"],
+  },
+  features: {
+    kicker: "What you get",
+    heading: { plain: "Everything a ", marked: "first pass", rest: " needs" },
+    items: [
+      "Every score explained",
+      "Compare side by side",
+      "Filters that get specific",
+      "Shareable reports",
+      "Built for teams",
+      "Data you control",
+    ],
+  },
+  closing: { plain: "Ready to read less and ", marked: "decide better?" },
 } as const;
 
 export const HOW_IT_WORKS = {

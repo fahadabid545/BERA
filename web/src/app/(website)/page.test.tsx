@@ -1,43 +1,72 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import WebsiteHome from "./page";
 
 describe("website home page", () => {
-  it("shows the approved heading and subheading", () => {
+  it("has one heading that reads as a whole sentence, with the rotating words kept for screen readers", () => {
     render(<WebsiteHome />);
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Bera");
-    expect(
-      screen.getByText(
-        "Upload CVs in bulk. Bera scores each one against your job requirements and ranks the best candidates.",
-      ),
-    ).toBeTruthy();
+    const headings = screen.getAllByRole("heading", { level: 1 });
+    expect(headings).toHaveLength(1);
+    expect(headings[0].textContent).toContain("Shortlist the right people");
+    expect(headings[0].textContent).toContain("faster, fairer, smarter");
   });
 
-  it("shows the three approved sections word for word", () => {
+  it("shows only headings and buttons as copy: the three section headings and the card titles", () => {
     render(<WebsiteHome />);
-    const sections = {
-      "What Bera is":
-        "Bera helps hiring teams get through a pile of CVs without the usual stress. You create a project for a job, upload the CVs, and Bera shows who fits best.",
-      "Who it helps":
-        "Recruiters, HR teams, small businesses and growing companies. Anyone who reads many applications for one role and wants a clear, fair first pass.",
-      "You stay in charge":
-        "Bera supports your decision and does not make it. The final call always stays with the recruiter.",
-    };
-    expect(screen.getAllByRole("heading", { level: 2 }).map((item) => item.textContent)).toEqual(
-      Object.keys(sections),
-    );
-    for (const text of Object.values(sections)) expect(screen.getByText(text)).toBeTruthy();
+    expect(screen.getAllByRole("heading", { level: 2 }).map((item) => item.textContent)).toEqual([
+      "Three steps, one afternoon",
+      "Everything a first pass needs",
+      "Ready to read less and decide better?",
+    ]);
+    expect(screen.getAllByRole("heading", { level: 3 }).map((item) => item.textContent)).toEqual([
+      "1Upload CVs",
+      "2Bera scores each one",
+      "3You make the call",
+      "Every score explained",
+      "Compare side by side",
+      "Filters that get specific",
+      "Shareable reports",
+      "Built for teams",
+      "Data you control",
+    ]);
   });
 
-  it("has Get started going to Sign up and See pricing going to Pricing", () => {
-    render(<WebsiteHome />);
-    expect(screen.getByRole("link", { name: "Get started" }).getAttribute("href")).toBe("/signup");
-    expect(screen.getByRole("link", { name: "See pricing" }).getAttribute("href")).toBe("/pricing");
-  });
-
-  it("adds no figures, prices or dates", () => {
+  it("has no paragraphs of descriptive text, only the two small section labels", () => {
     const { container } = render(<WebsiteHome />);
-    expect(container.textContent).not.toMatch(/\d/);
+    const paragraphs = [...container.querySelectorAll("p")].map((item) => item.textContent);
+    expect(paragraphs).toEqual(["How it works", "What you get"]);
+  });
+
+  it("has Get started going to Sign up and See pricing going to Pricing, in the hero and the closing band", () => {
+    render(<WebsiteHome />);
+    const started = screen.getAllByRole("link", { name: "Get started" });
+    const pricing = screen.getAllByRole("link", { name: "See pricing" });
+    expect(started).toHaveLength(2);
+    expect(pricing).toHaveLength(2);
+    for (const link of started) expect(link.getAttribute("href")).toBe("/signup");
+    for (const link of pricing) expect(link.getAttribute("href")).toBe("/pricing");
+  });
+
+  it("gives every card an illustration that assistive technology skips", () => {
+    const { container } = render(<WebsiteHome />);
+    const scenes = container.querySelectorAll(".home-tile__scene");
+    expect(scenes).toHaveLength(9);
+    for (const scene of scenes) expect(scene.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("scrolls the role strip and the live screening without exposing them as content", () => {
+    const { container } = render(<WebsiteHome />);
+    expect(container.querySelector(".role-strip")?.getAttribute("aria-hidden")).toBe("true");
+    expect(container.querySelector(".hero-demo")?.getAttribute("aria-hidden")).toBe("true");
+    expect(within(container).queryByRole("list", { name: /sales/i })).toBeNull();
+  });
+
+  it("marks one phrase of each section heading, as a highlight and not as green text", () => {
+    const { container } = render(<WebsiteHome />);
+    const marked = [...container.querySelectorAll(".home-heading .marker")].map(
+      (item) => item.textContent,
+    );
+    expect(marked).toEqual(["one afternoon", "first pass", "decide better?"]);
   });
 });

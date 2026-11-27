@@ -47,7 +47,10 @@ describe("design sample page", () => {
     const skin = document.querySelector(".site-skin") as HTMLElement;
     expect(within(skin).getByRole("button", { name: "Get started" })).toBeTruthy();
     expect(within(skin).getByRole("textbox", { name: "Website sample field" })).toBeTruthy();
-    expect(within(skin).getByLabelText("Website sample card")).toBeTruthy();
+    for (const tint of ["lime", "lilac", "peach", "sky", "pink"]) {
+      expect(within(skin).getByLabelText(`Website sample card ${tint}`)).toBeTruthy();
+    }
+    expect(within(skin).getByText("faster, fairer, smarter")).toBeTruthy();
   });
 
   it("is hidden in production builds", () => {
