@@ -175,6 +175,8 @@ EXPECTED_DEFAULTS = {
     "dashboard.sparkline_days": 7,
     "dashboard.top_candidates_count": 10,
     "dashboard.detail_limit": 20,
+    "dashboard.capacity_warning_percent": 90,
+    "dashboard.missed_requirements_count": 10,
     "comparison.min_candidates": 2,
     "comparison.max_candidates": 4,
     "comparison.matrix_page_size": 50,

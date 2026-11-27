@@ -98,7 +98,8 @@ class TestCounts:
         body = board(tenant)
         assert set(body) == {
             "refresh_seconds", "days", "choices", "counts",
-            "recommendations", "projects", "screening", "top",
+            "recommendations", "projects", "screening", "top", "project_rows", "attention",
+            "uploads_per_day", "flag_split", "missed_requirements",
         }  # fmt: skip
 
     def test_the_scored_cvs_of_the_period_only(self, tenant):
@@ -380,3 +381,125 @@ class TestReport:
 
     def test_the_period_is_checked(self, tenant):
         assert tenant.client.get("/api/company/dashboard/report/?days=5").status_code == 400
+
+
+class TestProjectsAndCandidatesTabs:
+    def test_each_project_has_a_row_with_its_cvs_scores_and_flags(self, tenant):
+        first = add(tenant, "a.pdf", 90, ats=80, minutes=1)
+        add(tenant, "b.pdf", 70, ats=60, minutes=2)
+        move(tenant, first, "selected")
+        other = second_project(tenant, "Second")
+        add(other, "c.pdf", 50, ats=40, minutes=3)
+        rows = {row["title"]: row for row in board(tenant)["project_rows"]}
+        row = rows["T"]
+        assert (row["cvs"], row["scored"], row["selected"], row["shortlisted"]) == (2, 2, 1, 0)
+        assert (row["best_score"], row["average_score"], row["ats_average"]) == (90.0, 80.0, 70.0)
+        assert rows["Second"]["cvs"] == 1 and rows["Second"]["best_score"] == 50.0
+
+    def test_a_row_shows_how_many_cvs_the_project_can_hold(self, tenant):
+        add(tenant, "a.pdf", 90, minutes=1)
+        assert board(tenant)["project_rows"][0]["capacity"] > 0
+
+    def test_another_companys_projects_are_not_listed(self, tenant):
+        stranger = Tenant(make_plan())
+        add(stranger, "z.pdf", 99)
+        assert [row["title"] for row in board(tenant)["project_rows"]] == ["T"]
+
+    def test_failed_cvs_almost_full_and_nothing_scored_need_attention(self, tenant):
+        from plans.models import LimitOverride
+
+        add(tenant, "bad.pdf", None, status="failed", minutes=1)
+        add(tenant, "waiting.pdf", None, minutes=2)
+        other = second_project(tenant, "Full one")
+        add(other, "x.pdf", 80, minutes=3)
+        add(other, "y.pdf", 70, minutes=4)
+        LimitOverride.objects.create(company=tenant.company, name="cvs_per_project", value=2)
+        reasons = {(item["title"], item["reason"]) for item in board(tenant)["attention"]}
+        assert ("T", "failed") in reasons
+        assert ("Full one", "almost_full") in reasons
+        assert ("T", "none_scored") not in reasons  # a failed one is already listed
+
+    def test_a_calm_project_needs_no_attention(self, tenant):
+        add(tenant, "a.pdf", 90, minutes=1)
+        assert board(tenant)["attention"] == []
+
+    def test_the_warning_percent_comes_from_the_settings(self, tenant):
+        from plans.models import LimitOverride
+
+        add(tenant, "a.pdf", 90, minutes=1)
+        LimitOverride.objects.create(company=tenant.company, name="cvs_per_project", value=4)
+        assert board(tenant)["attention"] == []
+        set_setting("dashboard.capacity_warning_percent", 25)
+        assert [item["reason"] for item in board(tenant)["attention"]] == ["almost_full"]
+
+    def test_uploads_per_day_cover_the_period(self, tenant):
+        row = add(tenant, "a.pdf", 90, minutes=1)
+        stamp(row, 2)
+        add(tenant, "old.pdf", 50, minutes=2)
+        stamp(CvFile.objects.get(original_name="old.pdf"), 40)
+        daily = board(tenant)["uploads_per_day"]
+        assert len(daily["values"]) == 30 and sum(daily["values"]) == 1
+        assert daily["values"][-3] == 1
+        assert len(board(tenant, "?days=7")["uploads_per_day"]["values"]) == 7
+
+    def test_the_flag_split_counts_every_flag(self, tenant):
+        first = add(tenant, "a.pdf", 90, minutes=1)
+        add(tenant, "b.pdf", 70, minutes=2)
+        move(tenant, first, "interviewed")
+        split = {item["flag"]: item["count"] for item in board(tenant)["flag_split"]}
+        assert split == {
+            "new": 1,
+            "shortlisted": 0,
+            "interviewed": 1,
+            "on_hold": 0,
+            "selected": 0,
+            "rejected": 0,
+        }
+
+    def test_the_most_missed_requirements_come_first(self, tenant):
+        from cvs.tests.test_candidate_filters import judge, requirement
+
+        first = add(tenant, "a.pdf", 90, minutes=1)
+        second = add(tenant, "b.pdf", 70, minutes=2)
+        python = requirement(tenant, "Python", "must")
+        docker = requirement(tenant, "Docker", "nice", position=2)
+        judge(tenant, first, python, "missing")
+        judge(tenant, second, python, "missing")
+        judge(tenant, first, docker, "missing")
+        judge(tenant, second, docker, "met")
+        missed = board(tenant)["missed_requirements"]
+        assert [(item["requirement"], item["missing"], item["judged"]) for item in missed] == [
+            ("Python", 2, 2),
+            ("Docker", 1, 2),
+        ]
+        assert missed[0]["project_title"] == "T" and missed[0]["kind"] == "must"
+
+    def test_only_a_few_missed_requirements_are_listed(self, tenant):
+        from cvs.tests.test_candidate_filters import judge, requirement
+
+        row = add(tenant, "a.pdf", 90, minutes=1)
+        for index in range(3):
+            judge(tenant, row, requirement(tenant, f"R{index}", position=index + 1), "missing")
+        set_setting("dashboard.missed_requirements_count", 2)
+        assert len(board(tenant)["missed_requirements"]) == 2
+
+    def test_nothing_yet_gives_empty_lists(self, tenant):
+        body = board(tenant)
+        assert body["attention"] == [] and body["missed_requirements"] == []
+        assert sum(item["count"] for item in body["flag_split"]) == 0
+
+
+class TestFlagList:
+    def test_a_flag_lists_everyone_at_it_whatever_the_period(self, tenant):
+        old = add(tenant, "old.pdf", 60, minutes=1)
+        stamp(old, 100)
+        move(tenant, old, "on_hold", days_ago=100)
+        add(tenant, "new.pdf", 80, minutes=2)
+        body = behind(tenant, "flag", "on_hold", "&days=7").json()
+        assert [item["file_name"] for item in body["items"]] == ["old.pdf"]
+        assert [i["file_name"] for i in behind(tenant, "flag", "new").json()["items"]] == [
+            "new.pdf"
+        ]
+
+    def test_an_unknown_flag_is_refused(self, tenant):
+        assert behind(tenant, "flag", "maybe").status_code == 400

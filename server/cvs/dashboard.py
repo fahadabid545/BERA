@@ -14,7 +14,7 @@ import io
 from datetime import timedelta
 from uuid import UUID
 
-from django.db.models import Avg, Count, Exists, OuterRef, Q
+from django.db.models import Avg, Count, Exists, F, OuterRef, Q
 from django.http import Http404
 from django.utils import timezone
 
@@ -23,6 +23,7 @@ from core.personal_data import mask_name
 from platform_settings.service import get_setting
 from projects.models import Project
 
+from . import dashboard_projects
 from .charts import GRADES, funnel, percent_change
 from .models import Candidate, CandidateScore, CvFile, StageChange
 
@@ -194,6 +195,7 @@ def _counts(company_id, start, end):
 def dashboard(company_id, raw_days):
     days = checked_period(raw_days)
     start, _, end = windows(days)
+    rows = dashboard_projects.project_rows(company_id)
     return {
         "refresh_seconds": get_setting("live_updates.max_delay_seconds"),
         "days": days,
@@ -203,6 +205,11 @@ def dashboard(company_id, raw_days):
         "projects": _project_status_counts(company_id),
         "screening": _screening(company_id),
         "top": _top_candidates(company_id),
+        "project_rows": rows,
+        "attention": dashboard_projects.attention(rows),
+        "uploads_per_day": dashboard_projects.uploads_per_day(company_id, start, days),
+        "flag_split": dashboard_projects.flag_split(company_id),
+        "missed_requirements": dashboard_projects.missed_requirements(company_id),
     }
 
 
@@ -318,6 +325,12 @@ def detail(company_id, kind, key, raw_days, raw_project=None):
         )
     elif kind == "stage" and key in FLAG_STAGES:
         rows = _flagged(company_id, key, start, end).order_by("-score__score", "-created_at")
+    elif kind == "flag" and key in Candidate.Stage.values:
+        rows = (
+            _candidates(company_id)
+            .filter(stage=key)
+            .order_by(F("score__score").desc(nulls_last=True), "-created_at")
+        )
     elif kind == "funnel" and key in FUNNEL_STEPS:
         rows = _step_items(company_id, key, project)
     elif kind == "grade" and key in GRADES:

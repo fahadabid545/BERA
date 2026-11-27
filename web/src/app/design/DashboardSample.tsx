@@ -5,9 +5,34 @@ import { Donut } from "@/components/company/dashboard/Donut";
 import { Gauge } from "@/components/company/dashboard/Gauge";
 import { KpiCard } from "@/components/company/dashboard/KpiCard";
 import { TopCandidatesTable } from "@/components/company/dashboard/TopCandidatesTable";
+import {
+  AverageScores,
+  MissedRequirements,
+  NeedsAttention,
+  ProjectTable,
+  UploadsPerDay,
+} from "@/components/company/dashboard/ProjectSections";
+import type { ProjectRow } from "@/components/company/dashboard/types";
 import { SegmentedControl } from "@/components/ui";
 
 const nothing = () => undefined;
+const PROJECT_ROWS: ProjectRow[] = [
+  {
+    id: "p",
+    title: "Senior Python Developer",
+    cvs: 48,
+    failed: 2,
+    capacity: 50,
+    scored: 40,
+    best_score: 94.5,
+    average_score: 72.4,
+    ats_average: 66,
+    shortlisted: 6,
+    interviewed: 3,
+    selected: 1,
+    updated_at: "2026-11-15T10:00:00Z",
+  },
+];
 
 /** Every dashboard building block with sample figures; the handlers do nothing here. */
 export function DashboardSample() {
@@ -93,6 +118,26 @@ export function DashboardSample() {
             stage: "shortlisted",
             rank: 2,
             ats_score: null,
+          },
+        ]}
+      />
+      <NeedsAttention
+        items={[
+          { id: "p", title: "Senior Python Developer", capacity: 50, reason: "failed", count: 2 },
+        ]}
+      />
+      <ProjectTable rows={PROJECT_ROWS} />
+      <UploadsPerDay uploads={{ start: "2026-11-01", values: [2, 0, 5, 3] }} />
+      <AverageScores rows={PROJECT_ROWS} />
+      <MissedRequirements
+        items={[
+          {
+            requirement: "5+ years of Python",
+            kind: "must",
+            project_id: "p",
+            project_title: "Senior Python Developer",
+            missing: 7,
+            judged: 10,
           },
         ]}
       />

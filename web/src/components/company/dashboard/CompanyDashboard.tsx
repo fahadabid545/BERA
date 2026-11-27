@@ -13,8 +13,16 @@ import { Button, ButtonLink, Card, SegmentedControl, Tabs } from "@/components/u
 import { Donut } from "./Donut";
 import { ExportDialog } from "./ExportDialog";
 import { Gauge } from "./Gauge";
+import { stageLabel } from "../stages";
 import { CandidateListDialog, type CandidateList } from "./CandidateListDialog";
 import { CountCards } from "./CountCards";
+import {
+  AverageScores,
+  MissedRequirements,
+  NeedsAttention,
+  ProjectTable,
+  UploadsPerDay,
+} from "./ProjectSections";
 import { TopCandidatesTable } from "./TopCandidatesTable";
 import type { DashboardData } from "./types";
 
@@ -24,6 +32,14 @@ const PERIOD_NAMES: Record<number, string> = {
   30: "This month",
   90: "3 months",
   180: "6 months",
+};
+const FLAG_COLOURS: Record<string, string> = {
+  new: "grey",
+  shortlisted: "blue",
+  interviewed: "violet",
+  on_hold: "amber",
+  selected: "green",
+  rejected: "coral",
 };
 const RECOMMENDATIONS = [
   { key: "strong_match", label: "Strong match", colour: "green" },
@@ -42,36 +58,42 @@ function ProjectsSection({ data, open }: { data: DashboardData; open: Open }) {
   const { projects, screening } = data;
   const projectCount = projects.in_progress + projects.ready + projects.not_started;
   return (
-    <div className="dashboard__row">
-      <Card className="ui-card">
-        <div className="chart-card__header">
-          <h2>Projects overview</h2>
-        </div>
-        <Donut
-          total={projectCount}
-          centreLabel="projects"
-          noun="projects"
-          parts={PROJECT_GROUPS.map((item) => ({ ...item, count: projects[item.key] }))}
-          onOpen={(key) =>
-            open(
-              "project_status",
-              key,
-              `Projects: ${PROJECT_GROUPS.find((item) => item.key === key)?.label ?? key}`,
-            )
-          }
-        />
-      </Card>
-      <Card className="ui-card">
-        <div className="chart-card__header">
-          <h2>Screening progress</h2>
-        </div>
-        <Gauge
-          percent={screening.percent}
-          scored={screening.scored}
-          uploaded={screening.uploaded}
-          onOpen={() => open("screening", "all", "Screening progress by project")}
-        />
-      </Card>
+    <div className="dashboard__section">
+      <div className="dashboard__row">
+        <Card className="ui-card">
+          <div className="chart-card__header">
+            <h2>Projects overview</h2>
+          </div>
+          <Donut
+            total={projectCount}
+            centreLabel="projects"
+            noun="projects"
+            parts={PROJECT_GROUPS.map((item) => ({ ...item, count: projects[item.key] }))}
+            onOpen={(key) =>
+              open(
+                "project_status",
+                key,
+                `Projects: ${PROJECT_GROUPS.find((item) => item.key === key)?.label ?? key}`,
+              )
+            }
+          />
+        </Card>
+        <Card className="ui-card">
+          <div className="chart-card__header">
+            <h2>Screening progress</h2>
+          </div>
+          <Gauge
+            percent={screening.percent}
+            scored={screening.scored}
+            uploaded={screening.uploaded}
+            onOpen={() => open("screening", "all", "Screening progress by project")}
+          />
+        </Card>
+      </div>
+      <NeedsAttention items={data.attention} />
+      <ProjectTable rows={data.project_rows} />
+      <UploadsPerDay uploads={data.uploads_per_day} />
+      <AverageScores rows={data.project_rows} />
     </div>
   );
 }
@@ -120,6 +142,26 @@ function CandidatesSection({
           />
         </Card>
       </div>
+      <div className="dashboard__row">
+        <Card className="ui-card">
+          <div className="chart-card__header">
+            <h2>Candidates by flag</h2>
+          </div>
+          <Donut
+            total={data.flag_split.reduce((sum, item) => sum + item.count, 0)}
+            centreLabel="candidates"
+            noun="candidates"
+            parts={data.flag_split.map((item) => ({
+              key: item.flag,
+              label: stageLabel(item.flag),
+              count: item.count,
+              colour: FLAG_COLOURS[item.flag] ?? "grey",
+            }))}
+            onOpen={(key) => open("flag", key, stageLabel(key))}
+          />
+        </Card>
+      </div>
+      <MissedRequirements items={data.missed_requirements} />
       <CompanyCharts show={["funnel", "distribution"]} onOpen={onDetail} />
     </div>
   );

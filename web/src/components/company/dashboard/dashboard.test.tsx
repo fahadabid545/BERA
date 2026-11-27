@@ -267,6 +267,46 @@ const data = (over: Partial<DashboardData> = {}): DashboardData => ({
   },
   projects: { not_started: 54, in_progress: 14, ready: 32 },
   screening: { uploaded: 215, scored: 198, percent: 92.1 },
+  project_rows: [
+    {
+      id: "p1",
+      title: "Python Developer",
+      cvs: 12,
+      failed: 0,
+      capacity: 50,
+      scored: 10,
+      best_score: 94.5,
+      average_score: 71.2,
+      ats_average: 64,
+      shortlisted: 3,
+      interviewed: 2,
+      selected: 1,
+      updated_at: "2026-11-20T10:00:00Z",
+    },
+  ],
+  attention: [
+    { id: "p1", title: "Python Developer", capacity: 50, reason: "failed", count: 2 },
+    { id: "p1", title: "Python Developer", capacity: 50, reason: "almost_full", count: 48 },
+  ],
+  uploads_per_day: { start: "2026-11-01", values: [1, 0, 4] },
+  flag_split: [
+    { flag: "new", count: 5 },
+    { flag: "shortlisted", count: 3 },
+    { flag: "interviewed", count: 2 },
+    { flag: "on_hold", count: 0 },
+    { flag: "selected", count: 1 },
+    { flag: "rejected", count: 4 },
+  ],
+  missed_requirements: [
+    {
+      requirement: "5+ years of Python",
+      kind: "must",
+      project_id: "p1",
+      project_title: "Python Developer",
+      missing: 7,
+      judged: 10,
+    },
+  ],
   top: [
     {
       id: "c1",
@@ -573,6 +613,57 @@ describe("CompanyDashboard", () => {
     );
   });
 
+  it("Projects also shows what needs attention, every project, the daily CVs and the averages", async () => {
+    route(data());
+    show("projects");
+    expect(await screen.findByRole("heading", { name: "Needs attention" })).toBeTruthy();
+    expect(screen.getByText("2 CVs failed to process")).toBeTruthy();
+    expect(screen.getByText("48 of 50 CVs held, nearly full")).toBeTruthy();
+    const table = screen.getByRole("region", { name: "All projects" });
+    expect(within(table).getByRole("link", { name: "Python Developer" }).getAttribute("href")).toBe(
+      "/company/projects/p1",
+    );
+    expect(within(table).getByText("12 of 50")).toBeTruthy();
+    expect(within(table).getByText("94.5")).toBeTruthy();
+    expect(screen.getByRole("list", { name: "CVs added each day" }).children).toHaveLength(3);
+    const averages = screen.getByRole("region", { name: "Average score per project" });
+    expect(
+      within(averages)
+        .getByRole("meter", { name: "AI score of Python Developer" })
+        .getAttribute("aria-valuenow"),
+    ).toBe("71.2");
+    expect(within(averages).getByText("64")).toBeTruthy();
+  });
+
+  it("Projects says so when nothing needs attention", async () => {
+    route(data({ attention: [], project_rows: [] }));
+    show("projects");
+    expect(await screen.findByText("Nothing needs attention.")).toBeTruthy();
+    expect(screen.getAllByText("No projects yet.").length).toBe(2);
+  });
+
+  it("Candidates shows the flag split and the most missed requirements", async () => {
+    route(data());
+    const user = userEvent.setup();
+    show("candidates");
+    expect(await screen.findByRole("heading", { name: "Candidates by flag" })).toBeTruthy();
+    const missed = screen.getByRole("region", { name: "Most missed requirements" });
+    expect(within(missed).getByText("5+ years of Python")).toBeTruthy();
+    expect(within(missed).getByText("Must-have")).toBeTruthy();
+    expect(within(missed).getByText("7 of 10")).toBeTruthy();
+    const split = screen.getByRole("heading", { name: "Candidates by flag" }).closest("section")!;
+    await user.click(within(split).getByRole("button", { name: /Interviewed/ }));
+    await vi.waitFor(() =>
+      expect(String(fetchMock.mock.calls.at(-1)?.[0])).toContain("kind=flag&key=interviewed"),
+    );
+  });
+
+  it("Candidates says so when no requirement is missing", async () => {
+    route(data({ missed_requirements: [] }));
+    show("candidates");
+    expect(await screen.findByText("No requirement is missing yet.")).toBeTruthy();
+  });
+
   it("opens a part of a donut and the gauge (Projects)", async () => {
     route(data());
     const user = userEvent.setup();
@@ -595,7 +686,8 @@ describe("CompanyDashboard", () => {
     await user.click(screen.getByRole("button", { name: /Possible/ }));
     await vi.waitFor(() => expect(asked()).toContain("kind=recommendation&key=possible"));
     await user.click(await screen.findByRole("button", { name: "Close" }));
-    await user.click(screen.getByRole("button", { name: /Interview/ }));
+    const funnel = screen.getByRole("heading", { name: "Funnel" }).closest("section")!;
+    await user.click(within(funnel).getByRole("button", { name: /Interview/ }));
     await vi.waitFor(() => expect(asked()).toContain("kind=funnel&key=interview"));
     await user.click(await screen.findByRole("button", { name: "Close" }));
     await user.click(await screen.findByRole("button", { name: /Grade C/ }));

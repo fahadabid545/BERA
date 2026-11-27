@@ -419,6 +419,8 @@ SETTINGS = [
     SettingDefinition("dashboard.sparkline_days", 7, whole_number(2, 90)),
     SettingDefinition("dashboard.top_candidates_count", 10, whole_number(1, 50)),
     SettingDefinition("dashboard.detail_limit", 20, whole_number(1, 200)),
+    SettingDefinition("dashboard.capacity_warning_percent", 90, whole_number(1, 100)),
+    SettingDefinition("dashboard.missed_requirements_count", 10, whole_number(1, 50)),
     # The admin overview (see adminusers/overview.py).
     SettingDefinition("admin_dashboard.top_companies_count", 10, whole_number(1, 50)),
     SettingDefinition("admin_dashboard.recent_companies_count", 8, whole_number(1, 50)),
