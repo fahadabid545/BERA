@@ -55,6 +55,15 @@ and why, and ask before proceeding. Never bend a rule silently.
   `components/admin/navigation.ts`. An item flagged `guarded` shows members the
   "You do not have access" page when they type its address. The admin panel must stay visibly different:
   green top stripe, solid ADMIN badge (both panels share the ink sidebar).
+- Public website (`/`) has its own look, "Bold Sticker": large type, thick ink borders,
+  hard offset shadows in a deep green (never plain black), pastel tinted cards, tilted
+  stickers, and real motion (rotating word, scroll reveals, hover lift, count-up). Light
+  mode only. Copy is headings and buttons only (owner's decision). No invented logos,
+  testimonials or numbers. All motion stops for reduced motion.
+- The company panel borrows that card style only for summary cards, project cards, empty
+  states, plan/upgrade cards and onboarding steps (pastel tint, hard shadow on hover only,
+  lighter). Tables, candidate lists, forms, settings, billing details, dialogs and the
+  whole admin panel stay calm and flat as described above.
 - Page content, header and footer share one column (`.site-container`,
   `--container-width`); never let page text sit outside it.
 
