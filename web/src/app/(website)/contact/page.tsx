@@ -1,3 +1,4 @@
+import { AuthCard } from "@/components/website/AuthCard";
 import { ContactForm } from "@/components/website/ContactForm";
 import { pageMetadata } from "@/lib/seo";
 
@@ -6,5 +7,9 @@ export async function generateMetadata() {
 }
 
 export default function ContactPage() {
-  return <ContactForm />;
+  return (
+    <AuthCard title="Contact" tint="sky">
+      <ContactForm />
+    </AuthCard>
+  );
 }

@@ -1,3 +1,4 @@
+import { AuthCard } from "@/components/website/AuthCard";
 import { ConfirmEmailChange } from "@/components/website/ConfirmEmailChange";
 import { tokenLinkPage } from "@/lib/seo";
 
@@ -7,5 +8,9 @@ export const metadata = tokenLinkPage;
 
 export default async function ConfirmEmailChangePage({ searchParams }: Props) {
   const { token } = await searchParams;
-  return <ConfirmEmailChange token={(Array.isArray(token) ? token[0] : token) ?? null} />;
+  return (
+    <AuthCard title="Confirm email change" tint="sky">
+      <ConfirmEmailChange token={(Array.isArray(token) ? token[0] : token) ?? null} />
+    </AuthCard>
+  );
 }

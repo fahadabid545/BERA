@@ -1,3 +1,4 @@
+import { AuthCard } from "@/components/website/AuthCard";
 import { ResendVerificationForm } from "@/components/website/ResendVerificationForm";
 import { VerifyEmail } from "@/components/website/VerifyEmail";
 import { tokenLinkPage } from "@/lib/seo";
@@ -10,5 +11,9 @@ export const metadata = tokenLinkPage;
 export default async function VerifyEmailPage({ searchParams }: Props) {
   const { token } = await searchParams;
   const value = Array.isArray(token) ? token[0] : token;
-  return value ? <VerifyEmail token={value} /> : <ResendVerificationForm />;
+  return (
+    <AuthCard title="Verify email" tint="lime">
+      {value ? <VerifyEmail token={value} /> : <ResendVerificationForm />}
+    </AuthCard>
+  );
 }

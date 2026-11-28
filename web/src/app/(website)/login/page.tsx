@@ -1,3 +1,4 @@
+import { AuthCard } from "@/components/website/AuthCard";
 import { LoginForm } from "@/components/website/LoginForm";
 import { pageMetadata } from "@/lib/seo";
 
@@ -9,5 +10,9 @@ export async function generateMetadata() {
 
 export default async function LoginPage({ searchParams }: Props) {
   const { next } = await searchParams;
-  return <LoginForm next={next} />;
+  return (
+    <AuthCard title="Log in" tint="lime">
+      <LoginForm next={next} />
+    </AuthCard>
+  );
 }

@@ -925,3 +925,21 @@
   border-top: 2px dashed var(--color-text);
   font-weight: 600;
 }
+
+/* ---------- Forms and messages (log in, sign up, contact, token links) ---------- */
+.auth-card {
+  max-width: 34rem;
+  margin-bottom: var(--space-7);
+  padding: var(--space-5);
+  background: var(--tint);
+}
+/* A form must not move under the pointer, so the card stays put and only gains its shadow. */
+.site-skin .auth-card:hover {
+  transform: none;
+}
+.auth-card .page-form {
+  max-width: none;
+}
+.auth-card .page-form > :last-child {
+  margin-bottom: 0;
+}
