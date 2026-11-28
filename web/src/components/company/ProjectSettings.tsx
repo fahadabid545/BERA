@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { BillingPrompts, isPromptKind, type PromptKind } from "@/components/company/BillingPrompt";
 import { PROJECTS_HREF } from "@/components/company/links";
+import { CandidatePreferences } from "@/components/company/CandidatePreferences";
 import { ProjectOwner } from "@/components/company/ProjectOwner";
 import { RescoreAll } from "@/components/company/RescoreAll";
 import { Button, Dialog, Input, Textarea } from "@/components/ui";
@@ -174,6 +175,7 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
           )}
         </div>
       </form>
+      <CandidatePreferences projectId={projectId} readOnly={archived} />
       {!archived && <RescoreAll projectId={projectId} />}
       {project.may_change_owner && project.owner_id !== undefined && (
         <ProjectOwner

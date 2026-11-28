@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectSettings } from "./ProjectSettings";
 
 const push = vi.fn();
+vi.mock("@/components/company/CandidatePreferences", () => ({ CandidatePreferences: () => null }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 const fetchMock = vi.fn();

@@ -14,7 +14,11 @@ type Report = {
   views: number;
   status: "active" | "expired" | "revoked";
 };
-type Listing = { days: { choices: number[]; default: number }; reports: Report[] };
+type Listing = {
+  days: { choices: number[]; default: number };
+  hide_contact_default?: boolean;
+  reports: Report[];
+};
 
 const STATUSES = { active: "Active", expired: "Expired", revoked: "Revoked" };
 const DATE_LENGTH = 10;
@@ -27,7 +31,9 @@ export function SharedReports({ projectId }: { projectId: string }) {
   const [listOpen, setListOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [days, setDays] = useState("");
-  const [hideContact, setHideContact] = useState(false);
+  // Until the person ticks the box themselves, the project's own default decides.
+  const [hideContactChoice, setHideContact] = useState<boolean | null>(null);
+  const hideContact = hideContactChoice ?? listing?.hide_contact_default ?? false;
   const [error, setError] = useState<ApiError | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<Report | null>(null);
@@ -49,6 +55,7 @@ export function SharedReports({ projectId }: { projectId: string }) {
     });
     if (result.ok) {
       setError(null);
+      setHideContact(null);
       setLink(`${window.location.origin}/r/${result.data.token}`);
       void load();
     } else setError(result.error);

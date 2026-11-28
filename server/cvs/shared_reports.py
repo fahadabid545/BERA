@@ -73,7 +73,7 @@ def create_report(project, user, raw_days, raw_hide_contact):
     days = _checked_days(raw_days)
     if raw_hide_contact not in (None, True, False):
         raise form_error({"hide_contact": "Hiding contact details is yes or no."})
-    hide_contact = bool(raw_hide_contact)
+    hide_contact = project.hide_contact_by_default if raw_hide_contact is None else raw_hide_contact
     scores = top_scores(project)
     if not scores:
         raise AppError(
@@ -133,6 +133,7 @@ def reports_of(project):
             "choices": get_setting("sharing.report_link_choices_days"),
             "default": get_setting("sharing.report_link_default_days"),
         },
+        "hide_contact_default": project.hide_contact_by_default,
         "reports": [describe(report) for report in reports.order_by("-created_at", "-pk")],
     }
 

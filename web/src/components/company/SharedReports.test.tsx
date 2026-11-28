@@ -18,16 +18,22 @@ const report = (over: object = {}) => ({
   ...over,
 });
 let reports: object[] = [];
+let hideByDefault = false;
 
 beforeEach(() => {
   reports = [];
+  hideByDefault = false;
   fetchMock.mockReset();
   fetchMock.mockImplementation(async (path: string, init?: RequestInit) => {
     if (init?.method === "POST" && path === BASE) {
       return { ok: true, status: 201, json: async () => ({ ...report(), token: "SECRETTOKEN" }) };
     }
     if (init?.method === "POST") return { ok: true, status: 200, json: async () => report() };
-    return { ok: true, status: 200, json: async () => ({ days: DAYS, reports }) };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ days: DAYS, hide_contact_default: hideByDefault, reports }),
+    };
   });
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -69,6 +75,20 @@ describe("shared reports", () => {
     await user.click(within(dialog).getByRole("button", { name: "Create link" }));
     await screen.findByRole("dialog", { name: "Report link" });
     expect(JSON.parse(posts()[0][1].body)).toEqual({ days: 30, hide_contact: true });
+  });
+
+  it("starts with the project's default for hiding contact details, which can still be changed", async () => {
+    hideByDefault = true;
+    const user = userEvent.setup();
+    render(<SharedReports projectId="p1" />);
+    await user.click(screen.getByRole("button", { name: "Share report" }));
+    const dialog = await screen.findByRole("dialog", { name: "Share report" });
+    const box = within(dialog).getByRole("checkbox", { name: "Hide contact details" });
+    await waitFor(() => expect((box as HTMLInputElement).checked).toBe(true));
+    await user.click(box);
+    await user.click(within(dialog).getByRole("button", { name: "Create link" }));
+    await screen.findByRole("dialog", { name: "Report link" });
+    expect(JSON.parse(posts()[0][1].body).hide_contact).toBe(false);
   });
 
   it("shows the server's message when nothing can be shared", async () => {

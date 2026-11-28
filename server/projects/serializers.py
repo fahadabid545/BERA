@@ -144,3 +144,9 @@ class PauseUploadsSerializer(StrictSerializer):
 
 class RescoreSerializer(StrictSerializer):
     acknowledge_rescoring = serializers.BooleanField(default=False)
+
+
+class PreferencesSerializer(StrictSerializer):
+    """Each field is optional: only what is sent changes."""
+
+    hide_contact_by_default = serializers.BooleanField(required=False)

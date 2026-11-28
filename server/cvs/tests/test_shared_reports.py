@@ -11,7 +11,7 @@ from core.tests.factories import make_company_user, start_session_for
 from cvs.models import Candidate, CandidateScore, CvContact, SharedReport
 from cvs.tests.test_processing import Tenant, make_plan, set_setting
 from cvs.tests.test_ranked_list import add
-from projects.models import ProjectScoringSettings
+from projects.models import Project, ProjectScoringSettings
 
 pytestmark = pytest.mark.django_db
 
@@ -87,6 +87,16 @@ class TestCreate:
 
     def test_hide_contact_must_be_yes_or_no(self, pool):
         assert share(pool, hide_contact="yes").status_code == 400
+
+    def test_the_projects_default_decides_when_nothing_is_said(self, pool, tenant):
+        Project.objects.filter(pk=tenant.project.pk).update(hide_contact_by_default=True)
+        assert share(pool).json()["hide_contact"] is True
+        assert share(pool, hide_contact=False).json()["hide_contact"] is False
+        assert tenant.client.get(base(tenant)).json()["hide_contact_default"] is True
+
+    def test_contacts_are_shown_by_default_until_the_project_says_otherwise(self, pool, tenant):
+        assert share(pool).json()["hide_contact"] is False
+        assert tenant.client.get(base(tenant)).json()["hide_contact_default"] is False
 
     def test_nothing_to_share_without_scored_candidates(self, tenant):
         response = share(tenant)

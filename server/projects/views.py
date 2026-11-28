@@ -20,6 +20,7 @@ from .factor_settings import save_factor_settings
 from .listing import list_projects
 from .models import Project
 from .ownership import change_project_owner
+from .preferences import preferences_of, save_preferences
 from .requirements import (
     confirm_requirements,
     list_requirements,
@@ -38,6 +39,7 @@ from .serializers import (
     FactorSettingsSerializer,
     ListProjectsSerializer,
     PauseUploadsSerializer,
+    PreferencesSerializer,
     RescoreSerializer,
     SaveRequirementsSerializer,
     ScoringDefaultsSerializer,
@@ -102,6 +104,7 @@ def describe(project, user):
         "may_change_owner": user.role in roles_allowed("project.change_owner"),
         "owner_id": project.created_by_id,
         "uploads_paused": project.uploads_paused,
+        "preferences": preferences_of(project),
     }
 
 
@@ -160,6 +163,26 @@ class ProjectDuplicate(ProjectView):
             CompanyUser.objects.get(pk=request.user.user_id), self.get_object()
         )
         return Response({"id": str(copy.id)}, status=status.HTTP_201_CREATED)
+
+
+class ProjectPreferences(ProjectView):
+    """How the project's candidates are handled; only what is sent changes."""
+
+    def permitted_roles(self):
+        return roles_allowed("project.edit")
+
+    def get(self, request, id):
+        return Response(preferences_of(self.get_object()))
+
+    def put(self, request, id):
+        serializer = PreferencesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = save_preferences(
+            CompanyUser.objects.get(pk=request.user.user_id),
+            self.get_object(),
+            serializer.validated_data,
+        )
+        return Response(preferences_of(project))
 
 
 class ProjectUploads(ProjectView):
