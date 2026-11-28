@@ -8,8 +8,8 @@ import { SiteHeader } from "./SiteHeader";
 /** The shared frame of every public page: header, an empty content area, footer, and the public chat when it is on. */
 export function SiteFrame({ children }: { children: ReactNode }) {
   return (
-    <ChatProvider>
-      <div className="site-skin">
+    <div className="site-skin">
+      <ChatProvider>
         <div className="site-frame">
           <SiteHeader />
           <main className="site-main">
@@ -18,7 +18,7 @@ export function SiteFrame({ children }: { children: ReactNode }) {
           <SiteFooter />
         </div>
         <ChatLauncher />
-      </div>
-    </ChatProvider>
+      </ChatProvider>
+    </div>
   );
 }

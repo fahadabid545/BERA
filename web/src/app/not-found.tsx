@@ -1,10 +1,10 @@
-import { NotFoundMessage } from "@/components/NotFoundMessage";
+import { SiteNotFound } from "@/components/website/SiteNotFound";
 import { SiteFrame } from "@/components/website/SiteFrame";
 
 export default function NotFound() {
   return (
     <SiteFrame>
-      <NotFoundMessage homeHref="/" />
+      <SiteNotFound homeHref="/" />
     </SiteFrame>
   );
 }

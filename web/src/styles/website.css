@@ -205,3 +205,53 @@
 .sample-skin [data-tint] {
   background: var(--tint);
 }
+
+/* ---------- Chat: Chat button, home bar and the full-screen window ---------- */
+.site-skin .chat-launcher {
+  box-shadow: 4px 4px 0 var(--color-shade);
+}
+.site-skin .chat-launcher:not(:disabled):hover {
+  box-shadow: 7px 7px 0 var(--color-shade);
+}
+.site-skin .chat-search {
+  border-color: var(--color-text);
+  box-shadow: 5px 5px 0 var(--color-shade);
+}
+.site-skin .chat-window {
+  border: 3px solid var(--color-text);
+  border-radius: calc(var(--radius-card) * 1.25);
+  box-shadow: 8px 8px 0 var(--color-shade);
+}
+.site-skin .chat-window__sidebar {
+  border-right: 2px solid var(--color-text);
+  background: var(--color-tint-lime);
+}
+.site-skin .chat-window__item {
+  border-radius: var(--radius-control);
+  font-weight: 600;
+}
+.site-skin .chat-window__item:hover {
+  background: var(--color-surface);
+}
+.site-skin .chat-window__item[aria-current="true"] {
+  border: 2px solid var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 2px 2px 0 var(--color-shade);
+}
+.site-skin .chat-window__bar,
+.site-skin .chat-window__form {
+  border-color: var(--color-text);
+  border-width: 2px;
+}
+.site-skin .chat-window__message {
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-card);
+  background: var(--color-tint-sky);
+  box-shadow: 3px 3px 0 var(--color-shade-soft);
+}
+.site-skin .chat-window__message--user {
+  background: var(--color-tint-peach);
+}
+.site-skin .chat-window__who {
+  color: var(--color-text);
+}

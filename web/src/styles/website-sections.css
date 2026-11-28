@@ -943,3 +943,55 @@
 .auth-card .page-form > :last-child {
   margin-bottom: 0;
 }
+
+/* ---------- 404 ---------- */
+.site-not-found {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-5);
+  padding-block: var(--space-6) var(--space-7);
+}
+.site-not-found__code {
+  display: flex;
+  gap: 0.05em;
+  margin: 0;
+  font: 800 clamp(6rem, 22vw, 15rem) / 0.9 var(--font-heading);
+  letter-spacing: -0.06em;
+}
+.site-not-found__zero {
+  display: inline-block;
+  padding-inline: 0.12em;
+  border: 0.05em solid var(--color-text);
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0.05em 0.05em 0 var(--color-shade);
+  transform: rotate(-8deg);
+  animation: site-not-found-wobble 3s var(--ease-site) infinite alternate;
+}
+.site-not-found__title {
+  max-width: 18ch;
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  font-weight: 800;
+  line-height: 1.1;
+}
+@keyframes site-not-found-wobble {
+  to {
+    transform: rotate(8deg);
+  }
+}
+
+/* ---------- Legal pages: a calm, readable column under the big title ---------- */
+.legal-page {
+  max-width: 46rem;
+  padding-bottom: var(--space-7);
+}
+.legal-page h2 {
+  margin-top: var(--space-6);
+  font-size: var(--text-xl);
+  font-weight: 800;
+}
+.legal-page p {
+  font-size: var(--text-lg);
+  line-height: 1.65;
+}

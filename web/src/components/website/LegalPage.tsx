@@ -23,8 +23,12 @@ export function LegalPage({ document }: { document: "terms" | "privacy" }) {
   if (problem) return <p role="alert">{problem}</p>;
   if (!text) return null;
   return (
-    <div className="page-stack">
-      <h1>{text.title}</h1>
+    <article className="legal-page">
+      <header className="page-title-block">
+        <h1 className="page-title">
+          <span className="marker">{text.title}</span>
+        </h1>
+      </header>
       {text.sections.length === 0 && <p>{LEGAL_PREPARING}</p>}
       {text.sections.map((section) => (
         <section key={section.heading}>
@@ -34,6 +38,6 @@ export function LegalPage({ document }: { document: "terms" | "privacy" }) {
           ))}
         </section>
       ))}
-    </div>
+    </article>
   );
 }

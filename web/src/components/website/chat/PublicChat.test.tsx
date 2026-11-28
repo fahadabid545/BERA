@@ -2,6 +2,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SiteFrame } from "../SiteFrame";
 import { ChatLauncher, ChatSearchBar } from "./ChatEntryPoints";
 import { ChatProvider } from "./ChatProvider";
 
@@ -91,6 +92,17 @@ describe("the home page search bar", () => {
     expect(within(window_).getAllByText("How are plans billed?")).toHaveLength(2);
     expect(asked()).toEqual([{ question: "How are plans billed?", history: [] }]);
     expect((screen.getByLabelText("Ask a question") as HTMLInputElement).value).toBe("");
+  });
+
+  it("opens the window inside the website skin, so it is never dark", async () => {
+    const user = userEvent.setup();
+    render(
+      <SiteFrame>
+        <ChatSearchBar />
+      </SiteFrame>,
+    );
+    const window_ = await askFromBar(user, "How are plans billed?");
+    expect(window_.closest(".site-skin")).toBeTruthy();
   });
 
   it("cannot send an empty question and limits the length", async () => {
