@@ -16,14 +16,15 @@ from .deletion import register_project_data
 from .models import Project, Requirement
 from .recalculation import recalculate_scores
 from .rescoring import (
+    REQUIREMENTS_CHANGED,
     changed_requirement_count,
+    require_acknowledged,
     rescoring_estimate,
     start_rescoring,
     wake_workers,
 )
 from .service import require_editable
 
-RESCORING_CODE = "rescoring_needed"
 NEEDED_CODE = "requirements_needed"
 NEAR_DUPLICATE = "near_duplicate"
 NOT_A_DRAFT_CODE = "requirements_not_a_draft"
@@ -80,22 +81,7 @@ def save_requirements(project_id, company_id, items, *, acknowledge_rescoring=Fa
         rescoring = None
         if changed_requirement_count(project, items):
             rescoring = rescoring_estimate(project, items)
-            if rescoring["blocked"]:
-                raise AppError(
-                    rescoring["code"], rescoring["message"], status_code=409,
-                    details={"prompt": rescoring["prompt"]},
-                )  # fmt: skip
-            if rescoring["cvs"] > 0 and not acknowledge_rescoring:
-                raise AppError(
-                    RESCORING_CODE,
-                    "Re-scoring needed: changing the requirements means scoring the CVs again.",
-                    status_code=409,
-                    details={
-                        "cvs": rescoring["cvs"],
-                        "requirements": rescoring["requirements"],
-                        "estimated_cost": f"{rescoring['estimated_cost']:.6f}",
-                    },
-                )
+            require_acknowledged(rescoring, acknowledge_rescoring, REQUIREMENTS_CHANGED)
         kept = set()
         for position, item in enumerate(items):
             fields = {

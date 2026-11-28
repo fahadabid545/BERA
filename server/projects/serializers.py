@@ -140,3 +140,7 @@ class ChangeProjectOwnerSerializer(StrictSerializer):
 
 class PauseUploadsSerializer(StrictSerializer):
     paused = serializers.BooleanField()
+
+
+class RescoreSerializer(StrictSerializer):
+    acknowledge_rescoring = serializers.BooleanField(default=False)

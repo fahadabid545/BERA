@@ -332,3 +332,112 @@ class TestOutdatedShowsInTheApi:
         ai.answers = [answer(entry(1, "met", TEAM))]
         processing.tick()
         assert client.get(url).json()["outdated"] is False
+
+
+class TestRescoreEverything:
+    """Judging every CV against every requirement again, after the person has agreed."""
+
+    def run(self, candidate, acknowledged=True):
+        from projects.rescoring import rescore_everything
+
+        project = candidate.project
+        return rescore_everything(project.pk, project.company_id, acknowledged)
+
+    def refusal(self, candidate, acknowledged):
+        from core.errors import AppError
+
+        with pytest.raises(AppError) as raised:
+            self.run(candidate, acknowledged)
+        return raised.value
+
+    def test_it_asks_first_with_the_cv_count_and_cost_and_changes_nothing(self, scored, kicks):
+        error = self.refusal(scored, False)
+        assert error.code == "rescoring_needed"
+        assert error.details["cvs"] == 1 and error.details["requirements"] == 3
+        assert float(error.details["estimated_cost"]) >= 0
+        assert score_of(scored).outdated is False and kicks == []
+        assert not RequirementResult.objects.filter(stale=True).exists()
+        assert CvFile.objects.get(pk=scored.cv_file_id).status == "done"
+
+    def test_once_agreed_the_score_is_outdated_and_the_cv_is_queued(self, scored, kicks):
+        assert self.run(scored) == 1
+        assert score_of(scored).outdated is True
+        assert CvFile.objects.get(pk=scored.cv_file_id).status == "waiting"
+        assert kicks == [processing.TICK_JOB]
+
+    def test_every_requirement_goes_to_the_ai_not_only_changed_ones(self, scored, ai):
+        self.run(scored)
+        ai.answers = [answer(entry(1, "met", PYTHON), entry(2, "met", TEAM), entry(3, "missing"))]
+        processing.tick()
+        sent = ai.calls[0]["text"]
+        assert all(text in sent for text in ("Python experience", "Team leadership", "AWS"))
+
+    def test_the_old_verdicts_stay_until_the_new_ones_replace_them(self, scored, ai):
+        self.run(scored)
+        assert RequirementResult.objects.filter(candidate=scored, stale=True).count() == 3
+        assert float(score_of(scored).score) == 50.0  # nothing changed yet
+        ai.answers = [answer(entry(1, "met", PYTHON), entry(2, "met", TEAM), entry(3, "missing"))]
+        processing.tick()
+        assert not RequirementResult.objects.filter(stale=True).exists()
+        stored = score_of(scored)
+        assert stored.outdated is False and float(stored.score) == 66.7  # (100 + 100 + 0) / 3
+
+    def test_a_failed_reading_keeps_the_old_score_marked_outdated(self, scored, ai):
+        self.run(scored)
+        ai.answers = [AiUnavailable("down")]
+        processing.tick()
+        assert score_of(scored).outdated is True and float(score_of(scored).score) == 50.0
+
+    def test_nothing_to_score_is_said_in_words(self, ai):
+        cv = add_profile(make_cv())
+        add_requirements(cv.project, "Python experience")
+        error = self.refusal(candidates.create_candidate(cv), True)
+        assert error.code == "nothing_to_rescore"
+
+    def test_it_is_refused_while_the_plan_does_not_allow_ai(self, scored, kicks):
+        from plans import subscriptions as subs
+
+        subs.expire(scored.company_id)
+        error = self.refusal(scored, True)
+        assert error.code == "rescoring_ai_not_allowed"
+        assert score_of(scored).outdated is False and kicks == []
+
+    def test_an_archived_project_cannot_be_rescored(self, scored):
+        from projects.models import Project
+
+        Project.objects.filter(pk=scored.project_id).update(status="archived")
+        assert self.refusal(scored, True).code == "project_archived"
+
+    def client(self, candidate):
+        from rest_framework.test import APIClient
+
+        from core.tests.factories import start_session_for
+
+        issued = start_session_for(
+            user_id=candidate.project.created_by_id, role="owner",
+            company_id=candidate.company_id, kind="company",
+        )  # fmt: skip
+        return APIClient(HTTP_AUTHORIZATION=f"Bearer {issued.access_token}")
+
+    def test_the_endpoint_asks_then_queues(self, scored, kicks):
+        url = f"/api/company/projects/{scored.project.pk}/rescore/"
+        client = self.client(scored)
+        first = client.post(url, {}, format="json")
+        assert first.status_code == 409 and first.json()["error"]["code"] == "rescoring_needed"
+        second = client.post(url, {"acknowledge_rescoring": True}, format="json")
+        assert second.status_code == 202 and second.json() == {"queued": 1}
+
+    def test_the_endpoint_refuses_a_wrong_body_and_strangers(self, scored):
+        from rest_framework.test import APIClient
+
+        from core.tests.factories import make_company
+        from projects.tests.helpers import sign_in
+
+        url = f"/api/company/projects/{scored.project.pk}/rescore/"
+        assert (
+            self.client(scored).post(url, {"acknowledge_rescoring": "x"}, format="json").status_code
+            == 400
+        )
+        assert APIClient().post(url, {}, format="json").status_code == 401
+        _, stranger = sign_in(make_company())
+        assert stranger.post(url, {}, format="json").status_code == 404

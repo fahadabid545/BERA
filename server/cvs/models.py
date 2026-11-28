@@ -178,6 +178,9 @@ class RequirementResult(CompanyOwnedModel):
     confidence = models.CharField(max_length=10, choices=Confidence.choices)
     model = models.CharField(max_length=100)
     prompt_version = models.PositiveIntegerField()  # the scoring prompt version used
+    # Set when the person asks to score everything again: the old verdict stays until the CV has
+    # been judged again, so the score never disappears meanwhile.
+    stale = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

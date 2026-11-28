@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { BillingPrompts, isPromptKind, type PromptKind } from "@/components/company/BillingPrompt";
 import { PROJECTS_HREF } from "@/components/company/links";
 import { ProjectOwner } from "@/components/company/ProjectOwner";
+import { RescoreAll } from "@/components/company/RescoreAll";
 import { Button, Dialog, Input, Textarea } from "@/components/ui";
 import { deleteJson, getJson, patchJson, postJson, putJson, type ApiError } from "@/lib/api";
 
@@ -173,6 +174,7 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
           )}
         </div>
       </form>
+      {!archived && <RescoreAll projectId={projectId} />}
       {project.may_change_owner && project.owner_id !== undefined && (
         <ProjectOwner
           projectId={projectId}

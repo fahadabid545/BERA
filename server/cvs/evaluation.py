@@ -157,12 +157,13 @@ def judge_texts(
 
 
 def _needing_judgement(candidate, requirements):
-    """The requirements with no result yet, or whose text changed since they were judged."""
+    """The requirements with no result yet, or whose text changed since they were judged, or
+    whose result was marked stale because the person asked to score everything again."""
     done = {
-        result.requirement_id: result.requirement_text
+        result.requirement_id: (result.requirement_text, result.stale)
         for result in RequirementResult.objects.filter(candidate=candidate)
     }
-    return [req for req in requirements if done.get(req.pk) != req.text]
+    return [req for req in requirements if done.get(req.pk) != (req.text, False)]
 
 
 def evaluate_candidate(candidate, cv_text):
@@ -192,6 +193,7 @@ def evaluate_candidate(candidate, cv_text):
                     "confidence": judgement.confidence,
                     "model": project.scoring_model,
                     "prompt_version": project.scoring_prompt_version,
+                    "stale": False,
                 },
             )
 

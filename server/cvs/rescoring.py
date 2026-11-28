@@ -22,7 +22,7 @@ from plans.limits import check_ai_allowed, prompt_kind
 from platform_settings.service import get_setting
 from projects.models import Requirement
 
-from .models import Candidate, CandidateScore, CvFile
+from .models import Candidate, CandidateScore, CvFile, RequirementResult
 from .processing import kick
 
 BLOCKED_CODE = "rescoring_ai_not_allowed"
@@ -39,18 +39,18 @@ def _scored_candidates(project):
     return Candidate.objects.filter(project=project, score__isnull=False)
 
 
-def estimate(project, items):
-    """What re-scoring would run: the scored CVs, the changed requirements and the approximate
-    tokens and cost, and whether AI work is allowed."""
-    changed = changed_texts(project, items)
+def estimate(project, items, everything=False):
+    """What re-scoring would run: the scored CVs, the requirements to judge and the approximate
+    tokens and cost, and whether AI work is allowed. With `everything`, every requirement is
+    judged again, changed or not."""
+    stored = {str(r.pk): r.text for r in Requirement.objects.filter(project=project)}
+    to_judge = [
+        item for item in items if everything or stored.get(str(item.get("id"))) != item["text"]
+    ]
+    changed = len(to_judge)
     cvs = _scored_candidates(project).count()
     per_token = get_setting("estimate.characters_per_token")
-    stored = {str(r.pk): r.text for r in Requirement.objects.filter(project=project)}
-    changed_tokens = sum(
-        -(-len(item["text"]) // per_token)
-        for item in items
-        if stored.get(str(item.get("id"))) != item["text"]
-    )
+    changed_tokens = sum(-(-len(item["text"]) // per_token) for item in to_judge)
     tokens_in = get_setting("estimate.scoring_prompt_tokens") + get_setting(
         "estimate.cv_text_tokens"
     )
@@ -75,6 +75,11 @@ def estimate(project, items):
         "message": allowed.message if blocked else "",
         "prompt": prompt_kind(company_id) if blocked else None,
     }
+
+
+def mark_everything_stale(project):
+    """Every stored verdict of the project's candidates will be judged again."""
+    RequirementResult.objects.filter(candidate__project=project).update(stale=True)
 
 
 def start(project):

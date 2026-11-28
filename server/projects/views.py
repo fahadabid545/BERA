@@ -27,6 +27,7 @@ from .requirements import (
     save_requirements,
     start_rereading,
 )
+from .rescoring import rescore_everything
 from .scoring_settings import describe as describe_scoring
 from .scoring_settings import save_scoring_settings
 from .serializers import (
@@ -37,6 +38,7 @@ from .serializers import (
     FactorSettingsSerializer,
     ListProjectsSerializer,
     PauseUploadsSerializer,
+    RescoreSerializer,
     SaveRequirementsSerializer,
     ScoringDefaultsSerializer,
     ScoringSettingsSerializer,
@@ -175,6 +177,23 @@ class ProjectUploads(ProjectView):
             serializer.validated_data["paused"],
         )
         return Response(describe(changed, request.user))
+
+
+class ProjectRescore(ProjectView):
+    """Scores every CV of the project against every requirement again, after the person has seen
+    how many CVs will run and the approximate cost."""
+
+    def permitted_roles(self):
+        return roles_allowed("project.edit")
+
+    def post(self, request, id):
+        project = self.get_object()
+        serializer = RescoreSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        queued = rescore_everything(
+            project.pk, project.company_id, serializer.validated_data["acknowledge_rescoring"]
+        )
+        return Response({"queued": queued}, status=status.HTTP_202_ACCEPTED)
 
 
 class ProjectOwner(ProjectView):

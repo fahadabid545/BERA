@@ -9,6 +9,7 @@ urlpatterns = [
     path("<str:id>/scoring/", views.ProjectScoringSettingsView.as_view()),
     path("<str:id>/factors/", views.ProjectFactorSettingsView.as_view()),
     path("<str:id>/uploads/", views.ProjectUploads.as_view()),
+    path("<str:id>/rescore/", views.ProjectRescore.as_view()),
     path("<str:id>/owner/", views.ProjectOwner.as_view()),
     path("<str:id>/duplicate/", views.ProjectDuplicate.as_view()),
     path("<str:id>/requirements/", views.ProjectRequirements.as_view()),
