@@ -91,3 +91,10 @@ describe("Avatar", () => {
     expect((container.firstChild as HTMLElement).dataset.tint).toBe("lilac");
   });
 });
+
+describe("ScoreBadge with a decimal score", () => {
+  it("shows the score as the server wrote it", () => {
+    render(<ScoreBadge score="82.5" grade="B" />);
+    expect(screen.getByText("82.5")).toBeTruthy();
+  });
+});

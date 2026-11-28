@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 
 import {
+  Avatar,
   Button,
   Checkbox,
   Dialog,
+  ScoreBadge,
   Select,
+  StageGlyph,
   Table,
   Tag,
   TextLink,
+  type StageName,
   type TagVariant,
 } from "@/components/ui";
 import { getJson, postJson, type ApiError } from "@/lib/api";
@@ -354,20 +358,26 @@ function CandidateRow({
       )}
       <td>{row.rank}</td>
       <td>
-        {row.candidate_id ? (
-          <TextLink href={`/company/projects/${projectId}/candidates/${row.candidate_id}`}>
-            {row.file_name}
-          </TextLink>
-        ) : (
-          row.file_name
-        )}
-        {row.name && <div>{row.name}</div>}
-        {row.top && <Tag variant="success">Top</Tag>}
+        <div className="candidate-cell">
+          <Avatar name={row.name ?? row.file_name} position={row.rank ?? 0} />
+          <div>
+            {row.candidate_id ? (
+              <TextLink href={`/company/projects/${projectId}/candidates/${row.candidate_id}`}>
+                {row.file_name}
+              </TextLink>
+            ) : (
+              row.file_name
+            )}
+            {row.name && <div>{row.name}</div>}
+            {row.top && <Tag variant="success">Top</Tag>}
+          </div>
+        </div>
       </td>
       <td>
         {row.score ? (
           <>
-            {row.score} ({row.grade}) {row.outdated && <Tag variant="warning">Outdated</Tag>}
+            <ScoreBadge score={row.score} grade={row.grade} />{" "}
+            {row.outdated && <Tag variant="warning">Outdated</Tag>}
           </>
         ) : (
           <>
@@ -380,7 +390,9 @@ function CandidateRow({
       <td>
         {row.label && LABELS[row.label]} {row.borderline && <Tag variant="neutral">Borderline</Tag>}
       </td>
-      <td>{stageLabel(row.stage)}</td>
+      <td>
+        {row.stage && <StageGlyph stage={row.stage as StageName} />} {stageLabel(row.stage)}
+      </td>
       <td>{row.added_at.slice(0, DATE_LENGTH)}</td>
     </tr>
   );

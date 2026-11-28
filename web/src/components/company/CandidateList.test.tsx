@@ -71,11 +71,11 @@ describe("ranked candidate list", () => {
       .map((cell) => cell.textContent);
     expect(cells).toEqual([
       "1",
-      "jane.pdfJ. E.",
-      "82.5 (B) ",
+      "JEjane.pdfJ. E.",
+      "82.5Grade B ",
       "71",
       "Strong match Borderline",
-      "New",
+      " New",
       "2026-11-14",
     ]);
     expect(within(table).getByRole("link", { name: "jane.pdf" }).getAttribute("href")).toBe(

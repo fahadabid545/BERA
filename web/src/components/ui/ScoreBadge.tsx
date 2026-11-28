@@ -12,7 +12,7 @@ export function ScoreBadge({
   grade,
   large = false,
 }: {
-  score: number | null;
+  score: number | string | null;
   grade: string | null;
   large?: boolean;
 }) {

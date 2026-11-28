@@ -104,3 +104,9 @@
   font-size: var(--text-sm);
   font-weight: 700;
 }
+
+.candidate-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
