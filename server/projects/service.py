@@ -61,7 +61,9 @@ def warnings_for(company_id, title, job_description):
     return found
 
 
-def create_project(creator, title, job_description, *, acknowledge_warnings=False):
+def create_project(
+    creator, title, job_description, *, acknowledge_warnings=False, draft_requirements=True
+):
     # Drafting reads the project through `extraction`, which needs this module, so it loads here.
     from .drafting import start_drafting
 
@@ -89,7 +91,8 @@ def create_project(creator, title, job_description, *, acknowledge_warnings=Fals
             created_by=creator,
         )
         _start_from_company_defaults(project)
-        start_drafting(project)
+        if draft_requirements:
+            start_drafting(project)
         return project
 
 

@@ -13,6 +13,7 @@ from signin.company_views import CompanyObjectView
 from .company_defaults import describe as describe_defaults
 from .company_defaults import save_defaults
 from .deletion import delete_project
+from .duplication import duplicate_project
 from .extraction import suggest_requirements
 from .factor_settings import describe as describe_factors
 from .factor_settings import save_factor_settings
@@ -132,6 +133,19 @@ class ProjectDetail(ProjectView):
             raise form_error({"confirm_title": "Type the project title exactly to confirm."})
         delete_project(CompanyUser.objects.get(pk=request.user.user_id), project)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProjectDuplicate(ProjectView):
+    """A copy of the project with its requirements and settings, and no CVs."""
+
+    def permitted_roles(self):
+        return roles_allowed("project.create")
+
+    def post(self, request, id):
+        copy = duplicate_project(
+            CompanyUser.objects.get(pk=request.user.user_id), self.get_object()
+        )
+        return Response({"id": str(copy.id)}, status=status.HTTP_201_CREATED)
 
 
 class ProjectArchive(ProjectView):

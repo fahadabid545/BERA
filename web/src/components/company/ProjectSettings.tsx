@@ -64,6 +64,15 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
     setError(result.error);
   }
 
+  async function duplicate() {
+    setError(null);
+    const result = await postJson<{ id: string }>(`${base}duplicate/`, {});
+    if (result.ok) return router.push(`${PROJECTS_HREF}/${result.data.id}`);
+    const promptKind = result.error.details?.prompt;
+    if (isPromptKind(promptKind)) return setPrompt(promptKind);
+    setError(result.error);
+  }
+
   async function remove(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const typed = String(new FormData(event.currentTarget).get("confirm_title") ?? "");
@@ -122,6 +131,12 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
               onConfirm={() => change("archive")}
             />
           )}
+          <Dialog
+            trigger={<Button variant="secondary">Duplicate project</Button>}
+            title="Duplicate project"
+            confirmLabel="Duplicate"
+            onConfirm={() => void duplicate()}
+          />
           {project.may_delete && (
             <Button
               variant="danger"

@@ -81,6 +81,33 @@ describe("project settings", () => {
     expect(calls()[1]).toEqual([`${BASE}archive/`, "POST"]);
   });
 
+  it("Duplicate asks first, then opens the copy", async () => {
+    reply(200, ACTIVE);
+    reply(201, { id: "p2" });
+    render(<ProjectSettings projectId="p1" />);
+    await userEvent.click(await screen.findByRole("button", { name: "Duplicate project" }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole("button", { name: "Duplicate" }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/company/projects/p2"));
+    expect(calls()[1]).toEqual([`${BASE}duplicate/`, "POST"]);
+  });
+
+  it("an archived project can be duplicated too", async () => {
+    reply(200, { ...ACTIVE, status: "archived" });
+    render(<ProjectSettings projectId="p1" />);
+    expect(await screen.findByRole("button", { name: "Duplicate project" })).toBeTruthy();
+  });
+
+  it("a refused duplicate says why and stays on the page", async () => {
+    reply(200, ACTIVE);
+    reply(500, { error: { code: "x", message: "Something went wrong." } });
+    render(<ProjectSettings projectId="p1" />);
+    await userEvent.click(await screen.findByRole("button", { name: "Duplicate project" }));
+    await userEvent.click(screen.getByRole("button", { name: "Duplicate" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("Something went wrong.");
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("an archived project is read-only: no Save, fields cannot be edited", async () => {
     reply(200, { ...ACTIVE, status: "archived" });
     render(<ProjectSettings projectId="p1" />);
