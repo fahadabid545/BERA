@@ -8,7 +8,8 @@ import { startLive } from "@/lib/live";
 
 const USAGE_URL = "/api/company/usage/";
 
-type Measure = { used: number; limit: number; left: number; warning: number | null };
+/** A plan may have no limit on a figure; the server then sends null. */
+type Measure = { used: number; limit: number | null; left: number | null; warning: number | null };
 
 export type FreeAccessSummary = {
   kind: "beta" | "permitted";
@@ -24,7 +25,7 @@ export type PlanAndUsage = {
   period_end: string;
   cvs: Measure;
   estimated_cost: string;
-  projects: { used: number; limit: number };
+  projects: { used: number; limit: number | null };
   refresh_seconds: number;
 };
 
@@ -46,6 +47,10 @@ const formatDate = (iso: string) =>
   });
 
 const number = (value: number) => value.toLocaleString("en-US");
+const NO_LIMIT = "no limit";
+
+/** A limit in words: the number, or "no limit" for a plan that has none. */
+export const limitWords = (limit: number | null) => (limit === null ? NO_LIMIT : number(limit));
 
 /** The words of a warning: its own surface in the tag, never colour alone. */
 function warningWords(label: string, warning: number | null) {
@@ -67,8 +72,8 @@ function Bar({ measure, label }: { measure: Measure; label: string }) {
       role="meter"
       aria-label={label}
       aria-valuemin={0}
-      aria-valuemax={measure.limit}
-      aria-valuenow={Math.min(measure.used, measure.limit)}
+      aria-valuemax={measure.limit ?? undefined}
+      aria-valuenow={measure.limit === null ? measure.used : Math.min(measure.used, measure.limit)}
     >
       <span className="usage-bar__fill" style={{ width: `${percent}%` }} />
     </span>
@@ -103,7 +108,7 @@ export function UsageMeter() {
       trigger={
         <button type="button" className="usage-meter">
           <span className="usage-meter__text">
-            CVs {number(summary.cvs.used)} / {number(summary.cvs.limit)}
+            CVs {number(summary.cvs.used)} / {limitWords(summary.cvs.limit)}
           </span>
           <Bar measure={summary.cvs} label="CVs used this period" />
           {summary.free_access?.kind === "beta" && summary.free_access.ends_at && (
@@ -143,14 +148,15 @@ export function UsageMeter() {
         </dd>
         <dt>CVs used</dt>
         <dd>
-          {number(summary.cvs.used)} of {number(summary.cvs.limit)}, {number(summary.cvs.left)} left{" "}
+          {number(summary.cvs.used)} of {limitWords(summary.cvs.limit)}
+          {summary.cvs.left !== null && `, ${number(summary.cvs.left)} left`}{" "}
           <WarningTag label="CVs" warning={summary.cvs.warning} />
         </dd>
         <dt>Estimated AI cost</dt>
         <dd>${summary.estimated_cost}</dd>
         <dt>Projects used</dt>
         <dd>
-          {number(summary.projects.used)} of {number(summary.projects.limit)}
+          {number(summary.projects.used)} of {limitWords(summary.projects.limit)}
         </dd>
       </dl>
     </Dialog>

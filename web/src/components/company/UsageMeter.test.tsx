@@ -67,6 +67,19 @@ describe("beta access", () => {
 });
 
 describe("the small meter", () => {
+  it("shows a plan with no limit in words and does not crash", async () => {
+    stubServer({
+      ...SUMMARY,
+      cvs: { used: 3, limit: null, left: null, warning: null },
+      projects: { used: 2, limit: null },
+    });
+    render(<UsageMeter />);
+    expect(await screen.findByText("CVs 3 / no limit")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /CVs 3/ }));
+    expect(screen.getByText("3 of no limit")).toBeTruthy();
+    expect(screen.getByText("2 of no limit")).toBeTruthy();
+  });
+
   it("shows the CVs used against the limit", async () => {
     stubServer();
     render(<UsageMeter />);

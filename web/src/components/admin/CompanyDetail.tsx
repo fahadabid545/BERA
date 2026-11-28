@@ -8,7 +8,7 @@ import { getJson, type ApiError } from "@/lib/api";
 import { STATE_NAMES, STATUS_NAMES, formatDate } from "./companyText";
 import { StartTrial } from "./StartTrial";
 
-type Measure = { used: number; limit: number };
+type Measure = { used: number; limit: number | null };
 type Detail = {
   company: {
     id: string;
@@ -49,7 +49,8 @@ const number = (value: number) => value.toLocaleString("en-US");
 const capitalised = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 const plain = (value: string) => capitalised(value.replace(/[._]/g, " "));
 const dateOrNone = (iso: string | null) => (iso ? formatDate(iso) : "None");
-const measureText = (measure: Measure) => `${number(measure.used)} of ${number(measure.limit)}`;
+const measureText = (measure: Measure) =>
+  `${number(measure.used)} of ${measure.limit === null ? "no limit" : number(measure.limit)}`;
 
 /** One company for an admin: its people, subscription, usage, projects and history, then the
  * actions an admin has. It holds no candidate or CV content; the server never sends any. */

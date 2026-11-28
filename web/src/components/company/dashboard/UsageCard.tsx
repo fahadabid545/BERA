@@ -2,7 +2,7 @@
 
 import { ButtonLink, Card, Tag } from "@/components/ui";
 
-import { usePlanAndUsage, type PlanAndUsage } from "../UsageMeter";
+import { limitWords, usePlanAndUsage, type PlanAndUsage } from "../UsageMeter";
 
 const PERCENT = 100;
 const number = (value: number) => value.toLocaleString("en-US");
@@ -15,7 +15,7 @@ function Row({
 }: {
   label: string;
   used: number;
-  limit: number;
+  limit: number | null;
   warning?: number | null;
 }) {
   return (
@@ -26,8 +26,8 @@ function Row({
         role="meter"
         aria-label={label}
         aria-valuemin={0}
-        aria-valuemax={limit}
-        aria-valuenow={Math.min(used, limit)}
+        aria-valuemax={limit ?? undefined}
+        aria-valuenow={limit === null ? used : Math.min(used, limit)}
       >
         <span
           className="usage-bar__fill"
@@ -35,7 +35,7 @@ function Row({
         />
       </span>
       <span>
-        {number(used)} / {number(limit)}
+        {number(used)} / {limitWords(limit)}
       </span>
       {warning ? (
         <Tag variant={warning >= PERCENT ? "danger" : "warning"}>
