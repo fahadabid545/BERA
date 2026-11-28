@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { NEW_PROJECT_HREF, PROJECTS_HREF } from "@/components/company/links";
-import { Button, ButtonLink, Card, Input, Select, Tag } from "@/components/ui";
+import { Button, ButtonLink, Card, EmptyState, Input, Select, Tag, tintAt } from "@/components/ui";
 import { getJson, type ApiError } from "@/lib/api";
 
 const LIST_URL = "/api/company/projects/";
@@ -40,10 +40,10 @@ const formatDate = (iso: string) =>
     timeZone: "UTC",
   });
 
-function ProjectCard({ row }: { row: Row }) {
+function ProjectCard({ row, position }: { row: Row; position: number }) {
   const full = row.cv_capacity > 0 && row.cv_count >= row.cv_capacity;
   return (
-    <Card className="ui-card project-card" aria-label={row.title}>
+    <Card className="ui-card project-card" data-tint={tintAt(position)} aria-label={row.title}>
       <div className="project-card__head">
         <h2 className="project-card__title">{row.title}</h2>
         {row.status === "archived" && <Tag variant="neutral">Archived</Tag>}
@@ -147,12 +147,12 @@ export function ProjectsList() {
           {error.message}
         </p>
       )}
-      {loaded && loaded.results.length === 0 && <p>No projects found.</p>}
+      {loaded && loaded.results.length === 0 && <EmptyState>No projects found.</EmptyState>}
       {loaded && loaded.results.length > 0 && (
         <ul className="project-cards" aria-label="Projects">
-          {loaded.results.map((row) => (
+          {loaded.results.map((row, position) => (
             <li key={row.id}>
-              <ProjectCard row={row} />
+              <ProjectCard row={row} position={position} />
             </li>
           ))}
         </ul>

@@ -194,3 +194,20 @@
   --radius-control: 0.75rem;
   --ease-site: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+
+/* A card or sticker names its pastel with data-tint; it reads --tint for its background. */
+[data-tint="lime"] {
+  --tint: var(--color-tint-lime);
+}
+[data-tint="lilac"] {
+  --tint: var(--color-tint-lilac);
+}
+[data-tint="peach"] {
+  --tint: var(--color-tint-peach);
+}
+[data-tint="sky"] {
+  --tint: var(--color-tint-sky);
+}
+[data-tint="pink"] {
+  --tint: var(--color-tint-pink);
+}

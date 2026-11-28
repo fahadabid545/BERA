@@ -13,10 +13,11 @@ import argparse
 import json
 import subprocess
 import sys
-import tomllib
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parent.parent
 ACCEPTED_FILE = ROOT / "security" / "accepted-vulnerabilities.toml"

@@ -28,6 +28,7 @@ export function ChartMark({
   as: Wrapper = "div",
   label,
   style,
+  tint,
   children,
 }: {
   tip: ReactNode;
@@ -37,13 +38,15 @@ export function ChartMark({
   /** What a screen reader says for a mark that is not a button. */
   label?: string;
   style?: CSSProperties;
+  /** A pastel card colour (see ui/tints), for a mark that is a summary card. */
+  tint?: string;
   children?: ReactNode;
 }) {
   const classes = `${className ?? ""}${onOpen ? " chart-mark chart-mark--open" : " chart-mark"}`;
   return (
     <Tooltip content={tip}>
       {onOpen ? (
-        <button type="button" className={classes} style={style} onClick={onOpen}>
+        <button type="button" className={classes} style={style} data-tint={tint} onClick={onOpen}>
           {children}
         </button>
       ) : (

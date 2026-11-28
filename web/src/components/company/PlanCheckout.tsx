@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CardManagement, type CardResult } from "@/components/company/CardManagement";
 import { CodeEntry, DiscountPreview } from "@/components/company/CodeEntry";
 import { useCompanyRole } from "@/components/company/role";
-import { Button, Card, Dialog, Tag } from "@/components/ui";
+import { Button, Card, Dialog, Tag, tintAt } from "@/components/ui";
 import { getJson, postJson } from "@/lib/api";
 import { money, type Money } from "@/lib/money";
 import { navigateTo } from "@/lib/navigation";
@@ -235,8 +235,13 @@ export function PlanCheckout() {
         />
       )}
       <div className="page-stack">
-        {plans.map((plan) => (
-          <Card key={plan.id} aria-label={plan.name}>
+        {plans.map((plan, position) => (
+          <Card
+            key={plan.id}
+            className="plan-option"
+            data-tint={tintAt(position)}
+            aria-label={plan.name}
+          >
             <h2>
               {plan.name}{" "}
               {subscribed && plan.id === billing?.plan_id && (

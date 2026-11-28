@@ -46,6 +46,11 @@ const card = (value: number | null, change: number | null) => ({
 });
 
 describe("KpiCard", () => {
+  it("takes its pastel from its chart colour", () => {
+    render(<KpiCard label="Y" card={card(1, 1)} colour="violet" period="today" onOpen={vi.fn()} />);
+    expect(screen.getByRole("button").getAttribute("data-tint")).toBe("lilac");
+  });
+
   it("shows the figure and the change in words and opens on click", async () => {
     const open = vi.fn();
     render(
@@ -421,6 +426,10 @@ describe("CompanyDashboard", () => {
     const { container } = show("overview");
     expect(await screen.findByText("CVs scored")).toBeTruthy();
     const cards = [...container.querySelectorAll(".count-card")].map((item) => item.textContent);
+    const tints = [...container.querySelectorAll(".count-card")].map((item) =>
+      item.getAttribute("data-tint"),
+    );
+    expect(new Set(tints.slice(0, 5)).size).toBe(5);
     expect(cards).toEqual([
       "Projects5",
       "CVs scored198",

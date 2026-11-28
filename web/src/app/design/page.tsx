@@ -4,11 +4,13 @@ import {
   Button,
   ButtonLink,
   Card,
+  EmptyState,
   Checkbox,
   Input,
   Menu,
   Select,
   Textarea,
+  tintAt,
   TextLink,
   Table,
   TabLinks,
@@ -316,6 +318,24 @@ export default function DesignSample() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="sample-section" aria-labelledby="sample-panel-cards">
+        <h2 id="sample-panel-cards">Panel cards</h2>
+        <div className="dashboard__counts">
+          {(["Projects", "CVs scored", "Shortlisted"] as const).map((label, position) => (
+            <Card
+              key={label}
+              className="ui-card count-card"
+              data-tint={tintAt(position)}
+              aria-label={`Panel sample ${label}`}
+            >
+              <span className="count-card__label">{label}</span>
+              <span className="count-card__number">{position + 1}</span>
+            </Card>
+          ))}
+        </div>
+        <EmptyState>Nothing here yet</EmptyState>
       </section>
 
       <section className="sample-section" aria-labelledby="sample-tabs">

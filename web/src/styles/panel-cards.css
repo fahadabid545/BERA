@@ -1,0 +1,29 @@
+/* The company panel borrows the website's card colours for a few kinds of card only: summary
+   figures, project cards, plan cards and empty states. At rest they are as flat as any panel
+   card; the hard shadow shows on hover only. Tables, forms, dialogs and the admin panel keep the
+   calm look. Colours come from tokens.css (the tints have light and dark values). */
+.count-card[data-tint],
+.kpi-card[data-tint],
+.project-card[data-tint],
+.plan-option[data-tint],
+.empty-state {
+  background: var(--tint);
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition);
+}
+.count-card[data-tint]:hover,
+.kpi-card[data-tint]:hover,
+.project-card[data-tint]:hover,
+.plan-option[data-tint]:hover {
+  background: var(--tint);
+  box-shadow: 4px 4px 0 var(--color-control-border);
+  transform: translate(-2px, -2px);
+}
+.empty-state {
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+}

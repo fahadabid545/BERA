@@ -4,6 +4,14 @@ import { ChartMark, TipLines } from "@/components/charts/ChartTip";
 import { Sparkline } from "./Sparkline";
 import type { Card } from "./types";
 
+const TINT_OF_COLOUR = {
+  blue: "sky",
+  violet: "lilac",
+  teal: "lime",
+  amber: "peach",
+  coral: "pink",
+} as const;
+
 /** One figure for the period with its change against the period before and a small line of the
  * last days. The whole card is a button: it opens who or what was counted. */
 export function KpiCard({
@@ -29,6 +37,7 @@ export function KpiCard({
   return (
     <ChartMark
       className="ui-card kpi-card"
+      tint={TINT_OF_COLOUR[colour]}
       onOpen={onOpen}
       tip={
         <TipLines

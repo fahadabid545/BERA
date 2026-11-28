@@ -210,21 +210,6 @@
   color: var(--color-text);
   font: 700 var(--text-xs) var(--font-heading);
 }
-[data-tint="lime"] {
-  --tint: var(--color-tint-lime);
-}
-[data-tint="lilac"] {
-  --tint: var(--color-tint-lilac);
-}
-[data-tint="peach"] {
-  --tint: var(--color-tint-peach);
-}
-[data-tint="sky"] {
-  --tint: var(--color-tint-sky);
-}
-[data-tint="pink"] {
-  --tint: var(--color-tint-pink);
-}
 .hero-demo__avatar[data-tint],
 .scene__avatar[data-tint] {
   background: var(--tint);

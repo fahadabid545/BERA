@@ -78,6 +78,23 @@ describe("projects list", () => {
     expect(lastUrl()).toBe("/api/company/projects/?sort=updated&status=active&page=1");
   });
 
+  it("tints each project card in turn and the empty note", async () => {
+    answer(
+      page([ROW, { ...ROW, id: "22222222-2222-2222-2222-222222222222", title: "Second role" }]),
+    );
+    const { container, unmount } = render(<ProjectsList />);
+    await screen.findByText("Second role");
+    const tints = [...container.querySelectorAll(".project-card")].map((card) =>
+      card.getAttribute("data-tint"),
+    );
+    expect(tints[0]).toBeTruthy();
+    expect(tints[0]).not.toBe(tints[1]);
+    unmount();
+    answer(page([]));
+    render(<ProjectsList />);
+    expect((await screen.findByText("No projects found.")).getAttribute("data-tint")).toBeTruthy();
+  });
+
   it("keeps the New project button", async () => {
     answer(page([]));
     render(<ProjectsList />);

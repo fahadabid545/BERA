@@ -1,4 +1,4 @@
-import { Card, TextLink } from "@/components/ui";
+import { Card, TextLink, tintAt } from "@/components/ui";
 
 import type { Counts } from "./types";
 
@@ -26,8 +26,8 @@ export function CountCards({
 }) {
   return (
     <div className="dashboard__counts">
-      {COUNT_CARDS.map(({ key, label }) => (
-        <Card key={key} className="ui-card count-card">
+      {COUNT_CARDS.map(({ key, label }, position) => (
+        <Card key={key} className="ui-card count-card" data-tint={tintAt(position)}>
           <span className="count-card__label">{label}</span>
           {key === "projects" ? (
             <TextLink className="count-card__number" href="/company/projects">

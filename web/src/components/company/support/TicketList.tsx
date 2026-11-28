@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { Table, Tag, TextLink } from "@/components/ui";
+import { EmptyState, Table, Tag, TextLink } from "@/components/ui";
 import { getJson, type ApiError } from "@/lib/api";
 
 import {
@@ -32,7 +32,7 @@ export function TicketList() {
     );
   }
   if (!tickets) return null;
-  if (tickets.length === 0) return <p role="status">No tickets yet.</p>;
+  if (tickets.length === 0) return <EmptyState role="status">No tickets yet.</EmptyState>;
   return (
     <Table label="Tickets">
       <thead>
