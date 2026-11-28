@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Button, Card, Input, Select, Table, TextLink } from "@/components/ui";
 import { getJson, type ApiError } from "@/lib/api";
 
-type Entry = {
+export type Entry = {
   id: string;
   kind: string;
   actor_name: string;
@@ -20,8 +20,16 @@ type Filters = { actor: string; since: string; until: string };
 
 const NO_FILTERS: Filters = { actor: "", since: "", until: "" };
 const MINUTE_LENGTH = 16;
+const PROJECT_CHANGES: Record<string, string> = {
+  title: "title",
+  job_description: "job description",
+  requirements: "requirements",
+  scoring: "scoring settings",
+  factors: "scoring factors",
+  stages: "candidate stages",
+};
 
-const when = (iso: string) => iso.slice(0, MINUTE_LENGTH).replace("T", " ");
+export const when = (iso: string) => iso.slice(0, MINUTE_LENGTH).replace("T", " ");
 const count = (value: unknown, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
 
 /** The sentence for an entry. The log keeps short facts only, so each kind says what it can. */
@@ -37,6 +45,7 @@ export function sentence(entry: Entry): string {
         return `Downloaded a zip of ${count(details.files, "CV", "CVs")}`;
       if (details.scope === "list")
         return `Downloaded the ranked list as ${details.format === "pdf" ? "a PDF" : "a spreadsheet"}`;
+      if (details.scope === "project") return "Downloaded the whole project as a spreadsheet";
       return "Downloaded a CV";
     case "share":
       return details.action === "revoked" ? "Revoked a report link" : "Made a report link";
@@ -56,6 +65,8 @@ export function sentence(entry: Entry): string {
       return `Handed ownership to ${details.new_owner_name ?? "another member"}`;
     case "project_owner_changed":
       return `Handed a project to ${details.new_owner_name ?? "another member"}`;
+    case "project_changed":
+      return `Changed the project's ${PROJECT_CHANGES[String(details.change)] ?? "details"}`;
     case "setting_changed":
       return "Changed a setting";
     case "candidate_deleted":

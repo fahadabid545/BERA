@@ -68,10 +68,9 @@ def _cells(row):
     ]
 
 
-def _spreadsheet(rows):
-    workbook = Workbook()
-    sheet = workbook.active
-    sheet.title = "Ranked list"
+def add_ranked_sheet(workbook, rows):
+    """Adds the ranked list as a sheet; also used by the whole-project export."""
+    sheet = workbook.create_sheet("Ranked list")
     sheet.append(list(HEADINGS))
     for cell in sheet[1]:
         cell.font = Font(bold=True)
@@ -80,6 +79,12 @@ def _spreadsheet(rows):
     sheet.freeze_panes = "A2"
     for column, width in zip("ABCDEFGHI", WIDTHS, strict=True):
         sheet.column_dimensions[column].width = width
+
+
+def _spreadsheet(rows):
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+    add_ranked_sheet(workbook, rows)
     buffer = io.BytesIO()
     workbook.save(buffer)
     return buffer.getvalue()

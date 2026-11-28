@@ -15,6 +15,7 @@ KINDS = frozenset(
         "member_removed",
         "ownership_transferred",
         "project_owner_changed",
+        "project_changed",  # title, job description, requirements, scoring, factors, stages
         "setting_changed",
         "candidate_deleted",
         "data_expired",  # done by the daily clean-up, so it has no person

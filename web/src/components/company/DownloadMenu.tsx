@@ -40,6 +40,13 @@ export function DownloadMenu({ projectId, filters }: { projectId: string; filter
           <a className="ui-button ui-button--secondary" href={listLink("pdf")} download>
             Ranked list as PDF
           </a>
+          <a
+            className="ui-button ui-button--secondary"
+            href={`/api/company/projects/${projectId}/export/`}
+            download
+          >
+            Whole project as spreadsheet
+          </a>
         </div>
         {error && (
           <p className="ui-error" role="alert">

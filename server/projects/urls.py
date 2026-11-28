@@ -11,6 +11,7 @@ urlpatterns = [
     path("<str:id>/preferences/", views.ProjectPreferences.as_view()),
     path("<str:id>/uploads/", views.ProjectUploads.as_view()),
     path("<str:id>/rescore/", views.ProjectRescore.as_view()),
+    path("<str:id>/history/", views.ProjectHistory.as_view()),
     path("<str:id>/owner/", views.ProjectOwner.as_view()),
     path("<str:id>/duplicate/", views.ProjectDuplicate.as_view()),
     path("<str:id>/requirements/", views.ProjectRequirements.as_view()),

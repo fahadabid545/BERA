@@ -8,6 +8,7 @@ from companies.role_matrix import roles_allowed
 from core.errors import form_error
 from core.throttles import DownloadThrottle, UploadThrottle, limited, live
 from platform_settings.service import get_setting
+from projects.history import record_change
 from projects.models import Project
 from signin.company_views import CandidateDataView, CompanyObjectView
 
@@ -37,6 +38,7 @@ from .list_export import export_response
 from .models import Candidate, CandidateScore, CvFile, DownloadPackage
 from .notes import add_note, change_note, remove_note
 from .processing import cancel_unstarted, project_processing, retry_failed
+from .project_export import project_export_response
 from .ranking import ranked_list
 from .service import batch_id_from, upload_cvs, upload_rules
 from .shared_reports import create_report, describe, reports_of, revoke_report
@@ -284,6 +286,21 @@ class ProjectListExport(CandidateDataView):
         )
 
 
+class ProjectExport(CandidateDataView):
+    """Requirements, ranked list and notes of the project in one spreadsheet."""
+
+    queryset = Project.objects.all()
+
+    def permitted_roles(self):
+        return roles_allowed("report.download")
+
+    def get_throttles(self):
+        return [throttle() for throttle in limited(DownloadThrottle)]
+
+    def get(self, request, id):
+        return project_export_response(self.get_object(), request.user)
+
+
 class DownloadPackageStatus(CandidateDataView):
     """How a zip is doing: preparing, ready, failed or expired. Only for the person who asked."""
 
@@ -329,14 +346,15 @@ class CandidateStages(CandidateDataView):
 
     def post(self, request, id):
         project = self.get_object()
-        return Response(
-            change_stage(
-                project,
-                request.user.user_id,
-                request.data.get("candidate_ids"),
-                request.data.get("stage"),
-            )
+        moved = change_stage(
+            project,
+            request.user.user_id,
+            request.data.get("candidate_ids"),
+            request.data.get("stage"),
         )
+        if moved["changed"]:
+            record_change(CompanyUser.objects.get(pk=request.user.user_id), project, "stages")
+        return Response(moved)
 
 
 class CandidateNotes(CandidateDataView):

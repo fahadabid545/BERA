@@ -6,6 +6,7 @@ import { ProjectSettings } from "./ProjectSettings";
 
 const push = vi.fn();
 vi.mock("@/components/company/CandidatePreferences", () => ({ CandidatePreferences: () => null }));
+vi.mock("@/components/company/ProjectHistory", () => ({ ProjectHistory: () => null }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 const fetchMock = vi.fn();

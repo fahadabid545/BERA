@@ -17,6 +17,7 @@ from .duplication import duplicate_project
 from .extraction import suggest_requirements
 from .factor_settings import describe as describe_factors
 from .factor_settings import save_factor_settings
+from .history import history_of, record_change
 from .listing import list_projects
 from .models import Project
 from .ownership import change_project_owner
@@ -139,7 +140,13 @@ class ProjectDetail(ProjectView):
         serializer.is_valid(raise_exception=True)
         if not serializer.validated_data:
             raise form_error({"title": "Change the title or the job description."})
-        updated = update_project(project.pk, project.company_id, **serializer.validated_data)
+        asked = serializer.validated_data
+        before = {name: getattr(project, name) for name in asked}
+        updated = update_project(project.pk, project.company_id, **asked)
+        actor = CompanyUser.objects.get(pk=request.user.user_id)
+        for name, value in asked.items():
+            if before[name] != value:
+                record_change(actor, updated, name)
         return Response(describe(updated, request.user))
 
     def delete(self, request, id):
@@ -163,6 +170,16 @@ class ProjectDuplicate(ProjectView):
             CompanyUser.objects.get(pk=request.user.user_id), self.get_object()
         )
         return Response({"id": str(copy.id)}, status=status.HTTP_201_CREATED)
+
+
+class ProjectHistory(ProjectView):
+    """Who changed what on this project and when."""
+
+    def permitted_roles(self):
+        return roles_allowed("project.view")
+
+    def get(self, request, id):
+        return Response({"entries": history_of(self.get_object())})
 
 
 class ProjectPreferences(ProjectView):
@@ -282,6 +299,7 @@ class ProjectRequirements(ProjectView):
             acknowledge_rescoring=values["acknowledge_rescoring"],
         )
         project.refresh_from_db()
+        record_change(CompanyUser.objects.get(pk=request.user.user_id), project, "requirements")
         return Response(_requirements_body(project, items, warnings))
 
 
@@ -324,9 +342,9 @@ class ProjectScoringSettingsView(ProjectView):
         project = self.get_object()
         serializer = ScoringSettingsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(
-            save_scoring_settings(project.pk, project.company_id, serializer.validated_data)
-        )
+        saved = save_scoring_settings(project.pk, project.company_id, serializer.validated_data)
+        record_change(CompanyUser.objects.get(pk=request.user.user_id), project, "scoring")
+        return Response(saved)
 
 
 class ProjectFactorSettingsView(ProjectView):
@@ -342,9 +360,9 @@ class ProjectFactorSettingsView(ProjectView):
         project = self.get_object()
         serializer = FactorSettingsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(
-            save_factor_settings(project.pk, project.company_id, serializer.validated_data)
-        )
+        saved = save_factor_settings(project.pk, project.company_id, serializer.validated_data)
+        record_change(CompanyUser.objects.get(pk=request.user.user_id), project, "factors")
+        return Response(saved)
 
 
 @api_view(["GET", "PUT"])

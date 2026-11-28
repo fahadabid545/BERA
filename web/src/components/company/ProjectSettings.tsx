@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { BillingPrompts, isPromptKind, type PromptKind } from "@/components/company/BillingPrompt";
 import { PROJECTS_HREF } from "@/components/company/links";
 import { CandidatePreferences } from "@/components/company/CandidatePreferences";
+import { ProjectHistory } from "@/components/company/ProjectHistory";
 import { ProjectOwner } from "@/components/company/ProjectOwner";
 import { RescoreAll } from "@/components/company/RescoreAll";
 import { Button, Dialog, Input, Textarea } from "@/components/ui";
@@ -184,6 +185,7 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
           onChanged={() => void load()}
         />
       )}
+      <ProjectHistory projectId={projectId} />
       <Dialog open={saved} onOpenChange={setSaved} title="Project saved" />
       <Dialog open={deleting} onOpenChange={setDeleting} title="Delete project">
         <form className="page-form" onSubmit={remove} noValidate>
