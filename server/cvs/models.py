@@ -278,8 +278,9 @@ class StageChange(CompanyOwnedModel):
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name="stage_changes")
     from_stage = models.CharField(max_length=20, choices=Candidate.Stage.choices)
     to_stage = models.CharField(max_length=20, choices=Candidate.Stage.choices)
+    # Empty when a project rule moved the candidate (see `intake.py`), not a person.
     changed_by = models.ForeignKey(
-        "companies.CompanyUser", on_delete=models.PROTECT, related_name="+"
+        "companies.CompanyUser", null=True, on_delete=models.PROTECT, related_name="+"
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

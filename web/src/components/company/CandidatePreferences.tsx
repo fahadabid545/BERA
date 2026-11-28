@@ -2,10 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { Button, Checkbox, Dialog } from "@/components/ui";
+import { Button, Checkbox, Dialog, Input } from "@/components/ui";
 import { getJson, putJson, type ApiError } from "@/lib/api";
 
-type Preferences = { hide_contact_by_default: boolean };
+type Preferences = {
+  hide_contact_by_default: boolean;
+  auto_shortlist: boolean;
+  auto_reject_below: number | null;
+};
 
 /** How the project's candidates are handled. One Save for the whole section. */
 export function CandidatePreferences({
@@ -50,7 +54,7 @@ export function CandidatePreferences({
       </p>
     ) : null;
   }
-  const changed = draft.hide_contact_by_default !== saved.hide_contact_by_default;
+  const changed = JSON.stringify(draft) !== JSON.stringify(saved);
   return (
     <section className="page-form" aria-labelledby="candidate-preferences">
       <h2 id="candidate-preferences">Candidates</h2>
@@ -60,7 +64,29 @@ export function CandidatePreferences({
         disabled={readOnly}
         onChange={(event) => setDraft({ ...draft, hide_contact_by_default: event.target.checked })}
       />
-      {error && (
+      <Checkbox
+        label="Shortlist strong matches automatically"
+        checked={draft.auto_shortlist}
+        disabled={readOnly}
+        onChange={(event) => setDraft({ ...draft, auto_shortlist: event.target.checked })}
+      />
+      <Input
+        label="Reject new candidates scoring below"
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={100}
+        value={draft.auto_reject_below ?? ""}
+        readOnly={readOnly}
+        error={error?.fields?.auto_reject_below}
+        onChange={(event) =>
+          setDraft({
+            ...draft,
+            auto_reject_below: event.target.value === "" ? null : Number(event.target.value),
+          })
+        }
+      />
+      {error && !error.fields && (
         <p className="ui-error" role="alert">
           {error.message}
         </p>

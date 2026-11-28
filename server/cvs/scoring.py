@@ -27,6 +27,7 @@ from projects.scoring_settings import effective_settings
 from usage import service as usage
 
 from .duplicates import counts_toward_limits
+from .intake import apply_intake_rules
 from .models import Candidate, CandidateScore, RequirementResult
 from .processing import StepContext, register_step
 from .recommendation import recommend
@@ -149,7 +150,7 @@ def score_candidate(candidate, requirements=None, settings=None):
         Decimal(settings["nice_weight_percent"]),
         settings["cap_on_missing_must_have"],
     )
-    saved, _ = CandidateScore.objects.update_or_create(
+    saved, first_score = CandidateScore.objects.update_or_create(
         candidate=candidate,
         defaults={
             "company_id": candidate.company_id,
@@ -162,6 +163,8 @@ def score_candidate(candidate, requirements=None, settings=None):
             **recommend(outcome.score, settings["recommendation_threshold"], judged),
         },
     )
+    if first_score:
+        apply_intake_rules(candidate, saved.score, settings["recommendation_threshold"])
     return saved
 
 

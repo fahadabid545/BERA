@@ -150,3 +150,8 @@ class PreferencesSerializer(StrictSerializer):
     """Each field is optional: only what is sent changes."""
 
     hide_contact_by_default = serializers.BooleanField(required=False)
+    auto_shortlist = serializers.BooleanField(required=False)
+    # A score is 0 to 100; empty turns the rule off.
+    auto_reject_below = serializers.IntegerField(
+        required=False, allow_null=True, min_value=0, max_value=100
+    )

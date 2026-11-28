@@ -47,6 +47,10 @@ class Project(CompanyOwnedModel):
     )
     # The starting choice of "Hide contact details" when a report is shared.
     hide_contact_by_default = models.BooleanField(default=False)
+    # A new candidate whose first score reaches the strong-match threshold starts as Shortlisted.
+    auto_shortlist = models.BooleanField(default=False)
+    # A new candidate whose first score is below this goes straight to Rejected; empty is off.
+    auto_reject_below = models.PositiveSmallIntegerField(null=True)
     # While set, no new CVs are accepted; what is already uploaded carries on.
     uploads_paused = models.BooleanField(default=False)
     # Words for the person when the AI could not draft the list; empty otherwise.

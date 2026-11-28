@@ -16,6 +16,8 @@ from platform_settings.service import get_setting
 
 from .models import Candidate, StageChange
 
+AUTOMATIC_NAME = "Project rule"
+
 
 def _checked_ids(raw):
     if not isinstance(raw, list) or not raw:
@@ -64,7 +66,7 @@ def history(candidate):
         {
             "from_stage": change.from_stage,
             "to_stage": change.to_stage,
-            "by": change.changed_by.name,
+            "by": change.changed_by.name if change.changed_by else AUTOMATIC_NAME,
             "at": change.created_at.isoformat(),
         }
         for change in changes.order_by("-created_at", "-pk")
