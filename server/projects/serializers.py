@@ -132,3 +132,7 @@ class ScoringDefaultsSerializer(ScoringSettingsSerializer):
 
     def validate_factors(self, value):
         return clean_factors(value)
+
+
+class ChangeProjectOwnerSerializer(StrictSerializer):
+    owner_id = serializers.IntegerField(min_value=1)

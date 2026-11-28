@@ -20,6 +20,7 @@ ROLES_ALLOWED = {
     "project.edit": EVERYONE,
     "project.archive": EVERYONE,
     "project.delete": OWNER_ONLY,
+    "project.change_owner": OWNER_ONLY,
     "cv.upload": EVERYONE,
     "cv.download": EVERYONE,
     "candidate.view": EVERYONE,

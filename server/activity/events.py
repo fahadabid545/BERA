@@ -14,6 +14,7 @@ KINDS = frozenset(
         "project_deleted",
         "member_removed",
         "ownership_transferred",
+        "project_owner_changed",
         "setting_changed",
         "candidate_deleted",
         "data_expired",  # done by the daily clean-up, so it has no person

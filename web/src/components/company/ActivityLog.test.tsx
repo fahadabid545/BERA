@@ -167,6 +167,7 @@ describe("the sentence of an entry", () => {
     ["share", { action: "revoked" }, "Revoked a report link"],
     ["member_removed", { removed_name: "Mina" }, "Removed Mina from the team"],
     ["ownership_transferred", { new_owner_name: "Mina" }, "Handed ownership to Mina"],
+    ["project_owner_changed", { new_owner_name: "Mina" }, "Handed a project to Mina"],
     ["invite_sent", {}, "Invited a member"],
     ["project_deleted", {}, "Deleted a project"],
     ["candidate_deleted", {}, "Deleted a candidate"],

@@ -92,6 +92,20 @@ describe("project settings", () => {
     expect(calls()[1]).toEqual([`${BASE}duplicate/`, "POST"]);
   });
 
+  it("shows the owner control only when the server says the person may change the owner", async () => {
+    reply(200, { ...ACTIVE, may_change_owner: true, owner_id: 1 });
+    reply(200, [{ id: 1, name: "Olga", status: "active" }]);
+    render(<ProjectSettings projectId="p1" />);
+    expect(await screen.findByLabelText("Project owner")).toBeTruthy();
+  });
+
+  it("hides the owner control from everyone else", async () => {
+    reply(200, { ...ACTIVE, may_change_owner: false, owner_id: 1 });
+    render(<ProjectSettings projectId="p1" />);
+    await screen.findByLabelText("Project title");
+    expect(screen.queryByLabelText("Project owner")).toBeNull();
+  });
+
   it("an archived project can be duplicated too", async () => {
     reply(200, { ...ACTIVE, status: "archived" });
     render(<ProjectSettings projectId="p1" />);

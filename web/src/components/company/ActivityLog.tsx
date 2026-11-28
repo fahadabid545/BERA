@@ -54,6 +54,8 @@ export function sentence(entry: Entry): string {
       return `Removed ${details.removed_name ?? "a member"} from the team`;
     case "ownership_transferred":
       return `Handed ownership to ${details.new_owner_name ?? "another member"}`;
+    case "project_owner_changed":
+      return `Handed a project to ${details.new_owner_name ?? "another member"}`;
     case "setting_changed":
       return "Changed a setting";
     case "candidate_deleted":

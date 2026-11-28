@@ -19,6 +19,7 @@ from .factor_settings import describe as describe_factors
 from .factor_settings import save_factor_settings
 from .listing import list_projects
 from .models import Project
+from .ownership import change_project_owner
 from .requirements import (
     confirm_requirements,
     list_requirements,
@@ -29,6 +30,7 @@ from .requirements import (
 from .scoring_settings import describe as describe_scoring
 from .scoring_settings import save_scoring_settings
 from .serializers import (
+    ChangeProjectOwnerSerializer,
     CreateProjectSerializer,
     DeleteProjectSerializer,
     EditProjectSerializer,
@@ -88,6 +90,8 @@ def describe(project, user):
         "updated_at": project.updated_at.isoformat(),
         # Only so the screen can hide Delete; the server refuses everyone but the owner.
         "may_delete": user.role in roles_allowed("project.delete"),
+        "may_change_owner": user.role in roles_allowed("project.change_owner"),
+        "owner_id": project.created_by_id,
     }
 
 
@@ -146,6 +150,24 @@ class ProjectDuplicate(ProjectView):
             CompanyUser.objects.get(pk=request.user.user_id), self.get_object()
         )
         return Response({"id": str(copy.id)}, status=status.HTTP_201_CREATED)
+
+
+class ProjectOwner(ProjectView):
+    """Hands the project to another active team member (the company's owner decides)."""
+
+    def permitted_roles(self):
+        return roles_allowed("project.change_owner")
+
+    def put(self, request, id):
+        project = self.get_object()
+        serializer = ChangeProjectOwnerSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        changed = change_project_owner(
+            CompanyUser.objects.get(pk=request.user.user_id),
+            project,
+            serializer.validated_data["owner_id"],
+        )
+        return Response(describe(changed, request.user))
 
 
 class ProjectArchive(ProjectView):

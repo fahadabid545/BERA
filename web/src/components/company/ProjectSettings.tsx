@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { BillingPrompts, isPromptKind, type PromptKind } from "@/components/company/BillingPrompt";
 import { PROJECTS_HREF } from "@/components/company/links";
+import { ProjectOwner } from "@/components/company/ProjectOwner";
 import { Button, Dialog, Input, Textarea } from "@/components/ui";
 import { deleteJson, getJson, patchJson, postJson, type ApiError } from "@/lib/api";
 
@@ -14,6 +15,8 @@ type Project = {
   job_description: string;
   status: "active" | "archived";
   may_delete: boolean;
+  may_change_owner?: boolean;
+  owner_id?: number;
 };
 
 /** Edit, archive, restore and delete one project. An archived project is read-only. */
@@ -150,6 +153,13 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
           )}
         </div>
       </form>
+      {project.may_change_owner && project.owner_id !== undefined && (
+        <ProjectOwner
+          projectId={projectId}
+          ownerId={project.owner_id}
+          onChanged={() => void load()}
+        />
+      )}
       <Dialog open={saved} onOpenChange={setSaved} title="Project saved" />
       <Dialog open={deleting} onOpenChange={setDeleting} title="Delete project">
         <form className="page-form" onSubmit={remove} noValidate>
