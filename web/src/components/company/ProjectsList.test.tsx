@@ -15,11 +15,12 @@ const ROW = {
   cv_capacity: 50,
   best_score: null,
   status: "active",
+  labels: [] as string[],
   updated_at: "2026-11-02T10:00:00Z",
 };
 
 function page(results: unknown[], pageNumber = 1, pages = 1) {
-  return { results, page: pageNumber, pages, total: results.length, page_size: 20 };
+  return { results, page: pageNumber, pages, total: results.length, page_size: 20, labels: [] };
 }
 
 function answer(body: unknown, status = 200) {
@@ -35,6 +36,34 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+});
+
+describe("project labels", () => {
+  it("shows a card's labels", async () => {
+    answer(page([{ ...ROW, labels: ["Sales", "Remote"] }]));
+    render(<ProjectsList />);
+    const labels = await screen.findByRole("list", { name: "Labels" });
+    expect(
+      within(labels)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Sales", "Remote"]);
+  });
+
+  it("offers a label filter only when the company has labels", async () => {
+    answer(page([ROW]));
+    render(<ProjectsList />);
+    await screen.findByRole("region", { name: "Backend engineer" });
+    expect(screen.queryByLabelText("Label")).toBeNull();
+  });
+
+  it("asks the server for the chosen label, from the first page", async () => {
+    answer({ ...page([ROW]), labels: ["Sales"] });
+    render(<ProjectsList />);
+    await userEvent.selectOptions(await screen.findByLabelText("Label"), "Sales");
+    await waitFor(() => expect(lastUrl()).toContain("label=Sales"));
+    expect(lastUrl()).toContain("page=1");
+  });
 });
 
 describe("projects list", () => {

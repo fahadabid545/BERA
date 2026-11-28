@@ -28,12 +28,22 @@ def with_figures(projects):
     ).select_related("created_by")
 
 
-def list_projects(company_id, *, search="", status=DEFAULT_STATUS, sort=DEFAULT_SORT, page=1):
+def company_labels(company_id):
+    """Every label in use in the company, for choosing and filtering."""
+    lists = Project.objects.filter(company_id=company_id).values_list("labels", flat=True)
+    return sorted({label for labels in lists for label in labels}, key=str.casefold)
+
+
+def list_projects(
+    company_id, *, search="", status=DEFAULT_STATUS, sort=DEFAULT_SORT, label="", page=1
+):
     projects = Project.objects.filter(company_id=company_id)
     if status != "all":
         projects = projects.filter(status=status)
     if search:
         projects = projects.filter(title__icontains=search)
+    if label:
+        projects = projects.filter(labels__contains=[label])
     projects = with_figures(projects).order_by(*SORTS[sort])
 
     size = get_setting("projects.page_size")
@@ -46,6 +56,7 @@ def list_projects(company_id, *, search="", status=DEFAULT_STATUS, sort=DEFAULT_
         "page_size": size,
         "total": total,
         "pages": max(1, -(-total // size)),
+        "labels": company_labels(company_id),
     }
 
 
@@ -60,5 +71,6 @@ def describe(project, capacity):
         "cv_capacity": capacity,
         "best_score": None if project.best_score is None else float(project.best_score),
         "status": project.status,
+        "labels": project.labels,
         "updated_at": project.updated_at.isoformat(),
     }

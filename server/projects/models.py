@@ -38,6 +38,8 @@ class Project(CompanyOwnedModel):
     scoring_prompt_version = models.PositiveIntegerField(
         default=DEFINITIONS["ai.scoring_prompt_version"].default
     )
+    # Free tags the team uses to sort its projects; the company-wide list is read from these.
+    labels = models.JSONField(default=list, blank=True)
     created_by = models.ForeignKey(
         "companies.CompanyUser", on_delete=models.PROTECT, related_name="+"
     )

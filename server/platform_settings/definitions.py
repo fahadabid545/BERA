@@ -472,6 +472,8 @@ SETTINGS = [
     SettingDefinition("projects.page_size", 20, whole_number(1, 200)),
     SettingDefinition("projects.title_max_length", 120, whole_number(10, 500)),
     SettingDefinition("projects.description_max_length", 15000, whole_number(500, 100000)),
+    SettingDefinition("projects.labels_max_per_project", 5, whole_number(1, 20)),
+    SettingDefinition("projects.label_max_length", 30, whole_number(3, 60)),
     SettingDefinition("projects.short_description_length", 300, whole_number(1, 5000)),
     SettingDefinition("ai.reading_model", "standin-reading-model", short_text(100)),
     SettingDefinition("ai.scoring_model", "standin-scoring-model", short_text(100)),

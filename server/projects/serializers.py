@@ -27,6 +27,7 @@ class ListProjectsSerializer(StrictSerializer):
     search = SafeTextField(max_length=200, required=False, allow_blank=True, default="")
     status = serializers.ChoiceField(choices=STATUS_FILTERS, default=DEFAULT_STATUS)
     sort = serializers.ChoiceField(choices=list(SORTS), default=DEFAULT_SORT)
+    label = SafeTextField(max_length=60, required=False, allow_blank=True, default="")
     page = serializers.IntegerField(min_value=1, max_value=1_000_000, default=1)
 
 
@@ -146,10 +147,30 @@ class RescoreSerializer(StrictSerializer):
     acknowledge_rescoring = serializers.BooleanField(default=False)
 
 
+class LabelsField(serializers.ListField):
+    """Free tags: trimmed, no repeats (ignoring case), each short, only a few per project."""
+
+    child = serializers.CharField(allow_blank=False, trim_whitespace=True)
+
+    def to_internal_value(self, data):
+        labels = []
+        for label in super().to_internal_value(data):
+            if label.casefold() not in {kept.casefold() for kept in labels}:
+                labels.append(label)
+        longest = get_setting("projects.label_max_length")
+        if any(len(label) > longest for label in labels):
+            raise serializers.ValidationError(f"A label can have at most {longest} characters.")
+        most = get_setting("projects.labels_max_per_project")
+        if len(labels) > most:
+            raise serializers.ValidationError(f"A project can have at most {most} labels.")
+        return labels
+
+
 class PreferencesSerializer(StrictSerializer):
     """Each field is optional: only what is sent changes."""
 
     hide_contact_by_default = serializers.BooleanField(required=False)
+    labels = LabelsField(required=False)
     auto_shortlist = serializers.BooleanField(required=False)
     # A score is 0 to 100; empty turns the rule off.
     auto_reject_below = serializers.IntegerField(

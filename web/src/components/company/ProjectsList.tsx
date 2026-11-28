@@ -17,9 +17,16 @@ type Row = {
   cv_capacity: number;
   best_score: number | null;
   status: "active" | "archived";
+  labels: string[];
   updated_at: string;
 };
-type Page = { results: Row[]; page: number; pages: number; total: number };
+type Page = {
+  results: Row[];
+  page: number;
+  pages: number;
+  total: number;
+  labels: string[];
+};
 
 const SORTS = [
   { value: "updated", label: "Last updated" },
@@ -48,6 +55,15 @@ function ProjectCard({ row, position }: { row: Row; position: number }) {
         <h2 className="project-card__title">{row.title}</h2>
         {row.status === "archived" && <Tag variant="neutral">Archived</Tag>}
       </div>
+      {row.labels.length > 0 && (
+        <ul className="project-card__labels" aria-label="Labels">
+          {row.labels.map((label) => (
+            <li key={label}>
+              <Tag variant="neutral">{label}</Tag>
+            </li>
+          ))}
+        </ul>
+      )}
       <dl className="project-card__facts">
         <dt>Created by</dt>
         <dd>{row.created_by}</dd>
@@ -93,6 +109,7 @@ export function ProjectsList() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("updated");
   const [status, setStatus] = useState("active");
+  const [label, setLabel] = useState("");
   const [page, setPage] = useState(1);
   const [loaded, setLoaded] = useState<Page | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
@@ -102,6 +119,7 @@ export function ProjectsList() {
     const request = ++latestRequest.current;
     const query = new URLSearchParams({ sort, status, page: String(page) });
     if (search.trim()) query.set("search", search.trim());
+    if (label) query.set("label", label);
     void getJson<Page>(`${LIST_URL}?${query}`).then((result) => {
       if (request !== latestRequest.current) return; // a newer search already replaced this one
       if (result.ok) {
@@ -109,7 +127,7 @@ export function ProjectsList() {
         setError(null);
       } else setError(result.error);
     });
-  }, [search, sort, status, page]);
+  }, [search, sort, status, label, page]);
 
   // Changing what is asked for starts again from the first page.
   const change = (apply: () => void) => {
@@ -141,6 +159,17 @@ export function ProjectsList() {
           value={status}
           onChange={(event) => change(() => setStatus(event.target.value))}
         />
+        {(loaded?.labels.length ?? 0) > 0 && (
+          <Select
+            label="Label"
+            options={[
+              { value: "", label: "All labels" },
+              ...(loaded?.labels ?? []).map((name) => ({ value: name, label: name })),
+            ]}
+            value={label}
+            onChange={(event) => change(() => setLabel(event.target.value))}
+          />
+        )}
       </div>
       {error && (
         <p className="ui-error" role="alert">

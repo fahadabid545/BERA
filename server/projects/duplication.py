@@ -48,8 +48,9 @@ def duplicate_project(creator, source):
                 model.objects.filter(project=project).delete()
                 _copy_of(row, project).save()
         Project.objects.filter(pk=project.pk).update(
+            labels=source.labels,
             requirements_status=source.requirements_status
             if source.requirements_status != Project.RequirementsStatus.DRAFTING
-            else Project.RequirementsStatus.DRAFT
+            else Project.RequirementsStatus.DRAFT,
         )
     return project

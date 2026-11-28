@@ -10,6 +10,12 @@ type Preferences = {
   auto_shortlist: boolean;
   auto_reject_below: number | null;
 };
+type Answer = Preferences & { labels: string[] };
+
+// Labels have their own section, so this one never sends them.
+function candidateFields({ labels: _labels, ...fields }: Answer): Preferences {
+  return fields;
+}
 
 /** How the project's candidates are handled. One Save for the whole section. */
 export function CandidatePreferences({
@@ -26,10 +32,10 @@ export function CandidatePreferences({
   const [done, setDone] = useState(false);
 
   const load = useCallback(async () => {
-    const result = await getJson<Preferences>(url);
+    const result = await getJson<Answer>(url);
     if (result.ok) {
-      setSaved(result.data);
-      setDraft(result.data);
+      setSaved(candidateFields(result.data));
+      setDraft(candidateFields(result.data));
     } else setError(result.error);
   }, [url]);
   useEffect(() => {
@@ -39,10 +45,10 @@ export function CandidatePreferences({
   async function save() {
     if (!draft) return;
     setError(null);
-    const result = await putJson<Preferences>(url, draft);
+    const result = await putJson<Answer>(url, draft);
     if (result.ok) {
-      setSaved(result.data);
-      setDraft(result.data);
+      setSaved(candidateFields(result.data));
+      setDraft(candidateFields(result.data));
       setDone(true);
     } else setError(result.error);
   }

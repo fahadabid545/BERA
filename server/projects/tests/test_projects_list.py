@@ -89,6 +89,7 @@ class TestRows:
             "id",
             "title",
             "created_by",
+            "labels",
             "created_at",
             "cv_count",
             "cv_capacity",

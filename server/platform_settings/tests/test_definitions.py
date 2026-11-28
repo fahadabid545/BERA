@@ -266,6 +266,8 @@ EXPECTED_DEFAULTS = {
     "projects.page_size": 20,
     "projects.title_max_length": 120,
     "projects.description_max_length": 15000,
+    "projects.labels_max_per_project": 5,
+    "projects.label_max_length": 30,
     "projects.short_description_length": 300,
     "ai.reading_model": "standin-reading-model",
     "ai.scoring_model": "standin-scoring-model",

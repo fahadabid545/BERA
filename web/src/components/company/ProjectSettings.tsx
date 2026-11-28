@@ -7,6 +7,7 @@ import { BillingPrompts, isPromptKind, type PromptKind } from "@/components/comp
 import { PROJECTS_HREF } from "@/components/company/links";
 import { CandidatePreferences } from "@/components/company/CandidatePreferences";
 import { ProjectHistory } from "@/components/company/ProjectHistory";
+import { ProjectLabels } from "@/components/company/ProjectLabels";
 import { ProjectOwner } from "@/components/company/ProjectOwner";
 import { RescoreAll } from "@/components/company/RescoreAll";
 import { Button, Dialog, Input, Textarea } from "@/components/ui";
@@ -176,6 +177,7 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
           )}
         </div>
       </form>
+      <ProjectLabels projectId={projectId} readOnly={archived} />
       <CandidatePreferences projectId={projectId} readOnly={archived} />
       {!archived && <RescoreAll projectId={projectId} />}
       {project.may_change_owner && project.owner_id !== undefined && (

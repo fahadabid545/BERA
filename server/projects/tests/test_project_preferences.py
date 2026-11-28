@@ -23,6 +23,7 @@ class TestPreferences:
             "hide_contact_by_default": False,
             "auto_shortlist": False,
             "auto_reject_below": None,
+            "labels": [],
         }
 
     def test_the_project_carries_them_too(self, owner, project):

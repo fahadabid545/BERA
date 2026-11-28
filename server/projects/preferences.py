@@ -9,7 +9,7 @@ from activity import service as activity
 from .models import Project
 from .service import require_editable
 
-FIELDS = ("hide_contact_by_default", "auto_shortlist", "auto_reject_below")
+FIELDS = ("hide_contact_by_default", "auto_shortlist", "auto_reject_below", "labels")
 
 
 def preferences_of(project):
