@@ -2,6 +2,7 @@
 
 from django.db import transaction
 
+from activity import service as activity
 from companies.models import Company
 from core.errors import AppError
 from plans.limits import check_projects
@@ -10,6 +11,7 @@ from platform_settings.service import get_setting
 from .models import CompanyScoringDefaults, Project, ProjectFactorSettings, ProjectScoringSettings
 
 ARCHIVED_CODE = "project_archived"
+UPLOADS_PAUSED_CODE = "uploads_paused"
 SCORING_FIELDS = (
     "must_weight_percent",
     "nice_weight_percent",
@@ -37,6 +39,41 @@ def require_editable(project):
             "This project is archived. Restore it to make changes.",
             status_code=409,
         )
+
+
+def uploads_block(project):
+    """Why no CV may be added to this project now (code and words for the person), or None."""
+    if project.uploads_paused:
+        return {
+            "code": UPLOADS_PAUSED_CODE,
+            "message": "Uploads are paused for this project. Resume them in the project settings.",
+        }
+    return None
+
+
+def require_uploads_open(project):
+    block = uploads_block(project)
+    if block:
+        raise AppError(block["code"], block["message"], status_code=409)
+
+
+def set_uploads_paused(actor, project, paused):
+    """Pauses or resumes new uploads for a project and logs who did it."""
+    with transaction.atomic():
+        project = Project.objects.select_for_update().get(pk=project.pk)
+        require_editable(project)
+        if project.uploads_paused != paused:
+            project.uploads_paused = paused
+            project.save(update_fields=["uploads_paused", "updated_at"])
+            activity.record(
+                "setting_changed",
+                company_id=project.company_id,
+                actor=actor,
+                target_kind="project",
+                target_id=project.pk,
+                details={"setting": "uploads_paused" if paused else "uploads_resumed"},
+            )
+    return project
 
 
 def warnings_for(company_id, title, job_description):

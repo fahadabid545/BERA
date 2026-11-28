@@ -23,7 +23,7 @@ from platform_settings import maintenance
 from platform_settings.service import get_setting
 from privatefiles.errors import StorageUnavailable
 from projects.deletion import register_project_data
-from projects.service import require_editable
+from projects.service import require_editable, require_uploads_open, uploads_block
 from usage import service as usage
 
 from .duplicates import DUPLICATE_FILE, DUPLICATE_FILE_MESSAGE, content_hash, split_identical
@@ -88,10 +88,11 @@ def batch_id_from(value):
         return None
 
 
-def upload_rules(company_id, user_id=None):
+def upload_rules(company_id, user_id=None, project=None):
     """What the upload area checks before sending; the server checks again."""
+    paused = uploads_block(project) if project else None
     return {
-        "blocked": upload_block(company_id),
+        "blocked": upload_block(company_id) or (paused and {**paused, "prompt": None}),
         "allowed_types": get_setting("uploads.allowed_file_types"),
         "max_file_size_mb": get_setting("uploads.max_file_size_mb"),
         "max_files_per_batch": get_setting("uploads.max_files_per_batch"),
@@ -137,6 +138,7 @@ def upload_cvs(uploader, project, files, batch_id=None):
     in the same order. `batch_id` groups the files of one drop so it can be cancelled together."""
     maintenance.refuse_if_on()
     require_editable(project)
+    require_uploads_open(project)
     batch_id = batch_id or uuid.uuid4()
     _refuse_if_batch_too_big(project, batch_id, len(files))
     _refuse_if_too_many_in_progress(uploader, len(files))  # again under the lock, in `_accept`

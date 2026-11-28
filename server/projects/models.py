@@ -45,6 +45,8 @@ class Project(CompanyOwnedModel):
     requirements_status = models.CharField(
         max_length=20, choices=RequirementsStatus.choices, default=RequirementsStatus.CONFIRMED
     )
+    # While set, no new CVs are accepted; what is already uploaded carries on.
+    uploads_paused = models.BooleanField(default=False)
     # Words for the person when the AI could not draft the list; empty otherwise.
     requirements_notice = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

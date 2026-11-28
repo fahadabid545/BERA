@@ -136,3 +136,7 @@ class ScoringDefaultsSerializer(ScoringSettingsSerializer):
 
 class ChangeProjectOwnerSerializer(StrictSerializer):
     owner_id = serializers.IntegerField(min_value=1)
+
+
+class PauseUploadsSerializer(StrictSerializer):
+    paused = serializers.BooleanField()

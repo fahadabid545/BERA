@@ -36,11 +36,18 @@ from .serializers import (
     EditProjectSerializer,
     FactorSettingsSerializer,
     ListProjectsSerializer,
+    PauseUploadsSerializer,
     SaveRequirementsSerializer,
     ScoringDefaultsSerializer,
     ScoringSettingsSerializer,
 )
-from .service import archive_project, create_project, restore_project, update_project
+from .service import (
+    archive_project,
+    create_project,
+    restore_project,
+    set_uploads_paused,
+    update_project,
+)
 
 
 class ProjectList(CompanyObjectView):
@@ -92,6 +99,7 @@ def describe(project, user):
         "may_delete": user.role in roles_allowed("project.delete"),
         "may_change_owner": user.role in roles_allowed("project.change_owner"),
         "owner_id": project.created_by_id,
+        "uploads_paused": project.uploads_paused,
     }
 
 
@@ -150,6 +158,23 @@ class ProjectDuplicate(ProjectView):
             CompanyUser.objects.get(pk=request.user.user_id), self.get_object()
         )
         return Response({"id": str(copy.id)}, status=status.HTTP_201_CREATED)
+
+
+class ProjectUploads(ProjectView):
+    """Pauses or resumes new CV uploads for the project."""
+
+    def permitted_roles(self):
+        return roles_allowed("project.edit")
+
+    def put(self, request, id):
+        serializer = PauseUploadsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        changed = set_uploads_paused(
+            CompanyUser.objects.get(pk=request.user.user_id),
+            self.get_object(),
+            serializer.validated_data["paused"],
+        )
+        return Response(describe(changed, request.user))
 
 
 class ProjectOwner(ProjectView):

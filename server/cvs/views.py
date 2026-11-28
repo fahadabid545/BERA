@@ -61,7 +61,7 @@ class ProjectCvUpload(CandidateDataView):
 
     def get(self, request, id):
         project = self.get_object()
-        return Response(upload_rules(project.company_id, request.user.user_id))
+        return Response(upload_rules(project.company_id, request.user.user_id, project))
 
     def post(self, request, id):
         project = self.get_object()

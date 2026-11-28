@@ -106,6 +106,35 @@ describe("project settings", () => {
     expect(screen.queryByLabelText("Project owner")).toBeNull();
   });
 
+  it("Pause uploads asks first, then pauses and offers Resume", async () => {
+    reply(200, ACTIVE);
+    reply(200, { ...ACTIVE, uploads_paused: true });
+    render(<ProjectSettings projectId="p1" />);
+    await userEvent.click(await screen.findByRole("button", { name: "Pause uploads" }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole("button", { name: "Pause" }));
+    expect(await screen.findByRole("button", { name: "Resume uploads" })).toBeTruthy();
+    expect(calls()[1]).toEqual([`${BASE}uploads/`, "PUT"]);
+    expect(body(1)).toEqual({ paused: true });
+  });
+
+  it("Resume uploads sends paused false", async () => {
+    reply(200, { ...ACTIVE, uploads_paused: true });
+    reply(200, ACTIVE);
+    render(<ProjectSettings projectId="p1" />);
+    await userEvent.click(await screen.findByRole("button", { name: "Resume uploads" }));
+    await userEvent.click(screen.getByRole("button", { name: "Resume" }));
+    expect(await screen.findByRole("button", { name: "Pause uploads" })).toBeTruthy();
+    expect(body(1)).toEqual({ paused: false });
+  });
+
+  it("an archived project offers no pause", async () => {
+    reply(200, { ...ACTIVE, status: "archived" });
+    render(<ProjectSettings projectId="p1" />);
+    await screen.findByRole("button", { name: "Restore project" });
+    expect(screen.queryByRole("button", { name: "Pause uploads" })).toBeNull();
+  });
+
   it("an archived project can be duplicated too", async () => {
     reply(200, { ...ACTIVE, status: "archived" });
     render(<ProjectSettings projectId="p1" />);

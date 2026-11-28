@@ -490,6 +490,20 @@ class TestAccess:
         assert response.json()["error"]["code"] == "project_archived"
         assert not CvFile.objects.exists()
 
+    def test_a_paused_project_takes_no_uploads_and_says_so_in_the_rules(self, client, project):
+        Project.objects.filter(pk=project.pk).update(uploads_paused=True)
+        blocked = client.get(url(project)).json()["blocked"]
+        assert (blocked["code"], blocked["prompt"]) == ("uploads_paused", None)
+        response = upload(client, project, ("a.pdf", different("a.pdf")))
+        assert response.status_code == 409
+        assert response.json()["error"]["code"] == "uploads_paused"
+        assert not CvFile.objects.exists()
+
+    def test_resuming_lets_uploads_in_again(self, client, project):
+        Project.objects.filter(pk=project.pk).update(uploads_paused=True)
+        client.put(f"/api/company/projects/{project.pk}/uploads/", {"paused": False}, format="json")
+        assert upload(client, project, ("a.pdf", different("a.pdf"))).status_code == 200
+
     def test_nobody_signed_in_is_refused(self, project):
         response = APIClient().post(url(project), {}, format="multipart")
         assert response.status_code == 401

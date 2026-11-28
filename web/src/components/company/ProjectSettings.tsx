@@ -7,7 +7,7 @@ import { BillingPrompts, isPromptKind, type PromptKind } from "@/components/comp
 import { PROJECTS_HREF } from "@/components/company/links";
 import { ProjectOwner } from "@/components/company/ProjectOwner";
 import { Button, Dialog, Input, Textarea } from "@/components/ui";
-import { deleteJson, getJson, patchJson, postJson, type ApiError } from "@/lib/api";
+import { deleteJson, getJson, patchJson, postJson, putJson, type ApiError } from "@/lib/api";
 
 type Project = {
   id: string;
@@ -17,6 +17,7 @@ type Project = {
   may_delete: boolean;
   may_change_owner?: boolean;
   owner_id?: number;
+  uploads_paused?: boolean;
 };
 
 /** Edit, archive, restore and delete one project. An archived project is read-only. */
@@ -76,6 +77,13 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
     setError(result.error);
   }
 
+  async function pauseUploads(paused: boolean) {
+    setError(null);
+    const result = await putJson<Project>(`${base}uploads/`, { paused });
+    if (result.ok) setProject(result.data);
+    else setError(result.error);
+  }
+
   async function remove(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const typed = String(new FormData(event.currentTarget).get("confirm_title") ?? "");
@@ -132,6 +140,18 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
               title="Archive project"
               confirmLabel="Archive"
               onConfirm={() => change("archive")}
+            />
+          )}
+          {!archived && (
+            <Dialog
+              trigger={
+                <Button variant="secondary">
+                  {project.uploads_paused ? "Resume uploads" : "Pause uploads"}
+                </Button>
+              }
+              title={project.uploads_paused ? "Resume uploads" : "Pause uploads"}
+              confirmLabel={project.uploads_paused ? "Resume" : "Pause"}
+              onConfirm={() => void pauseUploads(!project.uploads_paused)}
             />
           )}
           <Dialog
