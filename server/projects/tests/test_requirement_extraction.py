@@ -1,65 +1,17 @@
 import json
 
 import pytest
-from django.utils import timezone
 from rest_framework.test import APIClient
 
 from ai import client
 from ai.client import AiAnswer, AiUnavailable
-from core.tests.factories import make_company, make_company_user, start_session_for
-from plans import subscriptions as subs
-from plans.models import Plan
+from core.tests.factories import make_company, make_company_user
+from cvs.tests.test_ai_reading import set_setting
 from projects.models import Project
+from projects.tests.helpers import LONG_TEXT, sign_in
 from usage import service as usage
 
 pytestmark = pytest.mark.django_db
-LONG_TEXT = "We need a senior backend engineer who knows Python well. " * 8
-
-
-def sign_in(company, role="owner"):
-    person = make_company_user(company, role=role)
-    issued = start_session_for(user_id=person.pk, role=role, company_id=company.pk, kind="company")
-    return person, APIClient(HTTP_AUTHORIZATION=f"Bearer {issued.access_token}")
-
-
-@pytest.fixture
-def company():
-    company = make_company()
-    now = timezone.now()
-    plan = Plan.objects.create(
-        name="Basic",
-        status="active",
-        price_usd=10,
-        cvs_per_month=100,
-        cvs_per_project=50,
-        max_projects=5,
-        max_team_accounts=3,
-        max_top_n=10,
-    )
-    subs.activate(company.pk, plan, period_start=now, period_end=now + timezone.timedelta(days=30))
-    return company
-
-
-@pytest.fixture
-def signed_in(company):
-    return sign_in(company)
-
-
-@pytest.fixture
-def project(company, signed_in):
-    person, _ = signed_in
-    return Project.objects.create(
-        company=company,
-        title="Backend engineer",
-        job_description=LONG_TEXT,
-        reading_model="pinned-model",
-        created_by=person,
-    )
-
-
-@pytest.fixture
-def owner(signed_in):
-    return signed_in[1]
 
 
 def url(project):
@@ -79,7 +31,13 @@ def answer_with(monkeypatch, payload, tokens=(200, 50)):
 
 
 def good(*items, language="en"):
-    return {"language": language, "requirements": [{"kind": k, "text": t} for k, t in items]}
+    """Each item is (kind, text) or (kind, text, weight)."""
+    return {
+        "language": language,
+        "requirements": [
+            {"kind": k, "text": t, **({"weight": w[0]} if w else {})} for k, t, *w in items
+        ],
+    }
 
 
 class TestSuggesting:
@@ -90,11 +48,29 @@ class TestSuggesting:
         )
         body = owner.post(url(project)).json()
         assert body["requirements"] == [
-            {"kind": "must", "text": "5 years of Python"},
-            {"kind": "nice", "text": "Kubernetes experience"},
+            {"kind": "must", "text": "5 years of Python", "weight": 3},
+            {"kind": "nice", "text": "Kubernetes experience", "weight": 3},
         ]
         assert body["fallback"] is False
         assert body["warnings"] == []
+
+    def test_keeps_the_weight_the_ai_gave(self, owner, project, monkeypatch):
+        answer_with(monkeypatch, good(("must", "Python", 5), ("nice", "Docker", 1)))
+        weights = [item["weight"] for item in owner.post(url(project)).json()["requirements"]]
+        assert weights == [5, 1]
+
+    @pytest.mark.parametrize("weight", [0, 6, -1, 2.5, "5", True, None])
+    def test_a_doubtful_weight_becomes_the_default_and_the_requirement_stays(
+        self, owner, project, monkeypatch, weight
+    ):
+        answer_with(monkeypatch, good(("must", "Python", weight)))
+        (item,) = owner.post(url(project)).json()["requirements"]
+        assert item == {"kind": "must", "text": "Python", "weight": 3}
+
+    def test_the_weight_limit_follows_the_platform_setting(self, owner, project, monkeypatch):
+        set_setting("requirements.weight_max", 10)
+        answer_with(monkeypatch, good(("must", "Python", 9)))
+        assert owner.post(url(project)).json()["requirements"][0]["weight"] == 9
 
     def test_the_projects_pinned_model_and_the_platform_prompt_are_used(
         self, owner, project, monkeypatch

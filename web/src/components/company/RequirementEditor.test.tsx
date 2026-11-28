@@ -150,3 +150,93 @@ describe("requirement editor", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("requirement editor: the AI draft", () => {
+  const withStatus = (status: string, notice = "", ...texts: string[]) => ({
+    ...stored(...texts),
+    status,
+    notice,
+    refresh_seconds: 1,
+  });
+
+  // Anything after the queued replies is a poll while the AI is still reading.
+  beforeEach(() => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => withStatus("drafting"),
+    });
+  });
+
+  it("says the job description is being read and then shows the draft when it arrives", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    reply(200, withStatus("drafting"));
+    reply(200, withStatus("drafting"));
+    reply(200, withStatus("draft", "", "Python", "Docker"));
+    render(<RequirementEditor projectId="p1" />);
+    expect(await screen.findByText("Reading the job description")).toBeTruthy();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(await screen.findByDisplayValue("Python")).toBeTruthy();
+    expect(screen.getByText("Draft, not confirmed yet")).toBeTruthy();
+    expect(screen.queryByText("Reading the job description")).toBeNull();
+    vi.useRealTimers();
+  });
+
+  it("shows the AI's weights in the draft", async () => {
+    reply(200, {
+      ...withStatus("draft"),
+      requirements: [{ id: "a", kind: "must", text: "Python", weight: 5 }],
+    });
+    render(<RequirementEditor projectId="p1" />);
+    await screen.findByDisplayValue("Python");
+    expect((screen.getByLabelText("Weight 1") as HTMLSelectElement).value).toBe("5");
+  });
+
+  it("confirms the draft", async () => {
+    reply(200, withStatus("draft", "", "Python"));
+    reply(200, withStatus("confirmed", "", "Python"));
+    render(<RequirementEditor projectId="p1" />);
+    await screen.findByDisplayValue("Python");
+    await userEvent.click(screen.getByRole("button", { name: "Confirm requirements" }));
+    await waitFor(() => expect(screen.queryByText("Draft, not confirmed yet")).toBeNull());
+    expect(fetchMock.mock.calls[1][0]).toBe(`${BASE}confirm/`);
+  });
+
+  it("cannot confirm an empty draft, and shows the AI notice instead", async () => {
+    reply(200, withStatus("draft", "We could not suggest requirements this time."));
+    render(<RequirementEditor projectId="p1" />);
+    expect(await screen.findByText("We could not suggest requirements this time.")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Confirm requirements" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it("reads the job description again only after the popup is confirmed", async () => {
+    reply(200, withStatus("draft", "", "Python"));
+    reply(202, withStatus("drafting"));
+    render(<RequirementEditor projectId="p1" />);
+    await screen.findByDisplayValue("Python");
+    await userEvent.click(screen.getByRole("button", { name: "Read job description again" }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole("button", { name: "Read again" }));
+    expect(await screen.findByText("Reading the job description")).toBeTruthy();
+    expect(fetchMock.mock.calls[1][0]).toBe(`${BASE}reread/`);
+  });
+
+  it("shows no draft controls for a confirmed list", async () => {
+    reply(200, withStatus("confirmed", "", "Python"));
+    render(<RequirementEditor projectId="p1" />);
+    await screen.findByDisplayValue("Python");
+    expect(screen.queryByRole("button", { name: "Confirm requirements" })).toBeNull();
+  });
+
+  it("shows a refusal to read again in words", async () => {
+    reply(200, withStatus("draft", "", "Python"));
+    reply(409, { error: { code: "requirements_not_a_draft", message: "Already confirmed." } });
+    render(<RequirementEditor projectId="p1" />);
+    await screen.findByDisplayValue("Python");
+    await userEvent.click(screen.getByRole("button", { name: "Read job description again" }));
+    await userEvent.click(screen.getByRole("button", { name: "Read again" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("Already confirmed.");
+  });
+});

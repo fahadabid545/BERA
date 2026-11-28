@@ -10,6 +10,14 @@ class Project(CompanyOwnedModel):
         ACTIVE = "active"
         ARCHIVED = "archived"
 
+    class RequirementsStatus(models.TextChoices):
+        """The AI is reading the job description; its draft waits to be checked; or the person
+        has confirmed the list. CVs are processed only once it is confirmed."""
+
+        DRAFTING = "drafting"
+        DRAFT = "draft"
+        CONFIRMED = "confirmed"
+
     """One job opening. Lengths are limited by platform settings when it is written, so the
     columns are plain text and a changed limit needs no migration.
 
@@ -34,6 +42,11 @@ class Project(CompanyOwnedModel):
         "companies.CompanyUser", on_delete=models.PROTECT, related_name="+"
     )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    requirements_status = models.CharField(
+        max_length=20, choices=RequirementsStatus.choices, default=RequirementsStatus.CONFIRMED
+    )
+    # Words for the person when the AI could not draft the list; empty otherwise.
+    requirements_notice = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

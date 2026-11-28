@@ -27,11 +27,20 @@ FALLBACK_MESSAGE = (
 )
 
 
+def _checked_weight(value, heaviest):
+    """The AI's weight when it is a whole number in range; otherwise the default, because a
+    requirement with a doubtful weight is still worth keeping."""
+    if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= heaviest:
+        return value
+    return get_setting("requirements.weight_default")
+
+
 def _clean_requirements(items):
     """The valid, distinct entries in the AI's order. Anything malformed or too long is
     dropped rather than cut short, so a requirement is never changed in meaning."""
     longest = get_setting("requirements.max_length")
     seen, cleaned = set(), []
+    heaviest = get_setting("requirements.weight_max")
     for item in items if isinstance(items, list) else []:
         if not isinstance(item, dict):
             continue
@@ -42,7 +51,9 @@ def _clean_requirements(items):
         if not text or len(text) > longest or text.lower() in seen:
             continue
         seen.add(text.lower())
-        cleaned.append({"kind": kind, "text": text})
+        cleaned.append(
+            {"kind": kind, "text": text, "weight": _checked_weight(item.get("weight"), heaviest)}
+        )
     return cleaned
 
 

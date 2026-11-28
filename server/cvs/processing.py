@@ -47,6 +47,7 @@ from plans.limits import check_cvs_this_month
 from platform_settings.service import get_setting
 from privatefiles.errors import StorageUnavailable
 from projects.deletion import register_work_stopper
+from projects.models import Project
 from projects.service import require_editable
 from usage import service as usage
 
@@ -117,6 +118,16 @@ def _now():
     return timezone.now()
 
 
+def due(now):
+    """The CVs that can be worked on now: waiting, their time has come, and their project's
+    requirements are confirmed (a CV is never scored against an unchecked AI draft)."""
+    return CvFile.objects.filter(
+        status=CvFile.Status.WAITING,
+        next_attempt_at__lte=now,
+        project__requirements_status=Project.RequirementsStatus.CONFIRMED,
+    )
+
+
 def claim_next(now=None):
     """The next CV to work on, fairly: the batch that waited longest for a turn, then its
     oldest CV. Returns the claimed CV (now reading, with a new `claim_token`) or None."""
@@ -128,8 +139,8 @@ def claim_next(now=None):
     ]
     with transaction.atomic():
         item = (
-            CvFile.objects.select_for_update(skip_locked=True, of=("self",))
-            .filter(status=CvFile.Status.WAITING, next_attempt_at__lte=now)
+            due(now)
+            .select_for_update(skip_locked=True, of=("self",))
             .annotate(batch_key=Coalesce("batch_id", "id"))
             .annotate(last_served=Subquery(turn))
             .order_by(F("last_served").asc(nulls_first=True), "next_attempt_at", "created_at")
@@ -250,7 +261,7 @@ def tick():
     if item is None:
         return
     run_item(item)
-    if CvFile.objects.filter(status=CvFile.Status.WAITING, next_attempt_at__lte=_now()).exists():
+    if due(_now()).exists():
         kick(1)
 
 
@@ -275,8 +286,7 @@ def sweep():
         )
         for item in stuck:
             _try_again_or_give_up(item, TOO_LONG_REASON, now)
-    due = CvFile.objects.filter(status=CvFile.Status.WAITING, next_attempt_at__lte=now).count()
-    kick(min(due, settings.Q_CLUSTER["workers"]))
+    kick(min(due(now).count(), settings.Q_CLUSTER["workers"]))
 
 
 def cancel_unstarted(project, batch_id=None):

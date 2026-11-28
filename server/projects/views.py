@@ -6,6 +6,7 @@ from companies.models import CompanyUser
 from companies.role_matrix import require_action, roles_allowed
 from core.errors import form_error
 from core.throttles import limited
+from platform_settings.service import get_setting
 from signin.authentication import CompanyAuthentication
 from signin.company_views import CompanyObjectView
 
@@ -17,7 +18,13 @@ from .factor_settings import describe as describe_factors
 from .factor_settings import save_factor_settings
 from .listing import list_projects
 from .models import Project
-from .requirements import list_requirements, near_duplicates, save_requirements
+from .requirements import (
+    confirm_requirements,
+    list_requirements,
+    near_duplicates,
+    save_requirements,
+    start_rereading,
+)
 from .scoring_settings import describe as describe_scoring
 from .scoring_settings import save_scoring_settings
 from .serializers import (
@@ -76,9 +83,22 @@ def describe(project, user):
         "title": project.title,
         "job_description": project.job_description,
         "status": project.status,
+        "requirements_status": project.requirements_status,
         "updated_at": project.updated_at.isoformat(),
         # Only so the screen can hide Delete; the server refuses everyone but the owner.
         "may_delete": user.role in roles_allowed("project.delete"),
+    }
+
+
+def _requirements_body(project, items, warnings):
+    """The list with where it stands: `drafting` (the AI is reading), `draft` (to be checked,
+    with a notice when the AI could not help) or `confirmed`."""
+    return {
+        "requirements": items,
+        "warnings": warnings,
+        "status": project.requirements_status,
+        "notice": project.requirements_notice,
+        "refresh_seconds": get_setting("live_updates.max_delay_seconds"),
     }
 
 
@@ -143,8 +163,9 @@ class ProjectRequirements(ProjectView):
         return roles_allowed("project.view" if self.request.method == "GET" else "project.edit")
 
     def get(self, request, id):
-        items = list_requirements(self.get_object())
-        return Response({"requirements": items, "warnings": near_duplicates(items)})
+        project = self.get_object()
+        items = list_requirements(project)
+        return Response(_requirements_body(project, items, near_duplicates(items)))
 
     def put(self, request, id):
         project = self.get_object()
@@ -157,7 +178,34 @@ class ProjectRequirements(ProjectView):
             values["requirements"],
             acknowledge_rescoring=values["acknowledge_rescoring"],
         )
-        return Response({"requirements": items, "warnings": warnings})
+        project.refresh_from_db()
+        return Response(_requirements_body(project, items, warnings))
+
+
+class ProjectRequirementsConfirm(ProjectView):
+    """The person accepts the drafted list as it is, so CVs can be processed."""
+
+    def permitted_roles(self):
+        return roles_allowed("project.edit")
+
+    def post(self, request, id):
+        project = self.get_object()
+        items = confirm_requirements(project.pk, project.company_id)
+        project.refresh_from_db()
+        return Response(_requirements_body(project, items, near_duplicates(items)))
+
+
+class ProjectRequirementsReread(ProjectView):
+    """Asks the AI to draft the list again while it is still a draft."""
+
+    def permitted_roles(self):
+        return roles_allowed("project.edit")
+
+    def post(self, request, id):
+        project = self.get_object()
+        start_rereading(project.pk, project.company_id)
+        project.refresh_from_db()
+        return Response(_requirements_body(project, [], []), status=status.HTTP_202_ACCEPTED)
 
 
 class ProjectScoringSettingsView(ProjectView):

@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Button, Dialog, Input, Select } from "@/components/ui";
-import { getJson, putJson, type ApiError } from "@/lib/api";
+import { getJson, postJson, putJson, type ApiError } from "@/lib/api";
+import { startLive } from "@/lib/live";
 
 import { RequirementSuggestions, type SuggestedRequirement } from "./RequirementSuggestions";
 
@@ -11,7 +12,11 @@ type Row = { id?: string; key: string; kind: "must" | "nice"; text: string; weig
 type Saved = {
   requirements: { id: string; kind: "must" | "nice"; text: string; weight: number }[];
   warnings: { code: string; message: string }[];
+  status?: ListStatus;
+  notice?: string;
+  refresh_seconds: number;
 };
+type ListStatus = "drafting" | "draft" | "confirmed";
 type Rescoring = { cvs: number; estimated_cost: string };
 
 const KINDS = [
@@ -34,17 +39,35 @@ export function RequirementEditor({ projectId }: { projectId: string }) {
   const [error, setError] = useState<ApiError | null>(null);
   const [saved, setSaved] = useState(false);
   const [rescoring, setRescoring] = useState<Rescoring | null>(null);
+  const [listStatus, setListStatus] = useState<ListStatus>("confirmed");
+  const [notice, setNotice] = useState("");
+  const [rereading, setRereading] = useState(false);
 
+  const show = useCallback((data: Saved) => {
+    setRows(toRows(data.requirements));
+    setWarnings(data.warnings);
+    setListStatus(data.status ?? "confirmed");
+    setNotice(data.notice ?? "");
+  }, []);
   const load = useCallback(async () => {
     const result = await getJson<Saved>(base);
-    if (result.ok) {
-      setRows(toRows(result.data.requirements));
-      setWarnings(result.data.warnings);
-    } else setError(result.error);
-  }, [base]);
+    if (result.ok) show(result.data);
+    else setError(result.error);
+  }, [base, show]);
   useEffect(() => {
     void load();
   }, [load]);
+  // While the AI reads the job description, ask again until its draft arrives. The person's own
+  // edits are left alone until then.
+  useEffect(() => {
+    if (listStatus !== "drafting") return;
+    return startLive(
+      () => getJson<Saved>(base),
+      (result) => {
+        if (result.ok && result.data.status !== "drafting") show(result.data);
+      },
+    );
+  }, [listStatus, base, show]);
 
   const change = (key: string, changes: Partial<Row>) =>
     setRows((current) => current.map((row) => (row.key === key ? { ...row, ...changes } : row)));
@@ -69,8 +92,7 @@ export function RequirementEditor({ projectId }: { projectId: string }) {
       acknowledge_rescoring: acknowledgeRescoring,
     });
     if (result.ok) {
-      setRows(toRows(result.data.requirements));
-      setWarnings(result.data.warnings);
+      show(result.data);
       return setSaved(true);
     }
     if (result.error.code === "rescoring_needed") {
@@ -79,9 +101,37 @@ export function RequirementEditor({ projectId }: { projectId: string }) {
     setError(result.error);
   }
 
+  async function confirm() {
+    setError(null);
+    const result = await postJson<Saved>(`${base}confirm/`, {});
+    if (result.ok) show(result.data);
+    else setError(result.error);
+  }
+
+  async function readAgain() {
+    setRereading(false);
+    setError(null);
+    const result = await postJson<Saved>(`${base}reread/`, {});
+    if (result.ok) show(result.data);
+    else setError(result.error);
+  }
+
   const fieldError = error?.fields ? Object.values(error.fields)[0] : null;
   return (
     <div className="page-stack">
+      {listStatus === "drafting" && <p role="status">Reading the job description</p>}
+      {listStatus === "draft" && (
+        <div className="page-actions">
+          <p role="status">Draft, not confirmed yet</p>
+          <Button onClick={() => void confirm()} disabled={rows.length === 0}>
+            Confirm requirements
+          </Button>
+          <Button variant="secondary" onClick={() => setRereading(true)}>
+            Read job description again
+          </Button>
+        </div>
+      )}
+      {listStatus === "draft" && notice && <p role="status">{notice}</p>}
       {rows.map((row, index) => (
         <div className="page-actions" key={row.key}>
           <Select
@@ -143,6 +193,14 @@ export function RequirementEditor({ projectId }: { projectId: string }) {
         <Button onClick={() => save(false)}>Save</Button>
       </div>
       <RequirementSuggestions projectId={projectId} onUse={add} />
+      <Dialog
+        open={rereading}
+        onOpenChange={setRereading}
+        title="Read job description again"
+        description="The draft below will be replaced."
+        confirmLabel="Read again"
+        onConfirm={() => void readAgain()}
+      />
       <Dialog open={saved} onOpenChange={setSaved} title="Requirements saved" />
       <Dialog
         open={rescoring !== null}

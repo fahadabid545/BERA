@@ -9,6 +9,7 @@ from difflib import SequenceMatcher
 from django.db import transaction
 
 from core.errors import AppError, form_error
+from cvs.models import CvFile
 from platform_settings.service import get_setting
 
 from .deletion import register_project_data
@@ -25,6 +26,7 @@ from .service import require_editable
 RESCORING_CODE = "rescoring_needed"
 NEEDED_CODE = "requirements_needed"
 NEAR_DUPLICATE = "near_duplicate"
+NOT_A_DRAFT_CODE = "requirements_not_a_draft"
 
 
 def list_requirements(project):
@@ -111,11 +113,51 @@ def save_requirements(project_id, company_id, items, *, acknowledge_rescoring=Fa
                 )
                 kept.add(str(created.id))
         Requirement.objects.filter(project=project).exclude(pk__in=kept).delete()
-        project.save(update_fields=["updated_at"])
+        released = _confirm(project)
         recalculate_scores(project)
         queued = start_rescoring(project) if rescoring and rescoring["cvs"] > 0 else 0
-    wake_workers(queued)  # outside the transaction, so workers find the rows
+    wake_workers(queued + released)  # outside the transaction, so workers find the rows
     return list_requirements(project), near_duplicates(items)
+
+
+def _confirm(project):
+    """Marks the list as checked by the person and saves the project. Returns how many CVs were
+    waiting for this, so the caller can wake the workers."""
+    held = project.requirements_status != Project.RequirementsStatus.CONFIRMED
+    project.requirements_status = Project.RequirementsStatus.CONFIRMED
+    project.requirements_notice = ""
+    project.save(update_fields=["requirements_status", "requirements_notice", "updated_at"])
+    return (
+        CvFile.objects.filter(project=project, status=CvFile.Status.WAITING).count() if held else 0
+    )
+
+
+def confirm_requirements(project_id, company_id):
+    """The person accepts the drafted list as it is. Needs at least one requirement."""
+    with transaction.atomic():
+        project = Project.objects.select_for_update().get(pk=project_id, company_id=company_id)
+        require_editable(project)
+        require_requirements_for_scoring(project)
+        released = _confirm(project)
+    wake_workers(released)
+    return list_requirements(project)
+
+
+def start_rereading(project_id, company_id):
+    """Asks the AI to draft the list again. Only while the list is still a draft: once it is
+    confirmed, CVs have been scored against it and changing it goes through re-scoring."""
+    from .drafting import start_drafting
+
+    with transaction.atomic():
+        project = Project.objects.select_for_update().get(pk=project_id, company_id=company_id)
+        require_editable(project)
+        if project.requirements_status != Project.RequirementsStatus.DRAFT:
+            raise AppError(
+                NOT_A_DRAFT_CODE,
+                "The job description can only be read again before the requirements are confirmed.",
+                status_code=409,
+            )
+        start_drafting(project)
 
 
 def require_requirements_for_scoring(project):

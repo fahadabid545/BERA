@@ -62,6 +62,9 @@ def warnings_for(company_id, title, job_description):
 
 
 def create_project(creator, title, job_description, *, acknowledge_warnings=False):
+    # Drafting reads the project through `extraction`, which needs this module, so it loads here.
+    from .drafting import start_drafting
+
     with transaction.atomic():
         # The company row lock makes two creations at once see each other's project, so they
         # cannot pass the plan limit together.
@@ -86,6 +89,7 @@ def create_project(creator, title, job_description, *, acknowledge_warnings=Fals
             created_by=creator,
         )
         _start_from_company_defaults(project)
+        start_drafting(project)
         return project
 
 

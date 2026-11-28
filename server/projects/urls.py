@@ -9,6 +9,8 @@ urlpatterns = [
     path("<str:id>/scoring/", views.ProjectScoringSettingsView.as_view()),
     path("<str:id>/factors/", views.ProjectFactorSettingsView.as_view()),
     path("<str:id>/requirements/", views.ProjectRequirements.as_view()),
+    path("<str:id>/requirements/confirm/", views.ProjectRequirementsConfirm.as_view()),
+    path("<str:id>/requirements/reread/", views.ProjectRequirementsReread.as_view()),
     path("<str:id>/requirements/suggest/", views.ProjectRequirementSuggestions.as_view()),
     path("<str:id>/restore/", views.ProjectRestore.as_view()),
 ]
