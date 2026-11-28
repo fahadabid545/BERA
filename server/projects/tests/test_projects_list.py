@@ -53,7 +53,12 @@ def add_scored(company, person, project, name, value):
     )
     contact = CvContact.objects.create(company=company, cv_file=row, name="Jane Example")
     candidate = Candidate.objects.create(
-        company=company, project=project, cv_file=row, profile=profile, contact=contact
+        company=company,
+        project=project,
+        cv_file=row,
+        profile=profile,
+        contact=contact,
+        number=Candidate.objects.filter(project=project).count() + 1,
     )
     CandidateScore.objects.create(
         company=company, candidate=candidate, score=value, grade="B", label="possible"

@@ -140,7 +140,16 @@ class Candidate(CompanyOwnedModel):
     profile = models.OneToOneField(CvProfile, on_delete=models.CASCADE, related_name="candidate")
     contact = models.OneToOneField(CvContact, on_delete=models.CASCADE, related_name="candidate")
     stage = models.CharField(max_length=20, choices=Stage.choices, default=Stage.NEW)
+    # The candidate's place in the project (1, 2, 3 ...), shown as its key. Never reused.
+    number = models.PositiveIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "number"], name="candidate_number_in_project"
+            )
+        ]
 
 
 class RequirementResult(CompanyOwnedModel):

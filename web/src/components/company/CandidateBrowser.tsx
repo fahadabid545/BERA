@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { Button, ButtonLink } from "@/components/ui";
+import { Button, ButtonLink, SegmentedControl } from "@/components/ui";
 import type { ApiError } from "@/lib/api";
 
 import {
@@ -12,6 +12,7 @@ import {
   type Filters,
   type RequirementChoice,
 } from "./CandidateFilters";
+import { CandidateBoard } from "./CandidateBoard";
 import { CandidateList } from "./CandidateList";
 import { DownloadMenu } from "./DownloadMenu";
 import { packagePage, requestPackage } from "./downloads";
@@ -28,14 +29,18 @@ export function CandidateBrowser({ projectId }: { projectId: string }) {
   const [hasRows, setHasRows] = useState(false);
   const [downloadError, setDownloadError] = useState<ApiError | null>(null);
 
+  const view = searchParams.get("view") === "board" ? "board" : "list";
   const filters: Filters = {};
   for (const key of FILTER_KEYS) {
     const value = searchParams.get(key);
     if (value) filters[key] = value;
   }
 
-  function change(next: Filters) {
-    const query = new URLSearchParams(next).toString();
+  function change(next: Filters, nextView = view) {
+    const query = new URLSearchParams({
+      ...next,
+      ...(nextView === "board" && { view: nextView }),
+    }).toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
 
@@ -56,7 +61,19 @@ export function CandidateBrowser({ projectId }: { projectId: string }) {
           onClearAll={() => change({})}
         />
         <div className="toolbar__end">
-          {hasRows && !selecting && (
+          <SegmentedControl
+            label="View"
+            value={view}
+            options={[
+              { value: "list", label: "List" },
+              { value: "board", label: "Board" },
+            ]}
+            onChange={(next) => {
+              setSelecting(false);
+              change(filters, next as "list" | "board");
+            }}
+          />
+          {view === "list" && hasRows && !selecting && (
             <Button variant="secondary" onClick={() => setSelecting(true)}>
               Select
             </Button>
@@ -66,17 +83,21 @@ export function CandidateBrowser({ projectId }: { projectId: string }) {
           <ButtonLink href={`/company/projects/${projectId}#upload`}>Upload CVs</ButtonLink>
         </div>
       </div>
-      <CandidateList
-        projectId={projectId}
-        filters={filters}
-        onClearAll={() => change({})}
-        selecting={selecting}
-        onSelectingChange={setSelecting}
-        onHasRows={setHasRows}
-        onRequirements={setRequirements}
-        onCompare={(ids) => router.push(`${compareBase}?ids=${ids.join(",")}`)}
-        onDownload={(ids) => void downloadSelected(ids)}
-      />
+      {view === "board" ? (
+        <CandidateBoard projectId={projectId} filters={filters} onRequirements={setRequirements} />
+      ) : (
+        <CandidateList
+          projectId={projectId}
+          filters={filters}
+          onClearAll={() => change({})}
+          selecting={selecting}
+          onSelectingChange={setSelecting}
+          onHasRows={setHasRows}
+          onRequirements={setRequirements}
+          onCompare={(ids) => router.push(`${compareBase}?ids=${ids.join(",")}`)}
+          onDownload={(ids) => void downloadSelected(ids)}
+        />
+      )}
       {downloadError && (
         <p className="ui-error" role="alert">
           {downloadError.message}

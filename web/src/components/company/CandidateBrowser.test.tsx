@@ -197,11 +197,33 @@ describe("comparison links", () => {
     const end = toolbar.querySelector(".toolbar__end")!;
     expect(toolbar.firstElementChild?.textContent).toBe("Filters");
     expect([...end.querySelectorAll("button, a")].map((item) => item.textContent)).toEqual([
+      "List",
+      "Board",
       "Share report",
       "Shared links",
       "Download",
       "Upload CVs",
     ]);
+  });
+
+  it("shows the board when the address says view=board, and keeps the filters", async () => {
+    search = "view=board&score_min=80";
+    serveList({ ...body(), columns: [] });
+    render(<CandidateBrowser projectId="p1" />);
+    await waitFor(() =>
+      expect(paths().some((path) => path.includes("/candidates/board/?score_min=80"))).toBe(true),
+    );
+    expect(paths().some((path) => path.includes("sort="))).toBe(false);
+  });
+
+  it("switches between list and board through the address", async () => {
+    search = "score_min=80";
+    render(<CandidateBrowser projectId="p1" />);
+    await userEvent.click(screen.getByRole("button", { name: "Board" }));
+    expect(replace).toHaveBeenLastCalledWith(
+      "/company/projects/p1/candidates?score_min=80&view=board",
+      { scroll: false },
+    );
   });
 
   it("puts Select in the toolbar only when there are candidates to select", async () => {

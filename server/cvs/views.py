@@ -11,6 +11,7 @@ from platform_settings.service import get_setting
 from projects.models import Project
 from signin.company_views import CandidateDataView, CompanyObjectView
 
+from .board import board
 from .candidate_deletion import delete_candidate
 from .charts import company_charts, project_charts
 from .company_candidates import candidates_page
@@ -428,6 +429,21 @@ class ProjectCandidates(CandidateDataView):
 
     def get(self, request, id):
         return Response(ranked_list(self.get_object(), request.query_params))
+
+
+class ProjectBoard(CandidateDataView):
+    """The project's candidates in one column for each stage, only this company's."""
+
+    queryset = Project.objects.all()
+
+    def get_throttles(self):
+        return [throttle() for throttle in live()]
+
+    def permitted_roles(self):
+        return roles_allowed("project.view")
+
+    def get(self, request, id):
+        return Response(board(self.get_object(), request.query_params))
 
 
 class CandidateComparison(CandidateDataView):

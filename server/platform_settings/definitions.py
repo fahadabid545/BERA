@@ -404,6 +404,10 @@ SETTINGS = [
     # The ranked candidate list (see cvs/ranking.py).
     SettingDefinition("candidates.page_size", 25, whole_number(1, 200)),
     SettingDefinition("candidates.search_max_length", 200, whole_number(1, 1000)),
+    # The board (see cvs/board.py): the letters before a candidate's number, and how many cards
+    # one column loads at a time.
+    SettingDefinition("candidates.key_prefix", "BE", short_text(10)),
+    SettingDefinition("candidates.board_column_size", 25, whole_number(1, 200)),
     # Stages and notes (see cvs/stages.py and cvs/notes.py).
     SettingDefinition("candidates.bulk_max", 200, whole_number(1, 5000)),
     SettingDefinition("notes.max_length", 2000, whole_number(1, 20000)),

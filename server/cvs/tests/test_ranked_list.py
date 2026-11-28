@@ -56,6 +56,7 @@ def add(tenant, name, score=None, *, status="done", ats=None, who="Jane Example"
         cv_file=row,
         profile=row.profile,
         contact=row.contact,
+        number=Candidate.objects.filter(project=tenant.project).count() + 1,
     )
     if ats is not None:
         AtsScore.objects.create(

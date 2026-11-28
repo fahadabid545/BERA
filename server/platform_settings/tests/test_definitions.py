@@ -155,6 +155,8 @@ EXPECTED_DEFAULTS = {
     "scoring.missing_must_have_cap": 60,
     "candidates.page_size": 25,
     "candidates.search_max_length": 200,
+    "candidates.key_prefix": "BE",
+    "candidates.board_column_size": 25,
     "candidates.bulk_max": 200,
     "notes.max_length": 2000,
     "charts.ranking_max_bars": 10,

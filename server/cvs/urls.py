@@ -16,6 +16,7 @@ urlpatterns = [
     path("<str:id>/matrix/", views.CandidateMatrix.as_view()),
     path("<str:id>/frontier/", views.ProjectFrontier.as_view()),
     path("<str:id>/downloads/", views.ProjectDownloads.as_view()),
+    path("<str:id>/candidates/board/", views.ProjectBoard.as_view()),
     path("<str:id>/candidates/export/", views.ProjectListExport.as_view()),
     path("<str:id>/candidates/stage/", views.CandidateStages.as_view()),
     path("<str:id>/candidates/<str:candidate_id>/", views.CandidateDetail.as_view()),
