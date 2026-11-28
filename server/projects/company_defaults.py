@@ -10,7 +10,7 @@ from plans.limits import check_top_n
 from .factor_settings import default_factors
 from .factor_settings import refuse_impossible as refuse_impossible_factors
 from .models import CompanyScoringDefaults
-from .scoring_settings import FIELDS, scoring_defaults, top_n_cap
+from .scoring_settings import FIELDS, held_at_cap, scoring_defaults, top_n_cap
 from .scoring_settings import refuse_impossible as refuse_impossible_scoring
 
 
@@ -23,7 +23,7 @@ def effective_defaults(company_id):
     else:
         values = {name: getattr(saved, name) for name in FIELDS}
         values["factors"] = {**default_factors(), **saved.factors}
-    values["top_n"] = min(values["top_n"], top_n_cap(company_id))
+    values["top_n"] = held_at_cap(values["top_n"], top_n_cap(company_id))
     return values
 
 

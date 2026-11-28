@@ -9,7 +9,7 @@ import { startLive } from "@/lib/live";
 type Status =
   "awaiting_confirmation" | "waiting" | "reading" | "scoring" | "done" | "failed" | "cancelled";
 type Item = { id: string; name: string; status: Status; reason: string; can_retry: boolean };
-type Used = { used: number; limit: number };
+type Used = { used: number; limit: number | null };
 type Estimate = {
   cvs: number;
   estimated_cost: string;
@@ -129,11 +129,11 @@ export function CvProcessing({ projectId }: { projectId: string }) {
             <li>Approximate cost: ${estimate.estimated_cost}</li>
             <li>
               CVs this month: {estimate.limits.cvs_this_month.used} of{" "}
-              {estimate.limits.cvs_this_month.limit}
+              {estimate.limits.cvs_this_month.limit ?? "no limit"}
             </li>
             <li>
               CVs in this project: {estimate.limits.cvs_in_project.used} of{" "}
-              {estimate.limits.cvs_in_project.limit}
+              {estimate.limits.cvs_in_project.limit ?? "no limit"}
             </li>
           </ul>
           {estimate.blocked && (

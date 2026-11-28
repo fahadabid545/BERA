@@ -211,6 +211,19 @@ class TestImpossibleCombinations:
             )
 
 
+class TestPlanWithNoCap:
+    def test_a_plan_without_a_top_n_cap_does_not_crash_and_shows_no_cap(self, client, project):
+        Plan.objects.update(max_top_n=None)
+        shown = client.get(url(project)).json()
+        assert shown["top_n"] == DEFAULTS["top_n"]
+        assert shown["top_n_cap"] is None
+
+    def test_any_top_n_can_be_saved(self, client, project):
+        Plan.objects.update(max_top_n=None)
+        assert put(client, project, top_n=500).status_code == 200
+        assert client.get(url(project)).json()["top_n"] == 500
+
+
 class TestPlanCap:
     def test_top_n_at_the_cap_is_allowed(self, client, project):
         assert put(client, project, top_n=20).status_code == 200

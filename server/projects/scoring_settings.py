@@ -30,12 +30,17 @@ def top_n_cap(company_id):
     return limit_for(company_id, MAX_TOP_N)
 
 
+def held_at_cap(top_n, cap):
+    """A plan with no cap (None) leaves the top list as it is."""
+    return top_n if cap is None else min(top_n, cap)
+
+
 def effective_settings(project):
     """What scoring uses now. A top-N above the plan's cap (the plan was lowered) is held at
     the cap, never above it."""
     saved = ProjectScoringSettings.objects.filter(project=project).first()
     values = {name: getattr(saved, name) for name in FIELDS} if saved else scoring_defaults()
-    values["top_n"] = min(values["top_n"], top_n_cap(project.company_id))
+    values["top_n"] = held_at_cap(values["top_n"], top_n_cap(project.company_id))
     return values
 
 

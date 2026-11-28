@@ -42,6 +42,14 @@ describe("scoring settings", () => {
     expect(screen.getByLabelText("Top list size (up to 20)")).toBeTruthy();
   });
 
+  it("shows the top list size without a cap when the plan has none", async () => {
+    reply(200, { ...SCORING, top_n_cap: null });
+    render(<ScoringSettings projectId="p1" />);
+    await screen.findByDisplayValue("75");
+    expect(screen.getByLabelText("Top list size")).toBeTruthy();
+    expect(screen.queryByLabelText(/up to/)).toBeNull();
+  });
+
   it("changing the must-have weight updates the other so they total 100", async () => {
     reply(200, SCORING);
     render(<ScoringSettings projectId="p1" />);

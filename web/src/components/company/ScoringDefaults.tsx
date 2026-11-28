@@ -14,7 +14,7 @@ type Defaults = {
   top_n: number;
   cap_on_missing_must_have: boolean;
   factors: Record<string, Setting>;
-  top_n_cap: number;
+  top_n_cap: number | null;
 };
 
 const URL = "/api/company/scoring-defaults/";
@@ -107,7 +107,9 @@ export function ScoringDefaults() {
         error={fields.recommendation_threshold}
       />
       <Input
-        label={`Top list size (up to ${loaded.top_n_cap})`}
+        label={
+          loaded.top_n_cap === null ? "Top list size" : `Top list size (up to ${loaded.top_n_cap})`
+        }
         type="number"
         value={topN}
         onChange={(event) => setTopN(event.target.value)}

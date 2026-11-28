@@ -293,3 +293,18 @@ class TestTheInviteUsesTheTeamLimit:
         with pytest.raises(AppError) as error:
             invite_member(self.owner_of(company), "first@example.test")
         assert error.value.details["prompt"] == "renewal"
+
+
+class TestNoLimit:
+    """A plan that leaves a limit empty caps nothing; it must never crash or block."""
+
+    @pytest.mark.parametrize("name", limits.LIMIT_NAMES)
+    def test_an_empty_limit_allows_any_number(self, company, plan, name):
+        Plan.objects.filter(pk=plan.pk).update(**{name: None})
+        check = limits._count_check(company.pk, name, 1_000_000, 1_000_000)
+        assert check.allowed and check.limit is None
+        assert check.room >= 1_000_000
+
+    def test_an_empty_top_n_limit_allows_a_big_top_list(self, company, plan):
+        Plan.objects.filter(pk=plan.pk).update(max_top_n=None)
+        assert limits.check_top_n(company.pk, 5000).allowed

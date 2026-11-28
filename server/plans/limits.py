@@ -7,6 +7,7 @@ effect immediately. A caller that accepts files must hold the company's row lock
 and then records them (see `usage.service`), so parallel uploads cannot pass a limit together.
 """
 
+import sys
 from dataclasses import dataclass
 
 from core.errors import AppError
@@ -22,6 +23,9 @@ from .subscriptions import State, access_of, get_subscription
 UPGRADE = "upgrade"
 RENEWAL = "renewal"
 HIGHEST_PLAN = "highest_plan"  # a limit is reached and no bigger plan exists
+# A plan may leave a limit empty (None): nothing is capped. Callers compare and slice by `room`,
+# so an unlimited limit leaves "room" for any number of items.
+UNLIMITED_ROOM = sys.maxsize
 
 CVS_PER_MONTH = "cvs_per_month"
 CVS_PER_PROJECT = "cvs_per_project"
@@ -136,6 +140,8 @@ def _count_check(company_id, name, used, requested):
     if blocked := _expired(company_id, name):
         return blocked
     limit = limit_for(company_id, name)
+    if limit is None:
+        return LimitCheck(True, name, limit=None, used=used, room=UNLIMITED_ROOM)
     room = max(limit - used, 0)
     if requested > room:
         return LimitCheck(
