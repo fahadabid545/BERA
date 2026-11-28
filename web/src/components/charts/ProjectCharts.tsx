@@ -36,7 +36,7 @@ export function ProjectCharts({ projectId }: { projectId: string }) {
     ) : null;
   }
   return (
-    <div className="chart-grid">
+    <div className="chart-grid chart-grid--overview">
       <DetailDialog detail={detail} onClose={() => setDetail(null)} />
       <ChartCard title="Funnel">
         <Funnel

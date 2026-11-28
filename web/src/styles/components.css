@@ -502,10 +502,80 @@ a.ui-tab {
 .announcement p {
   margin: 0;
 }
+/* Buttons sit on the bottom line of the row, so a button next to a labelled field lines up with
+   the field instead of stretching to its height. */
 .page-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
   gap: var(--space-3);
+}
+/* One toolbar per page area: the left group (filters), the right group (actions), one centre
+   line, every control the same height. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.toolbar__end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+/* On a phone the toolbar becomes tidy rows: two equal buttons to a row. */
+@media (max-width: 40rem) {
+  .toolbar > *,
+  .toolbar__end {
+    flex: 1 1 100%;
+  }
+  .toolbar__end {
+    margin-left: 0;
+  }
+  .toolbar__end > * {
+    flex: 1 1 calc(50% - var(--space-3));
+  }
+}
+/* Previous, the position in words, Next: one row, all on the same centre line. */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+/* The bar that stands in for the toolbar's actions while candidates are being selected. */
+.bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+.bulk-bar__count {
+  align-self: center;
+  margin-right: auto;
+  font-weight: 700;
+}
+.ui-input[type="file"] {
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+}
+.ui-input[type="file"]::file-selector-button {
+  min-height: calc(var(--control-height) - 0.75rem);
+  margin-right: var(--space-3);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: 600 var(--text-sm) var(--font-body);
+  cursor: pointer;
 }
 .site-header {
   position: relative;
@@ -1376,6 +1446,27 @@ a.ui-tab {
   display: grid;
   gap: var(--space-4);
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+}
+/* The project overview: four cards in two columns so the page fits one screen. */
+.chart-grid--overview {
+  gap: var(--space-3);
+}
+.chart-grid--overview .chart-card {
+  gap: var(--space-3);
+  padding: var(--space-4);
+  min-width: 0;
+}
+.chart-grid--overview .chart-card__header h2 {
+  font-size: var(--text-lg);
+}
+.chart-grid--overview .chart-card__body {
+  max-height: 16rem;
+  overflow-y: auto;
+}
+@media (min-width: 56rem) {
+  .chart-grid--overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .chart-grid__wide {
   grid-column: 1 / -1;

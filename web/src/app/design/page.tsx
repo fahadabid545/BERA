@@ -336,6 +336,25 @@ export default function DesignSample() {
           ))}
         </div>
         <EmptyState>Nothing here yet</EmptyState>
+        <div className="toolbar" aria-label="Toolbar sample">
+          <Button variant="secondary">Filters</Button>
+          <div className="toolbar__end">
+            <Button variant="secondary">Download</Button>
+            <Button>Upload CVs</Button>
+          </div>
+        </div>
+        <div className="bulk-bar" role="group" aria-label="Bulk bar sample">
+          <span className="bulk-bar__count">2 selected</span>
+          <Button variant="secondary">Compare</Button>
+          <Button variant="secondary">Cancel selection</Button>
+        </div>
+        <div className="pager" aria-label="Pager sample">
+          <Button variant="secondary" disabled>
+            Previous page
+          </Button>
+          <span>Page 1 of 3, 60 candidates</span>
+          <Button variant="secondary">Next page</Button>
+        </div>
       </section>
 
       <section className="sample-section" aria-labelledby="sample-tabs">

@@ -180,7 +180,7 @@ export function AdminPayments() {
           </tbody>
         </Table>
       )}
-      <div className="page-actions">
+      <div className="pager">
         <Button variant="secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>
           Previous
         </Button>

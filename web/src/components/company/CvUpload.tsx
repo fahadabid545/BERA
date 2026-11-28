@@ -187,7 +187,7 @@ export function CvUpload({ projectId }: { projectId: string }) {
     );
   }
   return (
-    <div className="page-stack">
+    <div className="page-stack" id="upload">
       <div
         className={dragging ? "cv-dropzone cv-dropzone--active" : "cv-dropzone"}
         data-testid="cv-dropzone"

@@ -335,3 +335,19 @@ describe("website skin", () => {
     expect(skin["color-shade-soft"]).not.toBe(skin["color-text"]);
   });
 });
+
+describe("rows of buttons line up", () => {
+  const rule = (selector: string) =>
+    componentsCss.match(new RegExp(`\\n${selector.replace(".", "\\.")}\\s*\\{([^}]*)\\}`))?.[1] ??
+    "";
+
+  it("buttons in an action row never stretch to the height of a labelled field", () => {
+    expect(rule(".page-actions")).toMatch(/align-items:\s*flex-end/);
+  });
+
+  it("toolbars and pagers keep every control on one centre line", () => {
+    for (const selector of [".toolbar", ".toolbar__end", ".pager"]) {
+      expect(rule(selector), selector).toMatch(/align-items:\s*center/);
+    }
+  });
+});

@@ -129,7 +129,7 @@ export function Matrix({ projectId, filterQuery }: { projectId: string; filterQu
                         ))}
                       </tbody>
                     </Table>
-                    <div className="page-actions">
+                    <div className="pager">
                       <Button
                         variant="secondary"
                         disabled={shown.page <= 1}

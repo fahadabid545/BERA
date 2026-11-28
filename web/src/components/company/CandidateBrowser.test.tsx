@@ -186,18 +186,65 @@ describe("candidate filters", () => {
 });
 
 describe("comparison links", () => {
-  it("opens the matrix with the filters of the address", () => {
-    search = "score_min=60&unknown=1";
+  it("has no separate Matrix link: the Compare tab shows it", () => {
     render(<CandidateBrowser projectId="p1" />);
-    expect(screen.getByRole("link", { name: "Matrix" }).getAttribute("href")).toBe(
-      "/company/projects/p1/compare?score_min=60",
-    );
+    expect(screen.queryByRole("link", { name: "Matrix" })).toBeNull();
   });
 
-  it("opens the matrix without filters when there are none", () => {
+  it("puts the filters on the left and the actions on the right of one toolbar", () => {
+    const { container } = render(<CandidateBrowser projectId="p1" />);
+    const toolbar = container.querySelector(".toolbar")!;
+    const end = toolbar.querySelector(".toolbar__end")!;
+    expect(toolbar.firstElementChild?.textContent).toBe("Filters");
+    expect([...end.querySelectorAll("button, a")].map((item) => item.textContent)).toEqual([
+      "Share report",
+      "Shared links",
+      "Download",
+      "Upload CVs",
+    ]);
+  });
+
+  it("puts Select in the toolbar only when there are candidates to select", async () => {
+    const row = {
+      id: "c1",
+      candidate_id: "k1",
+      file_name: "jane.pdf",
+      name: "",
+      status: "done",
+      reason: "",
+      rank: 1,
+      score: "80.0",
+      grade: "B",
+      outdated: false,
+      ats_score: 70,
+      label: "possible",
+      borderline: false,
+      stage: "new",
+      added_at: "2026-11-14T10:00:00Z",
+    }; // fmt: skip
+    fetchMock.mockImplementation(async (path: string) => ({
+      ok: true,
+      status: 200,
+      json: async () => (path.includes("/reports/") ? NO_REPORTS : body({ count: 1, rows: [row] })),
+    }));
+    const { container } = render(<CandidateBrowser projectId="p1" />);
+    const select = await screen.findByRole("button", { name: "Select" });
+    expect(container.querySelector(".toolbar__end")?.contains(select)).toBe(true);
+    await userEvent.click(select);
+    expect(screen.queryByRole("button", { name: "Select" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Cancel selection" })).toBeTruthy();
+  });
+
+  it("shows no Select button for an empty project", async () => {
     render(<CandidateBrowser projectId="p1" />);
-    expect(screen.getByRole("link", { name: "Matrix" }).getAttribute("href")).toBe(
-      "/company/projects/p1/compare",
+    await screen.findByRole("button", { name: "Filters" });
+    expect(screen.queryByRole("button", { name: "Select" })).toBeNull();
+  });
+
+  it("Upload CVs goes to the upload area of the project overview", () => {
+    render(<CandidateBrowser projectId="p1" />);
+    expect(screen.getByRole("link", { name: "Upload CVs" }).getAttribute("href")).toBe(
+      "/company/projects/p1#upload",
     );
   });
 
@@ -228,6 +275,7 @@ describe("comparison links", () => {
     }));
     render(<CandidateBrowser projectId="p1" />);
     const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Select" }));
     await user.click(await screen.findByRole("checkbox", { name: "Select jane.pdf" }));
     await user.click(screen.getByRole("checkbox", { name: "Select omar.pdf" }));
     await user.click(screen.getByRole("button", { name: "Compare" }));

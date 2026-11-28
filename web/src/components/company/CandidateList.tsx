@@ -87,6 +87,9 @@ export function CandidateList({
   onRequirements,
   onCompare,
   onDownload,
+  selecting: selectingFromPage,
+  onSelectingChange,
+  onHasRows,
 }: {
   projectId: string;
   filters?: Filters;
@@ -94,6 +97,11 @@ export function CandidateList({
   onRequirements?: (requirements: RequirementChoice[]) => void;
   onCompare?: (candidateIds: string[]) => void;
   onDownload?: (candidateIds: string[]) => void;
+  /** When the page owns the Select button (in its toolbar), it also owns the mode. */
+  selecting?: boolean;
+  onSelectingChange?: (selecting: boolean) => void;
+  /** Tells the page whether there is anything to select, so it can hide its Select button. */
+  onHasRows?: (hasRows: boolean) => void;
 }) {
   const base = `/api/company/projects/${projectId}/candidates/`;
   const [sort, setSort] = useState<SortKey>("score");
@@ -105,6 +113,9 @@ export function CandidateList({
   const setPage = (next: number) => setPageOf({ filterQuery, page: next });
   const [shown, setShown] = useState<Page | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
+  const [ownSelecting, setOwnSelecting] = useState(false);
+  const selecting = selectingFromPage ?? ownSelecting;
+  const setSelecting = onSelectingChange ?? setOwnSelecting;
   const [selected, setSelected] = useState<string[]>([]);
   const [targetStage, setTargetStage] = useState(STAGES[1].value);
   const [confirming, setConfirming] = useState(false);
@@ -139,10 +150,14 @@ export function CandidateList({
     });
     if (result.ok) {
       setSelected([]);
+      setSelecting(false);
       setChangeError(null);
       setVersion((current) => current + 1);
     } else setChangeError(result.error);
   }
+
+  const hasRows = Boolean(shown?.rows.some((row) => row.candidate_id));
+  useEffect(() => onHasRows?.(hasRows), [hasRows, onHasRows]);
 
   if (!shown) {
     return error ? (
@@ -171,43 +186,60 @@ export function CandidateList({
   const tooManyToCompare = selected.length > limits.max;
   return (
     <div className="page-stack">
-      <div className="page-actions">
-        <Button
-          variant="secondary"
-          disabled={selected.length < limits.min || tooManyToCompare}
-          onClick={() => onCompare?.(selected)}
-        >
-          Compare
-        </Button>
-        <Button
-          variant="secondary"
-          disabled={selected.length === 0}
-          onClick={() => onDownload?.(selected)}
-        >
-          Download selected
-        </Button>
-        <Select
-          label="Move selected to"
-          value={targetStage}
-          onChange={(event) => setTargetStage(event.target.value)}
-          options={STAGES}
-        />
-        <Dialog
-          open={confirming}
-          onOpenChange={setConfirming}
-          trigger={
-            <Button variant="secondary" disabled={selected.length === 0}>
-              Change stage
+      {selecting ? (
+        <div className="bulk-bar" role="group" aria-label="Selected candidates">
+          <span className="bulk-bar__count">{selected.length} selected</span>
+          {selected.length >= limits.min && !tooManyToCompare && (
+            <Button variant="secondary" onClick={() => onCompare?.(selected)}>
+              Compare
             </Button>
-          }
-          title="Change stage"
-          description={`Move ${selected.length} ${
-            selected.length === 1 ? "candidate" : "candidates"
-          } to ${stageLabel(targetStage)}?`}
-          confirmLabel="Change stage"
-          onConfirm={() => void applyStage()}
-        />
-      </div>
+          )}
+          {selected.length > 0 && (
+            <>
+              <Button variant="secondary" onClick={() => onDownload?.(selected)}>
+                Download selected
+              </Button>
+              <Select
+                label="Move selected to"
+                value={targetStage}
+                onChange={(event) => setTargetStage(event.target.value)}
+                options={STAGES}
+              />
+              <Dialog
+                open={confirming}
+                onOpenChange={setConfirming}
+                trigger={<Button variant="secondary">Change stage</Button>}
+                title="Change stage"
+                description={`Move ${selected.length} ${
+                  selected.length === 1 ? "candidate" : "candidates"
+                } to ${stageLabel(targetStage)}?`}
+                confirmLabel="Change stage"
+                onConfirm={() => void applyStage()}
+              />
+            </>
+          )}
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setSelecting(false);
+              setSelected([]);
+            }}
+          >
+            Cancel selection
+          </Button>
+        </div>
+      ) : (
+        !onSelectingChange &&
+        selectable.length > 0 && (
+          <div className="toolbar">
+            <div className="toolbar__end">
+              <Button variant="secondary" onClick={() => setSelecting(true)}>
+                Select
+              </Button>
+            </div>
+          </div>
+        )
+      )}
       {shown.top?.tied && (
         <p role="status">
           The top {shown.top.n} shows {shown.top.included} candidates because of a tie at the
@@ -225,19 +257,21 @@ export function CandidateList({
       <Table label="Candidates">
         <thead>
           <tr>
-            <th scope="col">
-              <Checkbox
-                label={<span className="visually-hidden">Select all on this page</span>}
-                checked={allSelected}
-                disabled={selectable.length === 0}
-                onChange={(event) =>
-                  setSelected((current) => [
-                    ...current.filter((id) => !selectable.includes(id)),
-                    ...(event.target.checked ? selectable : []),
-                  ])
-                }
-              />
-            </th>
+            {selecting && (
+              <th scope="col">
+                <Checkbox
+                  label={<span className="visually-hidden">Select all on this page</span>}
+                  checked={allSelected}
+                  disabled={selectable.length === 0}
+                  onChange={(event) =>
+                    setSelected((current) => [
+                      ...current.filter((id) => !selectable.includes(id)),
+                      ...(event.target.checked ? selectable : []),
+                    ])
+                  }
+                />
+              </th>
+            )}
             {COLUMNS.map(({ key, label }) => (
               <th
                 key={key}
@@ -259,31 +293,34 @@ export function CandidateList({
               key={row.id}
               row={row}
               projectId={projectId}
+              selecting={selecting}
               checked={row.candidate_id ? selected.includes(row.candidate_id) : false}
               onToggle={toggle}
             />
           ))}
         </tbody>
       </Table>
-      <div className="page-actions">
-        <Button
-          variant="secondary"
-          disabled={shown.page <= 1}
-          onClick={() => setPage(shown.page - 1)}
-        >
-          Previous page
-        </Button>
-        <span>
-          Page {shown.page} of {shown.pages}, {shown.count} candidates
-        </span>
-        <Button
-          variant="secondary"
-          disabled={shown.page >= shown.pages}
-          onClick={() => setPage(shown.page + 1)}
-        >
-          Next page
-        </Button>
-      </div>
+      {shown.pages > 1 && (
+        <div className="pager">
+          <Button
+            variant="secondary"
+            disabled={shown.page <= 1}
+            onClick={() => setPage(shown.page - 1)}
+          >
+            Previous page
+          </Button>
+          <span>
+            Page {shown.page} of {shown.pages}, {shown.count} candidates
+          </span>
+          <Button
+            variant="secondary"
+            disabled={shown.page >= shown.pages}
+            onClick={() => setPage(shown.page + 1)}
+          >
+            Next page
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -291,26 +328,30 @@ export function CandidateList({
 function CandidateRow({
   row,
   projectId,
+  selecting,
   checked,
   onToggle,
 }: {
   row: Row;
   projectId: string;
+  selecting: boolean;
   checked: boolean;
   onToggle: (id: string, on: boolean) => void;
 }) {
   const status = STATUSES[row.status] ?? { label: row.status, variant: "neutral" as TagVariant };
   return (
     <tr>
-      <td>
-        {row.candidate_id && (
-          <Checkbox
-            label={<span className="visually-hidden">Select {row.file_name}</span>}
-            checked={checked}
-            onChange={(event) => onToggle(row.candidate_id!, event.target.checked)}
-          />
-        )}
-      </td>
+      {selecting && (
+        <td>
+          {row.candidate_id && (
+            <Checkbox
+              label={<span className="visually-hidden">Select {row.file_name}</span>}
+              checked={checked}
+              onChange={(event) => onToggle(row.candidate_id!, event.target.checked)}
+            />
+          )}
+        </td>
+      )}
       <td>{row.rank}</td>
       <td>
         {row.candidate_id ? (

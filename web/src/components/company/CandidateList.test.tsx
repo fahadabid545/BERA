@@ -70,7 +70,6 @@ describe("ranked candidate list", () => {
       .getAllByRole("cell")
       .map((cell) => cell.textContent);
     expect(cells).toEqual([
-      "Select jane.pdf",
       "1",
       "jane.pdfJ. E.",
       "82.5 (B) ",
@@ -93,7 +92,6 @@ describe("ranked candidate list", () => {
         .getAllByRole("columnheader")
         .map((header) => header.textContent),
     ).toEqual([
-      "Select all on this page",
       "Rank",
       "Candidate",
       "AI score",
@@ -227,13 +225,12 @@ describe("paging", () => {
     expect(await screen.findByText("Page 1 of 3, 60 candidates")).toBeTruthy();
   });
 
-  it("cannot go past the last page", async () => {
+  it("hides the pager when everything fits on one page", async () => {
     serve(page([row()], { page: 1, pages: 1, count: 1 }));
     render(<CandidateList projectId="p1" />);
-    await screen.findByText("Page 1 of 1, 1 candidates");
-    expect((screen.getByRole("button", { name: "Next page" }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+    await screen.findByRole("region", { name: "Candidates" });
+    expect(screen.queryByRole("button", { name: "Next page" })).toBeNull();
+    expect(screen.queryByText(/Page 1 of 1/)).toBeNull();
   });
 });
 
@@ -280,7 +277,9 @@ describe("changing the stage of several candidates", () => {
     serve(two());
     render(<CandidateList projectId="p1" />);
     await screen.findByRole("region", { name: "Candidates" });
-    return userEvent.setup();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Select" }));
+    return user;
   }
 
   it("shows each stage by its name", async () => {
@@ -290,11 +289,28 @@ describe("changing the stage of several candidates", () => {
     expect(within(table).getByText("Interviewed")).toBeTruthy();
   });
 
-  it("cannot change anything until someone is selected", async () => {
-    await open();
+  it("shows no checkboxes until Select is pressed, and no actions until someone is chosen", async () => {
+    serve(two());
+    render(<CandidateList projectId="p1" />);
+    await screen.findByRole("region", { name: "Candidates" });
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change stage" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    expect(screen.getAllByRole("checkbox").length).toBeGreaterThan(0);
+    expect(screen.getByText("0 selected")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Change stage" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Download selected" })).toBeNull();
+  });
+
+  it("Cancel selection hides the checkboxes and forgets the choice", async () => {
+    const user = await open();
+    await user.click(screen.getByRole("checkbox", { name: "Select jane.pdf" }));
+    await user.click(screen.getByRole("button", { name: "Cancel selection" }));
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Select" }));
     expect(
-      (screen.getByRole("button", { name: "Change stage" }) as HTMLButtonElement).disabled,
-    ).toBe(true);
+      (screen.getByRole("checkbox", { name: "Select jane.pdf" }) as HTMLInputElement).checked,
+    ).toBe(false);
   });
 
   it("asks before moving the selected candidates, then moves them", async () => {
@@ -345,11 +361,11 @@ describe("changing the stage of several candidates", () => {
     await user.click(
       within(await screen.findByRole("dialog")).getByRole("button", { name: "Change stage" }),
     );
-    await waitFor(() =>
-      expect(
-        (screen.getByRole("checkbox", { name: "Select jane.pdf" }) as HTMLInputElement).checked,
-      ).toBe(false),
-    );
+    await waitFor(() => expect(screen.queryByRole("checkbox")).toBeNull());
+    await user.click(screen.getByRole("button", { name: "Select" }));
+    expect(
+      (screen.getByRole("checkbox", { name: "Select jane.pdf" }) as HTMLInputElement).checked,
+    ).toBe(false);
     expect(paths().filter((path) => path.includes("sort=")).length).toBeGreaterThan(1);
   });
 
@@ -389,28 +405,30 @@ describe("choosing candidates to compare", () => {
     render(<CandidateList projectId="p1" onCompare={onCompare} />);
     await screen.findByRole("region", { name: "Candidates" });
     const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Select" }));
     for (let n = 1; n <= count; n += 1) {
       await user.click(screen.getByRole("checkbox", { name: `Select cv${n}.pdf` }));
     }
     return { user, onCompare };
   }
-  const compareButton = () => screen.getByRole("button", { name: "Compare" }) as HTMLButtonElement;
+  const compareButton = () => screen.getByRole("button", { name: "Compare" });
+  const noCompareButton = () =>
+    expect(screen.queryByRole("button", { name: "Compare" })).toBeNull();
 
   it("needs at least two", async () => {
     await choose(1);
-    expect(compareButton().disabled).toBe(true);
+    noCompareButton();
   });
 
   it("hands over two to four chosen candidates", async () => {
     const { user, onCompare } = await choose(4);
-    expect(compareButton().disabled).toBe(false);
     await user.click(compareButton());
     expect(onCompare).toHaveBeenCalledWith(["k1", "k2", "k3", "k4"]);
   });
 
   it("says so clearly when more than four are chosen", async () => {
     await choose(5);
-    expect(compareButton().disabled).toBe(true);
+    noCompareButton();
     expect(screen.getByRole("status").textContent).toBe(
       "You can compare up to 4 candidates at a time. Choose fewer.",
     );
@@ -426,8 +444,8 @@ describe("downloading the selected CVs", () => {
     serve(page(rows));
     render(<CandidateList projectId="p1" />);
     await screen.findByRole("region", { name: "Candidates" });
-    const button = screen.getByRole("button", { name: "Download selected" });
-    expect((button as HTMLButtonElement).disabled).toBe(true);
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    expect(screen.queryByRole("button", { name: "Download selected" })).toBeNull();
   });
 
   it("hands over the selected candidates", async () => {
@@ -436,6 +454,7 @@ describe("downloading the selected CVs", () => {
     render(<CandidateList projectId="p1" onDownload={onDownload} />);
     await screen.findByRole("region", { name: "Candidates" });
     const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Select" }));
     await user.click(screen.getByRole("checkbox", { name: "Select cv2.pdf" }));
     await user.click(screen.getByRole("button", { name: "Download selected" }));
     expect(onDownload).toHaveBeenCalledWith(["k2"]);

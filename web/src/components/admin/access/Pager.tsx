@@ -12,7 +12,7 @@ export function Pager({
   const pages = pagesOf(listing);
   if (pages <= 1) return null;
   return (
-    <div className="page-actions">
+    <div className="pager">
       <Button
         variant="secondary"
         disabled={listing.page <= 1}

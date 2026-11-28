@@ -18,7 +18,7 @@ export function ChartCard({
         <h2>{title}</h2>
         {controls && <div className="chart-card__controls">{controls}</div>}
       </div>
-      {children}
+      <div className="chart-card__body">{children}</div>
     </Card>
   );
 }
