@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { ChartMark, TipLines } from "@/components/charts/ChartTip";
 import { Button, Table, Tabs, TextLink } from "@/components/ui";
 import { getJson, type ApiError } from "@/lib/api";
+import { readHiddenColumns, writeHiddenColumns } from "@/lib/hiddenColumns";
 import { startLive } from "@/lib/live";
 import { useTabParam } from "@/lib/useTabParam";
 
+import { ColumnPicker } from "./ColumnPicker";
 import { ParetoFrontier } from "./ParetoFrontier";
 import { TermLabel } from "./terms";
 import { VerdictMark } from "./VerdictMark";
@@ -40,6 +42,13 @@ export function Matrix({ projectId, filterQuery }: { projectId: string; filterQu
   const [shown, setShown] = useState<MatrixBody | null>(null);
   const [view, chooseView] = useTabParam(VIEWS, "view");
   const [error, setError] = useState<ApiError | null>(null);
+  const [hidden, setHidden] = useState<string[]>([]);
+  // Read after mount: the server render has no browser storage.
+  useEffect(() => setHidden(readHiddenColumns(projectId)), [projectId]);
+  function chooseHidden(next: string[]) {
+    setHidden(next);
+    writeHiddenColumns(projectId, next);
+  }
   useEffect(() => {
     const query = `?page=${page}${filterQuery && `&${filterQuery}`}`;
     return startLive(
@@ -61,6 +70,11 @@ export function Matrix({ projectId, filterQuery }: { projectId: string; filterQu
     );
   }
   if (!shown) return null;
+  // A saved choice that would hide everything (the requirements changed since) shows them all.
+  const visibleIndexes = shown.requirements
+    .map((requirement, index) => (hidden.includes(requirement.id) ? -1 : index))
+    .filter((index) => index >= 0);
+  const columns = visibleIndexes.length > 0 ? visibleIndexes : shown.requirements.map((_, i) => i);
   const goTo = (next: number) => setPageOf({ filterQuery, page: next });
   return (
     <div className="page-stack">
@@ -79,7 +93,16 @@ export function Matrix({ projectId, filterQuery }: { projectId: string; filterQu
                   <p role="status">No candidates to compare.</p>
                 ) : (
                   <>
-                    <Table label="Candidates against requirements">
+                    <div className="toolbar">
+                      <div className="toolbar__end">
+                        <ColumnPicker
+                          requirements={shown.requirements}
+                          hidden={visibleIndexes.length > 0 ? hidden : []}
+                          onChange={chooseHidden}
+                        />
+                      </div>
+                    </div>
+                    <Table label="Candidates against requirements" sticky>
                       <thead>
                         <tr>
                           <th scope="col">Rank</th>
@@ -87,24 +110,26 @@ export function Matrix({ projectId, filterQuery }: { projectId: string; filterQu
                           <th scope="col">
                             <TermLabel term="ai_score">AI score</TermLabel>
                           </th>
-                          {shown.requirements.map((requirement) => (
-                            <th key={requirement.id} scope="col">
-                              <ChartMark
-                                as="span"
-                                tip={
-                                  <TipLines
-                                    title={requirement.text}
-                                    lines={[
-                                      requirement.kind === "must" ? "Must-have" : "Nice-to-have",
-                                      `Weight ${requirement.weight}`,
-                                    ]}
-                                  />
-                                }
-                              >
-                                {requirement.text}
-                              </ChartMark>
-                            </th>
-                          ))}
+                          {columns
+                            .map((index) => shown.requirements[index])
+                            .map((requirement) => (
+                              <th key={requirement.id} scope="col">
+                                <ChartMark
+                                  as="span"
+                                  tip={
+                                    <TipLines
+                                      title={requirement.text}
+                                      lines={[
+                                        requirement.kind === "must" ? "Must-have" : "Nice-to-have",
+                                        `Weight ${requirement.weight}`,
+                                      ]}
+                                    />
+                                  }
+                                >
+                                  {requirement.text}
+                                </ChartMark>
+                              </th>
+                            ))}
                         </tr>
                       </thead>
                       <tbody>
@@ -120,9 +145,9 @@ export function Matrix({ projectId, filterQuery }: { projectId: string; filterQu
                               {row.name && <div>{row.name}</div>}
                             </td>
                             <td>{row.score ? `${row.score} (${row.grade})` : "Not scored"}</td>
-                            {row.cells.map((cell, index) => (
+                            {columns.map((index) => (
                               <td key={shown.requirements[index].id}>
-                                <VerdictMark cell={cell} />
+                                <VerdictMark cell={row.cells[index]} />
                               </td>
                             ))}
                           </tr>

@@ -56,3 +56,62 @@
 .board__more {
   margin: 0;
 }
+
+/* ---------- Sticky tables (the comparison matrix) ---------- */
+.ui-table-wrap--sticky {
+  max-height: var(--table-max-height);
+  overflow: auto;
+}
+.ui-table-wrap--sticky .ui-table {
+  width: max-content;
+  min-width: 100%;
+}
+.ui-table-wrap--sticky th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.ui-table-wrap--sticky th:nth-child(-n + 3),
+.ui-table-wrap--sticky td:nth-child(-n + 3) {
+  position: sticky;
+  z-index: 1;
+  background: var(--color-surface);
+}
+.ui-table-wrap--sticky th:nth-child(-n + 3) {
+  z-index: 3;
+  background: var(--color-surface-muted);
+}
+.ui-table-wrap--sticky :is(th, td):nth-child(1) {
+  left: 0;
+  min-width: var(--matrix-rank-width);
+}
+.ui-table-wrap--sticky :is(th, td):nth-child(2) {
+  left: var(--matrix-rank-width);
+  min-width: var(--matrix-candidate-width);
+}
+.ui-table-wrap--sticky :is(th, td):nth-child(3) {
+  left: calc(var(--matrix-rank-width) + var(--matrix-candidate-width));
+  min-width: var(--matrix-score-width);
+  box-shadow: 1px 0 0 var(--color-border);
+}
+.ui-table-wrap--sticky :is(th, td):nth-child(n + 4) {
+  width: var(--matrix-requirement-width);
+  min-width: var(--matrix-requirement-width);
+  max-width: var(--matrix-requirement-width);
+}
+.ui-table-wrap--sticky th:nth-child(n + 4) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.column-picker__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.column-picker__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 50vh;
+  overflow-y: auto;
+}

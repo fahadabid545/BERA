@@ -29,7 +29,13 @@ describe("browser storage", () => {
   });
 
   it("only the known files use browser storage or write cookies", () => {
-    const allowed = ["lib/theme.ts", "lib/api.ts", "lib/publicChat.ts", "lib/betaFeedbackDay.ts"];
+    const allowed = [
+      "lib/theme.ts",
+      "lib/api.ts",
+      "lib/publicChat.ts",
+      "lib/betaFeedbackDay.ts",
+      "lib/hiddenColumns.ts",
+    ];
     const using = sourceFiles().filter((file) =>
       /localStorage|sessionStorage|indexedDB|document\.cookie/.test(readFileSync(file, "utf8")),
     );
@@ -49,6 +55,16 @@ describe("browser storage", () => {
     const source = readFileSync(path.join(SOURCE, "lib", "betaFeedbackDay.ts"), "utf8");
     const key = /STORAGE_KEY\s*=\s*"([^"]+)"/.exec(source)?.[1];
     expect(LIST.some((item) => item.storage === "localStorage" && item.name === key)).toBe(true);
+  });
+
+  it("the matrix column choice's storage key is on the list", () => {
+    const source = readFileSync(path.join(SOURCE, "lib", "hiddenColumns.ts"), "utf8");
+    const prefix = /`([^`:]+):\$\{projectId\}`/.exec(source)?.[1];
+    expect(
+      LIST.some(
+        (item) => item.storage === "localStorage" && item.name === `${prefix}:<project id>`,
+      ),
+    ).toBe(true);
   });
 
   it("never writes a cookie from page scripts", () => {

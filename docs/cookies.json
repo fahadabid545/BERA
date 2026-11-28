@@ -42,6 +42,13 @@
     "set_by": "our code"
   },
   {
+    "name": "matrix-hidden-columns:<project id>",
+    "storage": "localStorage",
+    "purpose": "Remembers which requirement columns a person hid in a project's comparison matrix. Holds only requirement ids, stays in the browser and is never sent to the server.",
+    "essential": true,
+    "set_by": "our code"
+  },
+  {
     "name": "public-chat-history",
     "storage": "localStorage",
     "purpose": "Keeps the visitor's chats on the public website chat for a few hours (default 2), so earlier chats can be reopened. Written only after the visitor sends a message. Stays in the browser and is never sent to the server as storage; only the chat being written is sent with each question.",
