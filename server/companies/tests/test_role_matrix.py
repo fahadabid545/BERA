@@ -35,6 +35,7 @@ MEMBER_MAY_NOT = [
     "settings.change",
     "advanced.open",
     "project.delete",
+    "project.change_owner",
     "company.delete",
     "company.export",
     "api_key.manage",
