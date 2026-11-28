@@ -28,7 +28,7 @@ class TestPauseUploads:
         pause(owner, project, False)
         kinds = list(
             ActivityEntry.objects.filter(kind="setting_changed")
-            .order_by("id")
+            .order_by("created_at")
             .values_list("details", flat=True)
         )
         assert kinds == [{"setting": "uploads_paused"}, {"setting": "uploads_resumed"}]
