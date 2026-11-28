@@ -29,15 +29,28 @@ const QUESTIONS = [
 ];
 
 describe("faq page", () => {
-  it("shows the approved heading and subheading", () => {
-    render(<FaqPage />);
+  it("shows the approved heading and no helper line", () => {
+    const { container } = render(<FaqPage />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("FAQ");
-    expect(screen.getByText("Short answers to common questions.")).toBeTruthy();
+    expect(screen.queryByText("Short answers to common questions.")).toBeNull();
+    expect(container.querySelectorAll("p")).toHaveLength(QUESTIONS.length);
+  });
+
+  it("opens a question to its answer, and every card has a tint", () => {
+    const { container } = render(<FaqPage />);
+    const items = container.querySelectorAll("details.faq-item");
+    expect(items).toHaveLength(QUESTIONS.length);
+    for (const item of items) {
+      expect(item.hasAttribute("open")).toBe(false);
+      expect(item.getAttribute("data-tint")).toBeTruthy();
+    }
+    expect(items[0].getAttribute("data-tint")).not.toBe(items[1].getAttribute("data-tint"));
   });
 
   it("shows the seven approved questions and answers in order, word for word", () => {
-    render(<FaqPage />);
-    expect(screen.getAllByRole("heading", { level: 2 }).map((item) => item.textContent)).toEqual(
+    const { container } = render(<FaqPage />);
+    const questions = container.querySelectorAll(".faq-item h2");
+    expect([...questions].map((item) => item.textContent)).toEqual(
       QUESTIONS.map(([question]) => question),
     );
     for (const [question, answer] of QUESTIONS) {
@@ -51,13 +64,10 @@ describe("faq page", () => {
     expect(container.textContent).not.toMatch(/How much will it cost|When will Bera be available/);
   });
 
-  it("ends with the approved line linking to the Contact page", () => {
+  it("ends with the approved line and a Contact button", () => {
     const { container } = render(<FaqPage />);
-    const closing = container.querySelector(":scope > div > p:last-child")!;
-    expect(closing.textContent).toBe("Have another question? Our team will be happy to help.");
-    expect(
-      screen.getByRole("link", { name: "Our team will be happy to help." }).getAttribute("href"),
-    ).toBe("/contact");
+    expect(container.querySelector(".closing-band h2")?.textContent).toBe("Have another question?");
+    expect(screen.getByRole("link", { name: "Contact" }).getAttribute("href")).toBe("/contact");
   });
 
   it("adds no prices, numbers or dates", () => {

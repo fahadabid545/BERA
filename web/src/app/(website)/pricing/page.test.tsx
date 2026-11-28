@@ -118,6 +118,23 @@ describe("the plans", () => {
   });
 });
 
+describe("the sticker look", () => {
+  it("has a page heading and tints each card, however many plans the server sends", async () => {
+    const many = Array.from({ length: 7 }, (_, index) => ({
+      ...STARTER,
+      id: index + 1,
+      name: `Plan ${index + 1}`,
+    }));
+    show(many);
+    await screen.findByLabelText("Plan 7");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Pricing");
+    const cards = document.querySelectorAll(".plan-card");
+    expect(cards).toHaveLength(7);
+    for (const card of cards) expect(card.getAttribute("data-tint")).toBeTruthy();
+    expect(cards[0].getAttribute("data-tint")).not.toBe(cards[1].getAttribute("data-tint"));
+  });
+});
+
 describe("Choose plan", () => {
   it("goes to sign up for a visitor, one button for each plan", async () => {
     show([STARTER, PAKISTAN]);

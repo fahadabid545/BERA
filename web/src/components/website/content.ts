@@ -67,7 +67,6 @@ export const FEATURES = {
 
 export const FAQ = {
   heading: "FAQ",
-  subheading: "Short answers to common questions.",
   questions: [
     {
       question: "What is Bera?",
@@ -101,8 +100,7 @@ export const FAQ = {
       answer: "You choose how long it is kept. After that, it is deleted automatically.",
     },
   ],
-  closing: "Have another question?",
-  closingLink: "Our team will be happy to help.",
+  closing: { plain: "Have another ", marked: "question?" },
 } as const;
 
 /** Shown while a legal page has no text: the wording comes from the owner after legal review. */

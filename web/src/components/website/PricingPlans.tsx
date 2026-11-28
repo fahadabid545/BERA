@@ -7,6 +7,8 @@ import { getJson } from "@/lib/api";
 import { money, type Money } from "@/lib/money";
 
 import { ACCOUNT_LINKS } from "./links";
+import { Reveal } from "./Reveal";
+import type { Tint } from "./SceneTiles";
 
 const PLANS_URL = "/api/plans/";
 const STATUS_URL = "/api/auth/company/status/";
@@ -25,6 +27,9 @@ export type PublicPlan = {
   max_team_accounts: number | null;
   max_top_n: number | null;
 };
+
+const TINTS: Tint[] = ["lime", "lilac", "peach", "sky", "pink"];
+const PAGE_HEADING = "Pricing";
 
 const count = (value: number) => value.toLocaleString("en-US");
 
@@ -64,29 +69,41 @@ export function PricingPlans() {
 
   const destination = signedIn ? BILLING_ADDRESS : ACCOUNT_LINKS.signUp.href;
   return (
-    <div className="page-stack">
-      {plans.map((plan) => (
-        <Card key={plan.id} aria-label={plan.name}>
-          <h2>{plan.name}</h2>
-          {plan.description && <p>{plan.description}</p>}
-          <p>
-            {plan.price.approximate
-              ? `About ${money(plan.price)} per month`
-              : `${money(plan.price)} per month`}
-          </p>
-          {plan.price.approximate && (
-            <p>
-              {plan.price.note} Charged: {money(plan.charged)} per month
+    <>
+      <header className="page-title-block">
+        <h1 className="page-title">
+          <span className="marker">{PAGE_HEADING}</span>
+        </h1>
+      </header>
+      <Reveal className="plan-grid">
+        {plans.map((plan, position) => (
+          <Card
+            key={plan.id}
+            className="plan-card"
+            data-tint={TINTS[position % TINTS.length]}
+            aria-label={plan.name}
+          >
+            <h2>{plan.name}</h2>
+            <p className="plan-card__price">
+              {plan.price.approximate
+                ? `About ${money(plan.price)} per month`
+                : `${money(plan.price)} per month`}
             </p>
-          )}
-          <ul>
-            {limitsOf(plan).map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-          <ButtonLink href={destination}>Choose plan</ButtonLink>
-        </Card>
-      ))}
-    </div>
+            {plan.description && <p className="plan-card__note">{plan.description}</p>}
+            {plan.price.approximate && (
+              <p className="plan-card__note">
+                {plan.price.note} Charged: {money(plan.charged)} per month
+              </p>
+            )}
+            <ul className="plan-card__limits">
+              {limitsOf(plan).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            <ButtonLink href={destination}>Choose plan</ButtonLink>
+          </Card>
+        ))}
+      </Reveal>
+    </>
   );
 }

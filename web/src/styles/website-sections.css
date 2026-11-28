@@ -814,3 +814,114 @@
 .scene--project .scene__tag {
   flex: none;
 }
+
+/* ---------- FAQ: question cards that open to the answer ---------- */
+.faq-list {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 52rem;
+}
+.faq-item {
+  padding: 0;
+  background: var(--tint);
+}
+.faq-item__question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  cursor: pointer;
+  list-style: none;
+}
+.faq-item__question::-webkit-details-marker {
+  display: none;
+}
+.faq-item__question h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 800;
+}
+.faq-item__sign {
+  position: relative;
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 2px solid var(--color-text);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  box-shadow: 2px 2px 0 var(--color-shade);
+  transition: transform 300ms var(--ease-site);
+}
+.faq-item__sign::before,
+.faq-item__sign::after {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 0.9rem;
+  height: 2px;
+  background: var(--color-text);
+  content: "";
+  transform: translate(-50%, -50%);
+}
+.faq-item__sign::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+  transition: transform 300ms var(--ease-site);
+}
+.faq-item[open] .faq-item__sign {
+  transform: rotate(-8deg);
+}
+.faq-item[open] .faq-item__sign::after {
+  transform: translate(-50%, -50%) rotate(0deg);
+}
+.faq-item p {
+  margin: 0;
+  padding: 0 var(--space-5) var(--space-5);
+  font-size: var(--text-lg);
+}
+
+/* ---------- Pricing: plan cards ---------- */
+.plan-grid {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--tint);
+}
+.plan-card h2 {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0.15rem 0.75rem;
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  box-shadow: 3px 3px 0 var(--color-shade);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  transform: rotate(-2deg);
+}
+.plan-card__price {
+  margin: 0;
+  font: 800 clamp(2rem, 4vw, 2.75rem) / 1.05 var(--font-heading);
+  letter-spacing: -0.03em;
+}
+.plan-card__note {
+  margin: 0;
+}
+.plan-card__limits {
+  display: grid;
+  flex: 1;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.plan-card__limits li {
+  padding-block: var(--space-2);
+  border-top: 2px dashed var(--color-text);
+  font-weight: 600;
+}
