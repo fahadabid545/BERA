@@ -37,6 +37,10 @@ describe("design sample page", () => {
     expect(screen.getAllByRole("combobox").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("checkbox").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("textbox", { name: "Project name" })).toBeTruthy();
+    for (const word of ["Partly met", "Not judged", "Grade A", "No score", "on hold"]) {
+      expect(screen.getAllByText(word).length).toBeGreaterThan(0);
+    }
+    expect(screen.getByText("AL")).toBeTruthy();
     for (const word of ["Strong match", "Missing must-have", "Not recommended", "Live"]) {
       expect(screen.getAllByText(word).length).toBeGreaterThan(0);
     }

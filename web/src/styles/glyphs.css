@@ -1,0 +1,106 @@
+/* Result and stage glyphs, the score badge and the avatar. Colours come from tokens.css; each
+   glyph also differs by shape, and always sits beside its word. */
+.ui-glyph {
+  flex: none;
+  vertical-align: -0.15em;
+  --glyph-color: var(--color-control-border);
+  --glyph-mark: var(--color-surface);
+}
+.ui-glyph__fill {
+  fill: var(--glyph-color);
+}
+.ui-glyph__line {
+  fill: none;
+  stroke: var(--glyph-color);
+  stroke-width: 1.7;
+}
+.ui-glyph__line--dashed {
+  stroke-dasharray: 2.4 2.2;
+}
+.ui-glyph__mark {
+  fill: none;
+  stroke: var(--glyph-mark);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ui-glyph__bar {
+  fill: none;
+  stroke: var(--glyph-color);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.ui-glyph--met {
+  --glyph-color: var(--color-accent);
+  --glyph-mark: var(--color-on-accent);
+}
+.ui-glyph--partly_met,
+.ui-glyph--stage-on_hold {
+  --glyph-color: var(--color-warning-text);
+  --glyph-mark: var(--color-warning-bg);
+}
+.ui-glyph--missing,
+.ui-glyph--stage-rejected {
+  --glyph-color: var(--color-danger);
+  --glyph-mark: var(--color-on-danger);
+}
+.ui-glyph--stage-shortlisted {
+  --glyph-color: var(--color-data-blue);
+}
+.ui-glyph--stage-interviewed {
+  --glyph-color: var(--color-data-violet);
+}
+.ui-glyph--stage-selected {
+  --glyph-color: var(--color-accent);
+  --glyph-mark: var(--color-on-accent);
+}
+
+.ui-score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.ui-score b {
+  font-weight: 700;
+}
+.ui-score small {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+.ui-score--strong {
+  box-shadow: inset 4px 0 0 var(--color-accent);
+}
+.ui-score--fair {
+  box-shadow: inset 4px 0 0 var(--color-data-amber);
+}
+.ui-score--weak {
+  box-shadow: inset 4px 0 0 var(--color-danger);
+}
+.ui-score--none {
+  color: var(--color-text-muted);
+  border-style: dashed;
+}
+.ui-score--large {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-lg);
+}
+
+.ui-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--tint);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}

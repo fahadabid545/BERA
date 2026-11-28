@@ -7,8 +7,13 @@ import {
   EmptyState,
   Checkbox,
   Input,
+  Avatar,
   Menu,
+  RESULT_WORDS,
+  ResultGlyph,
+  ScoreBadge,
   Select,
+  StageGlyph,
   Textarea,
   tintAt,
   TextLink,
@@ -235,6 +240,29 @@ export default function DesignSample() {
           <Tooltip content="Tooltip">
             <Button variant="secondary">Hover or focus me</Button>
           </Tooltip>
+        </div>
+        <div className="sample-row" style={{ marginTop: "var(--space-4)" }}>
+          {(Object.keys(RESULT_WORDS) as (keyof typeof RESULT_WORDS)[]).map((result) => (
+            <span key={result}>
+              <ResultGlyph result={result} /> {RESULT_WORDS[result]}
+            </span>
+          ))}
+          {(["new", "shortlisted", "interviewed", "on_hold", "selected", "rejected"] as const).map(
+            (stage) => (
+              <span key={stage}>
+                <StageGlyph stage={stage} /> {stage.replace("_", " ")}
+              </span>
+            ),
+          )}
+        </div>
+        <div className="sample-row" style={{ marginTop: "var(--space-4)" }}>
+          <ScoreBadge score={91} grade="A" />
+          <ScoreBadge score={64} grade="C" />
+          <ScoreBadge score={32} grade="E" large />
+          <ScoreBadge score={null} grade={null} />
+          <Avatar name="Ada Lovelace" position={0} />
+          <Avatar name="Grace Hopper" position={1} />
+          <Avatar name="Alan Turing" position={2} />
         </div>
       </section>
 

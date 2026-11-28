@@ -1,3 +1,4 @@
+export { Avatar, initialsOf } from "./Avatar";
 export { Button } from "./Button";
 export { ButtonLink } from "./ButtonLink";
 export { Card } from "./Card";
@@ -8,7 +9,12 @@ export { Input } from "./Input";
 export { Menu } from "./Menu";
 export type { MenuItem } from "./Menu";
 export { SegmentedControl } from "./SegmentedControl";
+export { ResultGlyph, RESULT_WORDS } from "./ResultGlyph";
+export type { Result } from "./ResultGlyph";
+export { ScoreBadge } from "./ScoreBadge";
 export { Select } from "./Select";
+export { StageGlyph } from "./StageGlyph";
+export type { StageName } from "./StageGlyph";
 export { Table } from "./Table";
 export { Tabs } from "./Tabs";
 export { TabLinks } from "./TabLinks";

@@ -86,7 +86,22 @@ const CONTROL_PAIRS = [
   ["color-admin-focus", "color-admin-bg"],
 ] as const;
 
+// The result and stage glyphs sit on panel surfaces: they must stay visible there (3:1).
+const GLYPH_PAIRS = [
+  ["color-warning-text", "color-surface"],
+  ["color-data-blue", "color-surface"],
+  ["color-data-violet", "color-surface"],
+  ["color-danger", "color-surface"],
+] as const;
+
 describe.each(Object.entries(MODES))("%s mode colours", (_mode, tokens) => {
+  it.each(GLYPH_PAIRS)(
+    "glyph colour %s against %s is clearly visible (3:1)",
+    (foreground, background) => {
+      expect(contrast(tokens[foreground], tokens[background])).toBeGreaterThanOrEqual(3);
+    },
+  );
+
   it("uses the brand colours", () => {
     expect(tokens["color-accent"]).toBe("#5bd62a");
     expect(tokens["color-on-accent"]).toBe("#0d100c");
